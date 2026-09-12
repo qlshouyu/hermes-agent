@@ -1,0 +1,827 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1789183166890,
+  "projectRoot": "/Users/egojit/workspace/hermes-agent",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": "^22.22.0 || ^24.11.0 || >=26.0.0",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "Python",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "pyproject.toml"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "fastapi",
+        "version": null,
+        "category": "backend"
+      },
+      {
+        "name": "pytest",
+        "version": null,
+        "category": "testing"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": "Node.js 22.22.0||24.11.0||26.0.0"
+  },
+  "build": {
+    "buildCommand": "S=/private/tmp/claude-501/-Users-egojit-workspace-hermes-agent/fa9694ec-e837-442f-a672-dea6bf202273/scratchpad\ncat > $S/startup.html <<'SEOF'\n<section id=\"startup\">\n  <div class=\"ghead\"><h2>启动命令与参数</h2><span class=\"gcount\">6 条入口</span></div>\n  <p class=\"gdesc\"><code>web_server.py</code> 自己不是可执行入口，它由 <code>hermes dashboard</code> 与 <code>hermes serve</code> 两个子命令共用的 <code>cmd_dashboard</code> / <code>start_server()</code> 拉起。二者共享同一个 FastAPI app，差别只在 <code>headless_backend</code> 这一个开关上。</p>\n\n  <div class=\"card\">\n    <h3>常用启动方式</h3>\n<pre class=\"sh\"><span class=\"c\"># 1. 本机 Web UI（构建并挂载 SPA，自动开浏览器）</span>\nhermes dashboard\n\n<span class=\"c\"># 2. 指定端口与地址；容器里常用这一组</span>\nhermes dashboard --host 0.0.0.0 --port 9119 --no-open\n\n<span class=\"c\"># 3. headless 后端：只有 JSON-RPC / WS / API，不构建也不挂载 SPA</span>\nhermes serve --host 127.0.0.1 --port 0\n\n<span class=\"c\"># 4. 指定 profile（-p/--profile 是顶层参数，必须写在子命令之前）</span>\nhermes --profile work dashboard\n\n<span class=\"c\"># 5. Electron 桌面端实际派生的命令</span>\npython -m hermes_cli.main serve --profile &lt;name&gt; --host 127.0.0.1 --port 0\n\n<span class=\"c\"># 6. 查看 / 停止正在监听的实例</span>\nhermes dashboard --status\nhermes dashboard --stop</pre>\n  </div>\n\n  <div class=\"call warn\">\n    <div class=\"ct\">不要直接用 uvicorn 起</div>\n    <p><code>hermes_cli/web_server.py:296</code> 的 <code>app</code> 虽然是模块级 FastAPI 对象，技术上能被 <code>uvicorn hermes_cli.web_server:app</code> 加载，但这样会跳过 <code>start_server()</code> 里的鉴权门禁初始化（<code>_configure_auth_gate</code>，<code>web_server.py:1405</code>）、端口冲突探测与 ready 文件写入。官方没有文档化这条路径。另外文件头注释里写的 <code>python -m hermes_cli.main web</code> 是过期文档——argparse 树里根本没有 <code>web</code> 子命令。</p>\n  </div>\n\n  <h3 style=\"font-size:15px;margin:26px 0 10px\">全局参数（写在子命令之前）</h3>\n  <table class=\"wide\"><thead><tr><th>参数</th><th>类型</th><th>默认值</th><th>说明</th><th>定义处</th></tr></thead><tbody>\n  <tr><td class=\"mono\">-p / --profile</td><td class=\"mono\">str</td><td class=\"mono\">~/.hermes/active_profile</td><td>在任何模块导入之前从 <code>sys.argv</code> 扫描并剥离，据此设置 <code>HERMES_HOME</code>，决定后端绑定哪个 profile。不是标准 argparse action，在 <code>--help</code> 的子命令树里看不到它。</td><td class=\"mono\">main.py:397</td></tr>\n  <tr><td class=\"mono\">--ignore-user-config</td><td class=\"mono\">flag</td><td class=\"mono\">False</td><td>放过损坏的 <code>config.yaml</code>。<code>serve</code> 属非交互场景，默认强制要求配置可解析，损坏时 <code>sys.exit(2)</code>；此开关是唯一的豁免。</td><td class=\"mono\">_parser.py:165</td></tr>\n  </tbody></table>\n\n  <h3 style=\"font-size:15px;margin:26px 0 10px\">dashboard 与 serve 共享的运行时参数</h3>\n  <table class=\"wide\"><thead><tr><th>参数</th><th>类型</th><th>默认值</th><th>说明</th><th>定义处</th></tr></thead><tbody>\n  <tr><td class=\"mono\">--port</td><td class=\"mono\">int</td><td class=\"mono\">9119</td><td>监听端口。<code>0</code> 表示交给内核分配临时端口，端口冲突预探测会跳过 <code>0</code>。</td><td class=\"mono\">dashboard.py:17</td></tr>\n  <tr><td class=\"mono\">--host</td><td class=\"mono\">str</td><td class=\"mono\">127.0.0.1</td><td>绑定地址。只要不在 <code>{localhost, 127.0.0.1, ::1}</code> 里就判定为「公开」，此时必须配好鉴权 provider，否则 <code>start_server</code> 直接 <code>SystemExit</code> 拒绝启动（RFC1918 内网地址同样算公开）。</td><td class=\"mono\">dashboard.py:19</td></tr>\n  <tr><td class=\"mono\">--insecure</td><td class=\"mono\">flag</td><td class=\"mono\">False</td><td><b>已废弃，无实际作用。</b>2026-06 加固后非回环绑定恒定要求鉴权，此标志只打印一条警告。</td><td class=\"mono\">dashboard.py:20</td></tr>\n  <tr><td class=\"mono\">--skip-build</td><td class=\"mono\">flag</td><td class=\"mono\">False</td><td>跳过 Web UI 构建，直接用现有 <code>dist</code>（CI / 无 npm 环境）。dist 缺失时会尝试一次恢复构建，仍失败则报错退出。</td><td class=\"mono\">dashboard.py:26</td></tr>\n  <tr><td class=\"mono\">--isolated</td><td class=\"mono\">flag</td><td class=\"mono\">False</td><td>命名 profile 启动时不路由到机器级的单一 dashboard，而是为该 profile 起一个独立服务。</td><td class=\"mono\">dashboard.py:31</td></tr>\n  <tr><td class=\"mono\">--stop</td><td class=\"mono\">flag</td><td class=\"mono\">False</td><td>扫描进程表找到所有 <code>hermes dashboard|serve</code> 进程并发 SIGTERM，然后退出。没有 PID 文件，靠进程表识别。</td><td class=\"mono\">dashboard.py:42</td></tr>\n  <tr><td class=\"mono\">--status</td><td class=\"mono\">flag</td><td class=\"mono\">False</td><td>列出正在监听的 dashboard / serve 进程后退出。</td><td class=\"mono\">dashboard.py:44</td></tr>\n  <tr><td class=\"mono\">--open-profile</td><td class=\"mono\">str</td><td class=\"mono\">\"\"</td><td><span class=\"kind k-dep\">内部</span> <code>argparse.SUPPRESS</code>，统一启动重执行（re-exec）时预选 profile 用，不应手动传。</td><td class=\"mono\">dashboard.py:37</td></tr>\n  </tbody></table>\n\n  <h3 style=\"font-size:15px;margin:26px 0 10px\">dashboard 独有参数</h3>\n  <table class=\"wide\"><thead><tr><th>参数</th><th>类型</th><th>默认值</th><th>说明</th><th>定义处</th></tr></thead><tbody>\n  <tr><td class=\"mono\">--no-open</td><td class=\"mono\">flag</td><td class=\"mono\">False</td><td>不自动打开浏览器。</td><td class=\"mono\">dashboard.py:84</td></tr>\n  <tr><td class=\"mono\">--tui</td><td class=\"mono\">flag</td><td class=\"mono\">False</td><td><span class=\"kind k-dep\">内部</span> 仅为兼容 ≤0.15.x 桌面端旧参数而接受并忽略——TUI 一直是内嵌开启的。</td><td class=\"mono\">dashboard.py:86</td></tr>\n  </tbody></table>\n  <p style=\"font-size:13px;color:var(--muted);margin-top:8px\"><code>hermes dashboard register</code> 是嵌套子命令，用于向 Nous Portal 注册 OAuth：<code>--name</code>（可读标签）、<code>--redirect-uri</code>（公网 HTTPS 回调）、<code>--portal-url</code>（覆盖 portal 基础 URL）。定义于 <code>dashboard.py:112-124</code>。</p>\n\n  <h3 style=\"font-size:15px;margin:26px 0 10px\">serve 独有参数</h3>\n  <table class=\"wide\"><thead><tr><th>参数</th><th>类型</th><th>默认值</th><th>说明</th><th>定义处</th></tr></thead><tbody>\n  <tr><td class=\"mono\">--ssh-session-token-file</td><td class=\"mono\">绝对路径</td><td class=\"mono\">None</td><td>读取桌面端 SSH 一次性 session token 文件。路径必须落在 <code>~/.hermes/desktop-ssh/</code> 下、内容为 64 位 hex、权限 0600、owner 匹配，读后即删。仅 headless 允许，<code>dashboard</code> 传了会 <code>SystemExit</code>。</td><td class=\"mono\">dashboard.py:53</td></tr>\n  <tr><td class=\"mono\">--ssh-owner-nonce</td><td class=\"mono\">16 位小写 hex</td><td class=\"mono\">None</td><td>标识由 Desktop 拥有的 SSH backend 进程，影响运行时隔离（<code>ssh_isolated</code>）。</td><td class=\"mono\">dashboard.py:56</td></tr>\n  <tr><td class=\"mono\">--no-open</td><td class=\"mono\">flag</td><td class=\"mono\">True（固定）</td><td><span class=\"kind k-dep\">内部</span> 接受但忽略。serve 恒定 headless，从不开浏览器；保留只为让旧调用方不因未知参数报错。</td><td class=\"mono\">dashboard.py:52</td></tr>\n  </tbody></table>\n\n  <h3 style=\"font-size:15px;margin:26px 0 10px\">dashboard 与 serve 的行为差异</h3>\n  <table class=\"wide\"><thead><tr><th>维度</th><th>hermes dashboard</th><th>hermes serve</th></tr></thead><tbody>\n  <tr><td>SPA 挂载</td><td>挂载完整 React SPA（含内嵌 TUI <code>/chat</code>）</td><td><code>HERMES_SERVE_HEADLESS=1</code> → 只有一个 <code>/{full_path}</code> 兜底，其余 404</td></tr>\n  <tr><td>Web UI 构建</td><td>默认执行 <code>npm run build</code></td><td>从不构建</td></tr>\n  <tr><td>自动开浏览器</td><td>默认开，<code>--no-open</code> 可关</td><td>从不开</td></tr>\n  <tr><td>Ready 哨兵</td><td><code>HERMES_DASHBOARD_READY port=N</code></td><td><code>HERMES_BACKEND_READY port=N</code></td></tr>\n  <tr><td>启动打印</td><td><code>Hermes Web UI → http://host:port</code></td><td><code>Hermes backend listening on host:port</code></td></tr>\n  <tr><td>进程注册身份</td><td><code>\"dashboard\"</code></td><td><code>\"serve\"</code></td></tr>\n  <tr><td>配置损坏时</td><td>可回退默认配置</td><td>非交互场景，强制要求可解析，否则 <code>sys.exit(2)</code></td></tr>\n  <tr><td>SSH 隔离参数</td><td>不可用（传了会退出）</td><td>支持</td></tr>\n  <tr><td>MCP 发现时机</td><td>准备运行时阶段立即开始</td><td><code>HERMES_DESKTOP=1</code> 时延迟到绑定后 1 秒，避免阻塞 ready 哨兵</td></tr>\n  </tbody></table>\n  <p style=\"font-size:13px;color:var(--muted);margin-top:8px\">Cron tick 不由 dashboard/serve 之分决定，而看 <code>HERMES_DESKTOP=1</code>：桌面场景下没有独立 gateway 进程，backend 自己起 <code>_start_desktop_cron_ticker</code> 线程（<code>web_server.py:194</code>）。</p>\n\n  <h3 style=\"font-size:15px;margin:26px 0 10px\">端口回报机制</h3>\n  <p style=\"font-size:13.5px;color:var(--ink-2)\"><code>--port 0</code> 时父进程需要知道内核实际分配了哪个端口。后端同时用三条通道回报（<code>web_server.py:1247-1276</code>）：</p>\n  <table class=\"wide\"><thead><tr><th>通道</th><th>触发条件</th><th>内容</th></tr></thead><tbody>\n  <tr><td>ready 文件</td><td>设了 <code>HERMES_DESKTOP_READY_FILE</code></td><td>原子写入 <code>{\"port\": N}</code>。Windows <code>pythonw.exe</code> 无控制台时靠它轮询。</td></tr>\n  <tr><td>fd 1 哨兵行</td><td>始终</td><td>写真实 fd 1 而非 <code>sys.stdout</code>（<code>tui_gateway.server</code> 会把 stdout 重定向到 stderr）。内容是 <code>HERMES_BACKEND_READY port=N</code> 或 <code>HERMES_DASHBOARD_READY port=N</code>。</td></tr>\n  <tr><td>人类可读行</td><td>始终</td><td>URL 或监听地址。</td></tr>\n  </tbody></table>\n  <p style=\"font-size:13px;color:var(--muted);margin-top:8px\">端口被占用时走 <code>_report_port_in_use</code>：写 <code>BACKEND_PORT_IN_USE port=N</code> 哨兵，然后 <code>sys.exit(75)</code>（BSD <code>EX_TEMPFAIL</code>），而不是让 uvicorn 抛裸 ERROR。实际端口从 uvicorn 已绑定的 socket 读取，避免「先探测再绑定」的 TOCTOU 竞态。</p>\n</section>\n\n<section id=\"env\">\n  <div class=\"ghead\"><h2>环境变量</h2></div>\n  <p class=\"gdesc\">影响这个后端行为的环境变量。注意 <code>.env</code> 按项目约定只放密钥，行为类配置应写 <code>config.yaml</code>。</p>\n  <table class=\"wide\"><thead><tr><th>变量</th><th>取值</th><th>说明</th><th>读取处</th></tr></thead><tbody>\n  <tr><td class=\"mono\">HERMES_SERVE_HEADLESS</td><td class=\"mono\">\"1\"</td><td><code>mount_spa()</code> 拒绝挂载 SPA。由 serve 自己设置；dashboard 启动时会主动清除它。</td><td class=\"mono\">web_server_dashboard.py:110</td></tr>\n  <tr><td class=\"mono\">HERMES_DESKTOP</td><td class=\"mono\">\"1\"</td><td>标记这是桌面端派生的 backend：启用桌面 cron ticker、孤儿 gateway 回收，也是 loopback 免鉴权判定的必要条件之一。</td><td class=\"mono\">web_server.py:199,270,498</td></tr>\n  <tr><td class=\"mono\">HERMES_DASHBOARD_SESSION_TOKEN</td><td class=\"mono\">str</td><td>桌面端为 backend 预置的 session token。设了就用它，否则随机生成 32 字节 urlsafe。</td><td class=\"mono\">web_server.py:307</td></tr>\n  <tr><td class=\"mono\">HERMES_DESKTOP_READY_FILE</td><td class=\"mono\">路径</td><td>把 <code>{\"port\": N}</code> 原子写入该路径，供无控制台场景轮询端口。</td><td class=\"mono\">web_server_lifecycle.py:205</td></tr>\n  <tr><td class=\"mono\">HERMES_PARENT_PID</td><td class=\"mono\">int</td><td>父进程（Electron 主进程）PID，驱动「父死即自杀」看门狗。</td><td class=\"mono\">web_server_lifecycle.py:319</td></tr>\n  <tr><td class=\"mono\">HERMES_PARENT_START_MARKER</td><td class=\"mono\">str</td><td>父进程启动时刻标识（Linux jiffies / Windows FILETIME / macOS <code>ps -o lstart=</code>），防 PID 复用误判。</td><td class=\"mono\">web_server_lifecycle.py:321</td></tr>\n  <tr><td class=\"mono\">HERMES_PARENT_NONCE</td><td class=\"mono\">str</td><td>每次派生的一次性 nonce。与 marker 必须同时出现或同时缺失，否则看门狗直接禁用。</td><td class=\"mono\">web_server_lifecycle.py:322</td></tr>\n  <tr><td class=\"mono\">HERMES_SERVE_WATCHDOG_POLL_S</td><td class=\"mono\">float，默认 2.0，下限 0.5</td><td>父进程死亡检测轮询间隔（秒）。</td><td class=\"mono\">web_server_lifecycle.py:346</td></tr>\n  <tr><td class=\"mono\">HERMES_WEB_DIST</td><td class=\"mono\">路径</td><td>覆盖内置 <code>web_dist</code> 目录。模块导入期直接读取，不做 <code>expanduser</code>。</td><td class=\"mono\">web_server.py:58</td></tr>\n  <tr><td class=\"mono\">HERMES_DASHBOARD_PUBLIC_URL</td><td class=\"mono\">URL</td><td>声明外部可访问地址。其 hostname 参与 Host/Origin 校验；非回环时即使绑定 127.0.0.1 也强制开启鉴权门。</td><td class=\"mono\">dashboard_auth/prefix.py:84</td></tr>\n  <tr><td class=\"mono\">HERMES_DASHBOARD_OAUTH_CLIENT_ID</td><td class=\"mono\">str</td><td>Nous Portal OAuth client id，由 <code>hermes dashboard register</code> 写入 <code>.env</code>。非空即认为存在 OAuth provider。</td><td class=\"mono\">config_defaults.py:958</td></tr>\n  <tr><td class=\"mono\">HERMES_DASHBOARD_PORTAL_URL</td><td class=\"mono\">URL</td><td>覆盖 Nous Portal 基础 URL。</td><td class=\"mono\">config_defaults.py:958</td></tr>\n  <tr><td class=\"mono\">HERMES_DASHBOARD_BASIC_AUTH_*</td><td class=\"mono\">str</td><td><code>USERNAME</code> / <code>PASSWORD_HASH</code> / <code>PASSWORD</code> / <code>SECRET</code> / <code>TTL_SECONDS</code>，非空时优先于 <code>config.yaml</code> 里的同名项。</td><td class=\"mono\">plugins/dashboard_auth/basic/</td></tr>\n  <tr><td class=\"mono\">HERMES_DASHBOARD_DRAIN_SECRET</td><td class=\"mono\">str</td><td>drain-control 鉴权密钥。弱密钥（&lt; 256 bit）会被拒绝。</td><td class=\"mono\">config_defaults.py:978</td></tr>\n  <tr><td class=\"mono\">GATEWAY_HEALTH_URL / _TIMEOUT</td><td class=\"mono\">URL / float</td><td>dashboard 探测 gateway 健康状态用的 URL 与超时（秒，上限 1.0）。</td><td class=\"mono\">web_server.py:785</td></tr>\n  <tr><td class=\"mono\">HERMES_DASHBOARD_HOST / _PORT</td><td class=\"mono\">str / int</td><td>仅 Docker：<code>s6-rc.d/dashboard/run</code> 用它们拼命令行，默认 <code>0.0.0.0</code> / <code>9119</code>。<code>HERMES_DASHBOARD</code> 开关决定该服务是否运行。</td><td class=\"mono\">docker/s6-rc.d/dashboard/run:29</td></tr>\n  </tbody></table>\n</section>\n\n<section id=\"config\">\n  <div class=\"ghead\"><h2>config.yaml 配置项</h2><span class=\"gcount\">dashboard.*</span></div>\n  <p class=\"gdesc\">默认值全部定义在 <code>hermes_cli/config_defaults.py:921-988</code>。</p>\n  <table class=\"wide\"><thead><tr><th>键</th><th>默认值</th><th>说明</th></tr></thead><tbody>\n  <tr><td class=\"mono\">dashboard.theme</td><td class=\"mono\">\"default\"</td><td>可选 default / midnight / ember / mono / cyberpunk / rose。</td></tr>\n  <tr><td class=\"mono\">dashboard.turn_isolation</td><td class=\"mono\">false</td><td>把工具执行移出事件循环，改到独立的 <code>tui_gateway.compute_host</code> 子进程。</td></tr>\n  <tr><td class=\"mono\">dashboard.compute_host_heartbeat_secs</td><td class=\"mono\">15</td><td>compute host 心跳间隔（秒）。</td></tr>\n  <tr><td class=\"mono\">dashboard.compute_host_respawn_max</td><td class=\"mono\">3</td><td>compute host 崩溃后的最大重启次数。</td></tr>\n  <tr><td class=\"mono\">dashboard.show_token_analytics</td><td class=\"mono\">false</td><td>是否展示 token / 成本面板。是本地下限估计，不是账单。</td></tr>\n  <tr><td class=\"mono\">dashboard.trusted_proxies</td><td class=\"mono\">[]</td><td>受信任反代 IP / CIDR。回环始终受信；通配符与 <code>/0</code> 会被拒绝。</td></tr>\n  <tr><td class=\"mono\">dashboard.ws_ping_interval</td><td class=\"mono\">20.0</td><td>非回环绑定时的 WS 保活 ping 间隔（秒）。回环恒关闭。</td></tr>\n  <tr><td class=\"mono\">dashboard.ws_ping_timeout</td><td class=\"mono\">20.0</td><td>WS ping 超时（秒）。</td></tr>\n  <tr><td class=\"mono\">dashboard.ws_orphan_reap_grace_s</td><td class=\"mono\">20.0</td><td>WS 孤立会话被中断回收前的宽限期，<code>0</code> = 永不回收。</td></tr>\n  <tr><td class=\"mono\">dashboard.ws_orphan_activity_stale_s</td><td class=\"mono\">600.0</td><td>已分离运行的 turn 空闲多久才判定为过期。</td></tr>\n  <tr><td class=\"mono\">dashboard.startup_orphan_sweep</td><td class=\"mono\">true</td><td>启动时清理孤儿 tui / desktop / subagent 会话行。</td></tr>\n  <tr><td class=\"mono\">dashboard.public_url</td><td class=\"mono\">\"\"</td><td>声明的完整公网地址。驱动 OAuth redirect_uri 与 Host/Origin 校验；非空且非回环即强制鉴权。</td></tr>\n  <tr><td class=\"mono\">dashboard.oauth.client_id / .portal_url</td><td class=\"mono\">\"\"</td><td>OAuth provider 配置，空即视为无 provider。</td></tr>\n  <tr><td class=\"mono\">dashboard.basic_auth.username</td><td class=\"mono\">\"\"</td><td>用户名密码鉴权的用户名，空 = 不启用。</td></tr>\n  <tr><td class=\"mono\">dashboard.basic_auth.password_hash</td><td class=\"mono\">\"\"</td><td>scrypt 哈希，推荐用这个而不是明文。</td></tr>\n  <tr><td class=\"mono\">dashboard.basic_auth.password</td><td class=\"mono\">\"\"</td><td>明文密码，会在内存中即时哈希。不建议持久化。</td></tr>\n  <tr><td class=\"mono\">dashboard.basic_auth.secret</td><td class=\"mono\">\"\"</td><td>会话签名密钥。空 = 每进程随机，重启即所有 session 失效，也不支持多 worker。</td></tr>\n  <tr><td class=\"mono\">dashboard.basic_auth.session_ttl_seconds</td><td class=\"mono\">0</td><td><code>0</code> → 插件默认 12 小时。</td></tr>\n  <tr><td class=\"mono\">dashboard.drain_auth.scope / .min_secret_chars</td><td class=\"mono\">\"drain\" / 43</td><td>drain-control 的权限域与最小密钥长度（约 256 bit）。</td></tr>\n  <tr><td class=\"mono\">dashboard.hidden_plugins</td><td class=\"mono\">[]</td><td>不在界面里展示的插件列表。</td></tr>\n  <tr><td class=\"mono\">dashboard.ssh_isolated_idle_grace_s</td><td class=\"mono\">回退常量</td><td>SSH 隔离 backend 空闲多久后自动退出。</td></tr>\n  </tbody></table>\n</section>\n\n<section id=\"auth\">\n  <div class=\"ghead\"><h2>鉴权</h2></div>\n  <p class=\"gdesc\">后端有两套并存的鉴权模式，由绑定地址与是否配了 provider 决定走哪一套。REST 与 WebSocket 的做法不同，这是最容易踩坑的地方。</p>\n\n  <div class=\"card\">\n    <h3>模式一：loopback token（默认）</h3>\n    <p style=\"font-size:13.5px;margin-bottom:10px\">进程启动即确定 <code>_SESSION_TOKEN</code>：优先取 <code>HERMES_DASHBOARD_SESSION_TOKEN</code>，否则 <code>secrets.token_urlsafe(32)</code> 随机生成（<code>web_server.py:307</code>）。进程存活期内固定，退出即失效。</p>\n    <table class=\"wide\"><thead><tr><th>通道</th><th>凭据传递方式</th></tr></thead><tbody>\n    <tr><td>REST</td><td>请求头 <code>X-Hermes-Session-Token</code>，或旧式 <code>Authorization: Bearer &lt;token&gt;</code>。常数时间比较。</td></tr>\n    <tr><td>下载类端点</td><td>额外允许 <code>?token=</code> 查询参数（如 <code>/api/files/download</code>）。</td></tr>\n    <tr><td>WebSocket</td><td>只能用 <code>?token=</code> 查询参数——浏览器无法为 WS 握手设置 Authorization 头。</td></tr>\n    <tr><td>SPA</td><td>不用手动填：<code>_serve_index</code> 把 <code>window.__HERMES_SESSION_TOKEN__</code> 内联进 index.html。</td></tr>\n    </tbody></table>\n    <p style=\"font-size:12.5px;color:var(--muted);margin:10px 0 0\">token 不会打印到终端，终端只打印 URL。浏览器加载页面时自动拿到它。</p>\n  </div>\n\n  <div class=\"card\">\n    <h3>模式二：gated（OAuth cookie / basic auth）</h3>\n    <p style=\"font-size:13.5px;margin-bottom:10px\">绑定非回环地址，或设了 <code>dashboard.public_url</code>，就切到这一套。此时 loopback 的 <code>_SESSION_TOKEN</code> 校验被整体跳过，避免两套逻辑打架。</p>\n    <table class=\"wide\"><thead><tr><th>通道</th><th>凭据传递方式</th></tr></thead><tbody>\n    <tr><td>REST</td><td>cookie session，或 RFC 8252 native bearer token。未通过时 API 路径返回 401 JSON，HTML 路径 302 跳 <code>/login</code>。</td></tr>\n    <tr><td>WebSocket</td><td>短时 <code>?ticket=</code>（30 秒 TTL、一次性，由 <code>POST /api/auth/ws-ticket</code> 铸造），或 <code>?internal=</code>（进程生命周期内可重用，只发给服务端自己派生的 WS 客户端，从不下发给 SPA）。</td></tr>\n    <tr><td>WebSocket 的 <code>?token=</code></td><td><b>被拒绝。</b>防止泄露的 <code>_SESSION_TOKEN</code> 在 gated 模式下越权访问网关。</td></tr>\n    </tbody></table>\n  </div>\n\n  <div class=\"call warn\">\n    <div class=\"ct\">fail-closed</div>\n    <p>只要 <code>--host</code> 不在 <code>{localhost, 127.0.0.1, ::1}</code> 里就判定为公开（RFC1918 内网、CGNAT、link-local 一律算公开——局域网设备在威胁模型里是不可信的）。此时若一个鉴权 provider 都没配好，<code>start_server</code> 直接 <code>SystemExit</code> 拒绝启动，并在报错里说明触发原因与修复办法（配 <code>dashboard.basic_auth.*</code> 或跑 <code>hermes dashboard register</code>）。非 headless 且有 TTY 时，会先弹一个交互式向导让你当场选。</p>\n  </div>\n\n  <div class=\"card\">\n    <h3>免鉴权白名单</h3>\n    <p style=\"font-size:13.5px;margin-bottom:10px\">下列路径两套鉴权门都放行（<code>hermes_cli/dashboard_auth/public_paths.py</code>）。这份清单被两个中间件共用，就是为了防止两边漂移——曾经漂移过一次，导致 <code>/api/status</code> 被 401，打断了 portal 的无 cookie 存活探针。</p>\n    <p style=\"font-size:13px\"><code>/api/health</code> <code>/api/status</code> <code>/api/config/defaults</code> <code>/api/config/schema</code> <code>/api/model/info</code> <code>/api/dashboard/themes</code> <code>/api/dashboard/plugins</code> <code>/api/cron/fire</code></p>\n    <p style=\"font-size:12.5px;color:var(--muted);margin:10px 0 0\"><code>/api/cron/fire</code> 是特例：它不走 cookie 门，但自带 NAS 签发的短时 JWT（<code>purpose=cron_fire</code>）并由处理函数校验——安全边界是那个 JWT，不是这份白名单。</p>\n  </div>\n\n  <div class=\"card\">\n    <h3>WebSocket 的额外校验</h3>\n    <p style=\"font-size:13.5px;margin:0\">WS upgrade 不经过 HTTP 中间件，所以 Host / Origin 的 DNS-rebinding 防护要在 WS 路由里单独实现（<code>web_server_chat.py:137-199</code>）。回环模式下还会校验对端 IP；非回环或 gated 模式放行任意对端，因为门槛已经在别处了。</p>\n  </div>\n</section>\nSEOF\necho \"startup section: $(wc -c < $S/startup.html) bytes\"",
+    "testCommand": "pytest",
+    "lintCommand": "ruff check",
+    "devCommand": null,
+    "scripts": {
+      "postinstall": "echo '✅ Node dependencies installed. Run: python run_agent.py --help'",
+      "install:root": "npm install --workspaces=false",
+      "install:web": "npm install --workspace web",
+      "install:tui": "npm install --workspace ui-tui",
+      "install:desktop": "npm install --workspace apps/desktop",
+      "audit:root": "npm audit --workspaces=false",
+      "audit:web": "npm audit --workspace web",
+      "audit:tui": "npm audit --workspace ui-tui",
+      "audit:fix:root": "npm audit fix --workspaces=false",
+      "audit:fix:web": "npm audit fix --workspace web",
+      "audit:fix:tui": "npm audit fix --workspace ui-tui",
+      "check": "npm run --ws check",
+      "fix": "npm run --ws fix"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": true,
+    "workspaces": [
+      "apps/*",
+      "ui-tui",
+      "ui-tui/packages/*",
+      "web",
+      "tests-js"
+    ],
+    "mainDirectories": [
+      "assets",
+      "docs",
+      "scripts",
+      "tests"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "acp_adapter": {
+      "path": "acp_adapter",
+      "purpose": null,
+      "fileCount": 14,
+      "lastAccessed": 1789183166855,
+      "keyFiles": [
+        "__init__.py",
+        "__main__.py",
+        "auth.py",
+        "commands.py",
+        "content.py"
+      ]
+    },
+    "agent": {
+      "path": "agent",
+      "purpose": null,
+      "fileCount": 219,
+      "lastAccessed": 1789183166863,
+      "keyFiles": [
+        "AGENTS.md",
+        "__init__.py",
+        "account_usage.py",
+        "acp_openai_bridge.py",
+        "activity_tracking.py"
+      ]
+    },
+    "apps": {
+      "path": "apps",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1789183166863,
+      "keyFiles": []
+    },
+    "assets": {
+      "path": "assets",
+      "purpose": "Static assets",
+      "fileCount": 1,
+      "lastAccessed": 1789183166864,
+      "keyFiles": [
+        "banner.png"
+      ]
+    },
+    "contributors": {
+      "path": "contributors",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1789183166864,
+      "keyFiles": [
+        "README.md"
+      ]
+    },
+    "cron": {
+      "path": "cron",
+      "purpose": null,
+      "fileCount": 22,
+      "lastAccessed": 1789183166865,
+      "keyFiles": [
+        "AGENTS.md",
+        "__init__.py",
+        "blueprint_catalog.py",
+        "delivery_queue.py",
+        "executions.py"
+      ]
+    },
+    "datagen-config-examples": {
+      "path": "datagen-config-examples",
+      "purpose": null,
+      "fileCount": 4,
+      "lastAccessed": 1789183166866,
+      "keyFiles": [
+        "example_browser_tasks.jsonl",
+        "run_browser_tasks.sh",
+        "trajectory_compression.yaml",
+        "web_research.yaml"
+      ]
+    },
+    "docker": {
+      "path": "docker",
+      "purpose": null,
+      "fileCount": 7,
+      "lastAccessed": 1789183166867,
+      "keyFiles": [
+        "SOUL.md",
+        "entrypoint-dispatch.sh",
+        "entrypoint.sh",
+        "hermes-exec-shim.sh",
+        "main-wrapper.sh"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 12,
+      "lastAccessed": 1789183166868,
+      "keyFiles": [
+        "ADR.md",
+        "billing-lifecycle.md",
+        "chronos-managed-cron-contract.md",
+        "cron-doctor-spec.md",
+        "hermes-kanban-v1-spec.pdf"
+      ]
+    },
+    "evals": {
+      "path": "evals",
+      "purpose": null,
+      "fileCount": 35,
+      "lastAccessed": 1789183166870,
+      "keyFiles": [
+        "__init__.py",
+        "acp_empty_session_wire.py",
+        "anthropic_proxy_thinking_replay.py",
+        "api_delegation_http_probe.py",
+        "api_delegation_sync_probe.py"
+      ]
+    },
+    "gateway": {
+      "path": "gateway",
+      "purpose": null,
+      "fileCount": 107,
+      "lastAccessed": 1789183166871,
+      "keyFiles": [
+        "AGENTS.md",
+        "__init__.py",
+        "agent_cache_pressure.py",
+        "authz_mixin.py",
+        "bot_loop_guard.py"
+      ]
+    },
+    "hermes_cli": {
+      "path": "hermes_cli",
+      "purpose": null,
+      "fileCount": 348,
+      "lastAccessed": 1789183166872,
+      "keyFiles": [
+        "AGENTS.md",
+        "__init__.py",
+        "_early_recovery.py",
+        "_install_repair.py",
+        "_parser.py"
+      ]
+    },
+    "locales": {
+      "path": "locales",
+      "purpose": null,
+      "fileCount": 17,
+      "lastAccessed": 1789183166873,
+      "keyFiles": [
+        "af.yaml",
+        "ar.yaml",
+        "de.yaml",
+        "en.yaml",
+        "es.yaml"
+      ]
+    },
+    "mcp-research-data": {
+      "path": "mcp-research-data",
+      "purpose": null,
+      "fileCount": 5,
+      "lastAccessed": 1789183166873,
+      "keyFiles": [
+        "ue_bench_rows.json",
+        "ue_bench_summary.json",
+        "ue_discovery_rows.json",
+        "ue_hard_haiku_rows.json",
+        "ue_hard_rows.json"
+      ]
+    },
+    "native": {
+      "path": "native",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1789183166873,
+      "keyFiles": []
+    },
+    "nix": {
+      "path": "nix",
+      "purpose": null,
+      "fileCount": 18,
+      "lastAccessed": 1789183166874,
+      "keyFiles": [
+        "checks.nix",
+        "configMergeScript.nix",
+        "desktop.nix",
+        "devShell.nix",
+        "hermes-agent.nix"
+      ]
+    },
+    "optional-mcps": {
+      "path": "optional-mcps",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1789183166874,
+      "keyFiles": []
+    },
+    "optional-skills": {
+      "path": "optional-skills",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1789183166874,
+      "keyFiles": [
+        "DESCRIPTION.md"
+      ]
+    },
+    "plugin-catalog": {
+      "path": "plugin-catalog",
+      "purpose": null,
+      "fileCount": 11,
+      "lastAccessed": 1789183166875,
+      "keyFiles": [
+        "README.md",
+        "herdr-auto-reconcile.yaml",
+        "hermes-plugin-chrome-profiles.yaml",
+        "hermes-plugin-netbox.yaml",
+        "hermes-rustpush-imessage.yaml"
+      ]
+    },
+    "plugins": {
+      "path": "plugins",
+      "purpose": null,
+      "fileCount": 5,
+      "lastAccessed": 1789183166875,
+      "keyFiles": [
+        "AGENTS.md",
+        "__init__.py",
+        "plugin_loader.py",
+        "plugin_storage.py",
+        "plugin_utils.py"
+      ]
+    },
+    "providers": {
+      "path": "providers",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1789183166875,
+      "keyFiles": [
+        "README.md",
+        "__init__.py",
+        "base.py"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 46,
+      "lastAccessed": 1789183166876,
+      "keyFiles": [
+        "LIVETEST_README.md",
+        "aa_quality_sync.py",
+        "add_contributor.py",
+        "analyze_livetest.py",
+        "audit_pr_attribution.py"
+      ]
+    },
+    "skills": {
+      "path": "skills",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1789183166876,
+      "keyFiles": [
+        "AGENTS.md"
+      ]
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 239,
+      "lastAccessed": 1789183166877,
+      "keyFiles": [
+        "__init__.py",
+        "conftest.py",
+        "install_ps1_fake_uv.py",
+        "run_interrupt_test.py",
+        "test_89315_replace_ownership_guard.py"
+      ]
+    },
+    "tests-js": {
+      "path": "tests-js",
+      "purpose": null,
+      "fileCount": 15,
+      "lastAccessed": 1789183166877,
+      "keyFiles": [
+        "allow-scripts-sync.test.ts",
+        "assistant-ui-tap-compat.test.ts",
+        "bootstrap-installer-stage-timer.test.ts",
+        "desktop-mac-entitlements.test.ts",
+        "desktop-mac-usage-descriptions.test.ts"
+      ]
+    },
+    "tools": {
+      "path": "tools",
+      "purpose": null,
+      "fileCount": 257,
+      "lastAccessed": 1789183166878,
+      "keyFiles": [
+        "AGENTS.md",
+        "__init__.py",
+        "annotate_preview_tool.py",
+        "ansi_strip.py",
+        "apply_layout_tool.py"
+      ]
+    },
+    "tui_gateway": {
+      "path": "tui_gateway",
+      "purpose": null,
+      "fileCount": 69,
+      "lastAccessed": 1789183166879,
+      "keyFiles": [
+        "AGENTS.md",
+        "__init__.py",
+        "_env.py",
+        "_stdin_recovery.py",
+        "agent_callbacks.py"
+      ]
+    },
+    "ui-tui": {
+      "path": "ui-tui",
+      "purpose": null,
+      "fileCount": 7,
+      "lastAccessed": 1789183166879,
+      "keyFiles": [
+        "README.md",
+        "eslint.config.mjs",
+        "package.json",
+        "tsconfig.build.json",
+        "tsconfig.json"
+      ]
+    },
+    "web": {
+      "path": "web",
+      "purpose": null,
+      "fileCount": 10,
+      "lastAccessed": 1789183166880,
+      "keyFiles": [
+        "AGENTS.md",
+        "README.md",
+        "eslint.config.js",
+        "index.html",
+        "package.json"
+      ]
+    },
+    "website": {
+      "path": "website",
+      "purpose": null,
+      "fileCount": 8,
+      "lastAccessed": 1789183166880,
+      "keyFiles": [
+        "README.md",
+        "docusaurus.config.ts",
+        "package-lock.json",
+        "package.json",
+        "sidebars.ts"
+      ]
+    },
+    "docs/middleware": {
+      "path": "docs/middleware",
+      "purpose": "Middleware",
+      "fileCount": 1,
+      "lastAccessed": 1789183166882,
+      "keyFiles": [
+        "README.md"
+      ]
+    },
+    "gateway/assets": {
+      "path": "gateway/assets",
+      "purpose": "Static assets",
+      "fileCount": 2,
+      "lastAccessed": 1789183166882,
+      "keyFiles": [
+        "status_phrases.yaml",
+        "telegram-botfather-threads-settings.jpg"
+      ]
+    },
+    "ui-tui/scripts": {
+      "path": "ui-tui/scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 5,
+      "lastAccessed": 1789183166885,
+      "keyFiles": [
+        "bench-history-scroll.tsx",
+        "bench-streaming-md.tsx",
+        "billing-fixtures.tsx"
+      ]
+    },
+    "ui-tui/src": {
+      "path": "ui-tui/src",
+      "purpose": "Source code",
+      "fileCount": 7,
+      "lastAccessed": 1789183166885,
+      "keyFiles": [
+        "app.tsx",
+        "banner.ts",
+        "entry.tsx"
+      ]
+    },
+    "web/public": {
+      "path": "web/public",
+      "purpose": "Public files",
+      "fileCount": 1,
+      "lastAccessed": 1789183166886,
+      "keyFiles": [
+        "favicon.ico"
+      ]
+    },
+    "web/src": {
+      "path": "web/src",
+      "purpose": "Source code",
+      "fileCount": 3,
+      "lastAccessed": 1789183166886,
+      "keyFiles": [
+        "App.tsx",
+        "index.css",
+        "main.tsx"
+      ]
+    },
+    "website/docs": {
+      "path": "website/docs",
+      "purpose": "Documentation",
+      "fileCount": 2,
+      "lastAccessed": 1789183166886,
+      "keyFiles": [
+        "index.mdx",
+        "user-stories.mdx"
+      ]
+    },
+    "website/scripts": {
+      "path": "website/scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 6,
+      "lastAccessed": 1789183166886,
+      "keyFiles": [
+        "extract-automation-blueprints.py",
+        "extract-plugins.py",
+        "extract-skills.py"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "hermes_cli/web_server.py",
+      "accessCount": 7,
+      "lastAccessed": 1789194732887,
+      "type": "file"
+    },
+    {
+      "path": "apps/desktop/electron/main.ts",
+      "accessCount": 7,
+      "lastAccessed": 1789198736705,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_git.py",
+      "accessCount": 5,
+      "lastAccessed": 1789196038178,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/messaging.py",
+      "accessCount": 4,
+      "lastAccessed": 1789196049204,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/gateway.py",
+      "accessCount": 3,
+      "lastAccessed": 1789183584830,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/main.py",
+      "accessCount": 3,
+      "lastAccessed": 1789194773382,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_server_chat.py",
+      "accessCount": 3,
+      "lastAccessed": 1789196049872,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_server_dashboard.py",
+      "accessCount": 3,
+      "lastAccessed": 1789196053813,
+      "type": "file"
+    },
+    {
+      "path": "ui-tui/src/gatewayClient.ts",
+      "accessCount": 2,
+      "lastAccessed": 1789183335383,
+      "type": "file"
+    },
+    {
+      "path": "tui_gateway/host_supervisor.py",
+      "accessCount": 2,
+      "lastAccessed": 1789183350276,
+      "type": "file"
+    },
+    {
+      "path": "gateway/run.py",
+      "accessCount": 2,
+      "lastAccessed": 1789183400394,
+      "type": "file"
+    },
+    {
+      "path": "docs/hermes-architecture.drawio",
+      "accessCount": 2,
+      "lastAccessed": 1789193050460,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/config_defaults.py",
+      "accessCount": 2,
+      "lastAccessed": 1789194846059,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/chat_ws.py",
+      "accessCount": 2,
+      "lastAccessed": 1789196041262,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/main_tui_launch.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183319107,
+      "type": "file"
+    },
+    {
+      "path": "tui_gateway/slash_worker.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183430065,
+      "type": "file"
+    },
+    {
+      "path": "tools/mcp_tool.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183440288,
+      "type": "file"
+    },
+    {
+      "path": "tools/code_kernel.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183450691,
+      "type": "file"
+    },
+    {
+      "path": "tools/process_registry.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183456302,
+      "type": "file"
+    },
+    {
+      "path": "tools/browser_tool_session.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183466055,
+      "type": "file"
+    },
+    {
+      "path": "hermes_startup_watchdog.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183480214,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/local_runtime/supervisor.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183552813,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/subcommands/dashboard.py",
+      "accessCount": 1,
+      "lastAccessed": 1789194692050,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/main_dashboard.py",
+      "accessCount": 1,
+      "lastAccessed": 1789194692810,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_server_lifecycle.py",
+      "accessCount": 1,
+      "lastAccessed": 1789194743604,
+      "type": "file"
+    },
+    {
+      "path": "web/AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1789194810287,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/dashboard_auth/middleware.py",
+      "accessCount": 1,
+      "lastAccessed": 1789194866130,
+      "type": "file"
+    },
+    {
+      "path": "tools/lazy_deps.py",
+      "accessCount": 1,
+      "lastAccessed": 1789194913286,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/actions.py",
+      "accessCount": 1,
+      "lastAccessed": 1789195922760,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/ops.py",
+      "accessCount": 1,
+      "lastAccessed": 1789195922946,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/git.py",
+      "accessCount": 1,
+      "lastAccessed": 1789195934220,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/files.py",
+      "accessCount": 1,
+      "lastAccessed": 1789195934847,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_models.py",
+      "accessCount": 1,
+      "lastAccessed": 1789195943850,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/profiles.py",
+      "accessCount": 1,
+      "lastAccessed": 1789195950162,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/status.py",
+      "accessCount": 1,
+      "lastAccessed": 1789195962485,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/sessions.py",
+      "accessCount": 1,
+      "lastAccessed": 1789195963074,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_server_files.py",
+      "accessCount": 1,
+      "lastAccessed": 1789195963254,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/dashboard_ui.py",
+      "accessCount": 1,
+      "lastAccessed": 1789195969984,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/analytics.py",
+      "accessCount": 1,
+      "lastAccessed": 1789195974516,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/models.py",
+      "accessCount": 1,
+      "lastAccessed": 1789195989550,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/local_models.py",
+      "accessCount": 1,
+      "lastAccessed": 1789195989668,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/config_env.py",
+      "accessCount": 1,
+      "lastAccessed": 1789195991185,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/cron.py",
+      "accessCount": 1,
+      "lastAccessed": 1789196003307,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_server_cron.py",
+      "accessCount": 1,
+      "lastAccessed": 1789196015172,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/mcp.py",
+      "accessCount": 1,
+      "lastAccessed": 1789196018532,
+      "type": "file"
+    },
+    {
+      "path": "cron/jobs.py",
+      "accessCount": 1,
+      "lastAccessed": 1789196023562,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/dashboard_auth/routes.py",
+      "accessCount": 1,
+      "lastAccessed": 1789196035266,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/oauth.py",
+      "accessCount": 1,
+      "lastAccessed": 1789196036299,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/skills.py",
+      "accessCount": 1,
+      "lastAccessed": 1789196039877,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_routers/audio.py",
+      "accessCount": 1,
+      "lastAccessed": 1789196057958,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}
