@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "entries": {
+    "79a93d4a2f8f50b95f852280616242fee1855dc99a3c75211917f55e72e95fae": {
+      "last_emitted_at_ms": 1789183552003,
+      "message": "Use parallel execution for independent tasks. Use run_in_background for long operations (npm install, builds, tests)."
+    },
+    "466399dafa2d20f60587180bad0a07358eb7f2bce724df0ff682f038ad33f5ad": {
+      "last_emitted_at_ms": 1789183318690,
+      "message": "Read multiple files in parallel when possible for faster analysis."
+    },
+    "59b0c04847995301c21b328133ae299c32dcf1ce779ef95c723772299ed431d7": {
+      "last_emitted_at_ms": 1789183308414,
+      "message": "Spawning agent: Explore (sonnet) | Task: Map runtime module layering"
+    },
+    "edd7099a51f81d9a570af9b6e8f76f3572592553429ec1b94393521384f95ee6": {
+      "last_emitted_at_ms": 1789183298722,
+      "message": "Spawning agent: Explore (sonnet) | Task: Map process spawn topology"
+    }
+  },
+  "updated_at": "2026-09-12T03:25:52.003Z"
+}
