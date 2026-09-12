@@ -1,0 +1,611 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1789183166890,
+  "projectRoot": "/Users/egojit/workspace/hermes-agent",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": "^22.22.0 || ^24.11.0 || >=26.0.0",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "Python",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "pyproject.toml"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "fastapi",
+        "version": null,
+        "category": "backend"
+      },
+      {
+        "name": "pytest",
+        "version": null,
+        "category": "testing"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": "Node.js 22.22.0||24.11.0||26.0.0"
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": "pytest",
+    "lintCommand": "ruff check",
+    "devCommand": null,
+    "scripts": {
+      "postinstall": "echo '✅ Node dependencies installed. Run: python run_agent.py --help'",
+      "install:root": "npm install --workspaces=false",
+      "install:web": "npm install --workspace web",
+      "install:tui": "npm install --workspace ui-tui",
+      "install:desktop": "npm install --workspace apps/desktop",
+      "audit:root": "npm audit --workspaces=false",
+      "audit:web": "npm audit --workspace web",
+      "audit:tui": "npm audit --workspace ui-tui",
+      "audit:fix:root": "npm audit fix --workspaces=false",
+      "audit:fix:web": "npm audit fix --workspace web",
+      "audit:fix:tui": "npm audit fix --workspace ui-tui",
+      "check": "npm run --ws check",
+      "fix": "npm run --ws fix"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": true,
+    "workspaces": [
+      "apps/*",
+      "ui-tui",
+      "ui-tui/packages/*",
+      "web",
+      "tests-js"
+    ],
+    "mainDirectories": [
+      "assets",
+      "docs",
+      "scripts",
+      "tests"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "acp_adapter": {
+      "path": "acp_adapter",
+      "purpose": null,
+      "fileCount": 14,
+      "lastAccessed": 1789183166855,
+      "keyFiles": [
+        "__init__.py",
+        "__main__.py",
+        "auth.py",
+        "commands.py",
+        "content.py"
+      ]
+    },
+    "agent": {
+      "path": "agent",
+      "purpose": null,
+      "fileCount": 219,
+      "lastAccessed": 1789183166863,
+      "keyFiles": [
+        "AGENTS.md",
+        "__init__.py",
+        "account_usage.py",
+        "acp_openai_bridge.py",
+        "activity_tracking.py"
+      ]
+    },
+    "apps": {
+      "path": "apps",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1789183166863,
+      "keyFiles": []
+    },
+    "assets": {
+      "path": "assets",
+      "purpose": "Static assets",
+      "fileCount": 1,
+      "lastAccessed": 1789183166864,
+      "keyFiles": [
+        "banner.png"
+      ]
+    },
+    "contributors": {
+      "path": "contributors",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1789183166864,
+      "keyFiles": [
+        "README.md"
+      ]
+    },
+    "cron": {
+      "path": "cron",
+      "purpose": null,
+      "fileCount": 22,
+      "lastAccessed": 1789183166865,
+      "keyFiles": [
+        "AGENTS.md",
+        "__init__.py",
+        "blueprint_catalog.py",
+        "delivery_queue.py",
+        "executions.py"
+      ]
+    },
+    "datagen-config-examples": {
+      "path": "datagen-config-examples",
+      "purpose": null,
+      "fileCount": 4,
+      "lastAccessed": 1789183166866,
+      "keyFiles": [
+        "example_browser_tasks.jsonl",
+        "run_browser_tasks.sh",
+        "trajectory_compression.yaml",
+        "web_research.yaml"
+      ]
+    },
+    "docker": {
+      "path": "docker",
+      "purpose": null,
+      "fileCount": 7,
+      "lastAccessed": 1789183166867,
+      "keyFiles": [
+        "SOUL.md",
+        "entrypoint-dispatch.sh",
+        "entrypoint.sh",
+        "hermes-exec-shim.sh",
+        "main-wrapper.sh"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 12,
+      "lastAccessed": 1789183166868,
+      "keyFiles": [
+        "ADR.md",
+        "billing-lifecycle.md",
+        "chronos-managed-cron-contract.md",
+        "cron-doctor-spec.md",
+        "hermes-kanban-v1-spec.pdf"
+      ]
+    },
+    "evals": {
+      "path": "evals",
+      "purpose": null,
+      "fileCount": 35,
+      "lastAccessed": 1789183166870,
+      "keyFiles": [
+        "__init__.py",
+        "acp_empty_session_wire.py",
+        "anthropic_proxy_thinking_replay.py",
+        "api_delegation_http_probe.py",
+        "api_delegation_sync_probe.py"
+      ]
+    },
+    "gateway": {
+      "path": "gateway",
+      "purpose": null,
+      "fileCount": 107,
+      "lastAccessed": 1789183166871,
+      "keyFiles": [
+        "AGENTS.md",
+        "__init__.py",
+        "agent_cache_pressure.py",
+        "authz_mixin.py",
+        "bot_loop_guard.py"
+      ]
+    },
+    "hermes_cli": {
+      "path": "hermes_cli",
+      "purpose": null,
+      "fileCount": 348,
+      "lastAccessed": 1789183166872,
+      "keyFiles": [
+        "AGENTS.md",
+        "__init__.py",
+        "_early_recovery.py",
+        "_install_repair.py",
+        "_parser.py"
+      ]
+    },
+    "locales": {
+      "path": "locales",
+      "purpose": null,
+      "fileCount": 17,
+      "lastAccessed": 1789183166873,
+      "keyFiles": [
+        "af.yaml",
+        "ar.yaml",
+        "de.yaml",
+        "en.yaml",
+        "es.yaml"
+      ]
+    },
+    "mcp-research-data": {
+      "path": "mcp-research-data",
+      "purpose": null,
+      "fileCount": 5,
+      "lastAccessed": 1789183166873,
+      "keyFiles": [
+        "ue_bench_rows.json",
+        "ue_bench_summary.json",
+        "ue_discovery_rows.json",
+        "ue_hard_haiku_rows.json",
+        "ue_hard_rows.json"
+      ]
+    },
+    "native": {
+      "path": "native",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1789183166873,
+      "keyFiles": []
+    },
+    "nix": {
+      "path": "nix",
+      "purpose": null,
+      "fileCount": 18,
+      "lastAccessed": 1789183166874,
+      "keyFiles": [
+        "checks.nix",
+        "configMergeScript.nix",
+        "desktop.nix",
+        "devShell.nix",
+        "hermes-agent.nix"
+      ]
+    },
+    "optional-mcps": {
+      "path": "optional-mcps",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1789183166874,
+      "keyFiles": []
+    },
+    "optional-skills": {
+      "path": "optional-skills",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1789183166874,
+      "keyFiles": [
+        "DESCRIPTION.md"
+      ]
+    },
+    "plugin-catalog": {
+      "path": "plugin-catalog",
+      "purpose": null,
+      "fileCount": 11,
+      "lastAccessed": 1789183166875,
+      "keyFiles": [
+        "README.md",
+        "herdr-auto-reconcile.yaml",
+        "hermes-plugin-chrome-profiles.yaml",
+        "hermes-plugin-netbox.yaml",
+        "hermes-rustpush-imessage.yaml"
+      ]
+    },
+    "plugins": {
+      "path": "plugins",
+      "purpose": null,
+      "fileCount": 5,
+      "lastAccessed": 1789183166875,
+      "keyFiles": [
+        "AGENTS.md",
+        "__init__.py",
+        "plugin_loader.py",
+        "plugin_storage.py",
+        "plugin_utils.py"
+      ]
+    },
+    "providers": {
+      "path": "providers",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1789183166875,
+      "keyFiles": [
+        "README.md",
+        "__init__.py",
+        "base.py"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 46,
+      "lastAccessed": 1789183166876,
+      "keyFiles": [
+        "LIVETEST_README.md",
+        "aa_quality_sync.py",
+        "add_contributor.py",
+        "analyze_livetest.py",
+        "audit_pr_attribution.py"
+      ]
+    },
+    "skills": {
+      "path": "skills",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1789183166876,
+      "keyFiles": [
+        "AGENTS.md"
+      ]
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 239,
+      "lastAccessed": 1789183166877,
+      "keyFiles": [
+        "__init__.py",
+        "conftest.py",
+        "install_ps1_fake_uv.py",
+        "run_interrupt_test.py",
+        "test_89315_replace_ownership_guard.py"
+      ]
+    },
+    "tests-js": {
+      "path": "tests-js",
+      "purpose": null,
+      "fileCount": 15,
+      "lastAccessed": 1789183166877,
+      "keyFiles": [
+        "allow-scripts-sync.test.ts",
+        "assistant-ui-tap-compat.test.ts",
+        "bootstrap-installer-stage-timer.test.ts",
+        "desktop-mac-entitlements.test.ts",
+        "desktop-mac-usage-descriptions.test.ts"
+      ]
+    },
+    "tools": {
+      "path": "tools",
+      "purpose": null,
+      "fileCount": 257,
+      "lastAccessed": 1789183166878,
+      "keyFiles": [
+        "AGENTS.md",
+        "__init__.py",
+        "annotate_preview_tool.py",
+        "ansi_strip.py",
+        "apply_layout_tool.py"
+      ]
+    },
+    "tui_gateway": {
+      "path": "tui_gateway",
+      "purpose": null,
+      "fileCount": 69,
+      "lastAccessed": 1789183166879,
+      "keyFiles": [
+        "AGENTS.md",
+        "__init__.py",
+        "_env.py",
+        "_stdin_recovery.py",
+        "agent_callbacks.py"
+      ]
+    },
+    "ui-tui": {
+      "path": "ui-tui",
+      "purpose": null,
+      "fileCount": 7,
+      "lastAccessed": 1789183166879,
+      "keyFiles": [
+        "README.md",
+        "eslint.config.mjs",
+        "package.json",
+        "tsconfig.build.json",
+        "tsconfig.json"
+      ]
+    },
+    "web": {
+      "path": "web",
+      "purpose": null,
+      "fileCount": 10,
+      "lastAccessed": 1789183166880,
+      "keyFiles": [
+        "AGENTS.md",
+        "README.md",
+        "eslint.config.js",
+        "index.html",
+        "package.json"
+      ]
+    },
+    "website": {
+      "path": "website",
+      "purpose": null,
+      "fileCount": 8,
+      "lastAccessed": 1789183166880,
+      "keyFiles": [
+        "README.md",
+        "docusaurus.config.ts",
+        "package-lock.json",
+        "package.json",
+        "sidebars.ts"
+      ]
+    },
+    "docs/middleware": {
+      "path": "docs/middleware",
+      "purpose": "Middleware",
+      "fileCount": 1,
+      "lastAccessed": 1789183166882,
+      "keyFiles": [
+        "README.md"
+      ]
+    },
+    "gateway/assets": {
+      "path": "gateway/assets",
+      "purpose": "Static assets",
+      "fileCount": 2,
+      "lastAccessed": 1789183166882,
+      "keyFiles": [
+        "status_phrases.yaml",
+        "telegram-botfather-threads-settings.jpg"
+      ]
+    },
+    "ui-tui/scripts": {
+      "path": "ui-tui/scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 5,
+      "lastAccessed": 1789183166885,
+      "keyFiles": [
+        "bench-history-scroll.tsx",
+        "bench-streaming-md.tsx",
+        "billing-fixtures.tsx"
+      ]
+    },
+    "ui-tui/src": {
+      "path": "ui-tui/src",
+      "purpose": "Source code",
+      "fileCount": 7,
+      "lastAccessed": 1789183166885,
+      "keyFiles": [
+        "app.tsx",
+        "banner.ts",
+        "entry.tsx"
+      ]
+    },
+    "web/public": {
+      "path": "web/public",
+      "purpose": "Public files",
+      "fileCount": 1,
+      "lastAccessed": 1789183166886,
+      "keyFiles": [
+        "favicon.ico"
+      ]
+    },
+    "web/src": {
+      "path": "web/src",
+      "purpose": "Source code",
+      "fileCount": 3,
+      "lastAccessed": 1789183166886,
+      "keyFiles": [
+        "App.tsx",
+        "index.css",
+        "main.tsx"
+      ]
+    },
+    "website/docs": {
+      "path": "website/docs",
+      "purpose": "Documentation",
+      "fileCount": 2,
+      "lastAccessed": 1789183166886,
+      "keyFiles": [
+        "index.mdx",
+        "user-stories.mdx"
+      ]
+    },
+    "website/scripts": {
+      "path": "website/scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 6,
+      "lastAccessed": 1789183166886,
+      "keyFiles": [
+        "extract-automation-blueprints.py",
+        "extract-plugins.py",
+        "extract-skills.py"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "hermes_cli/gateway.py",
+      "accessCount": 3,
+      "lastAccessed": 1789183584830,
+      "type": "file"
+    },
+    {
+      "path": "ui-tui/src/gatewayClient.ts",
+      "accessCount": 2,
+      "lastAccessed": 1789183335383,
+      "type": "file"
+    },
+    {
+      "path": "tui_gateway/host_supervisor.py",
+      "accessCount": 2,
+      "lastAccessed": 1789183350276,
+      "type": "file"
+    },
+    {
+      "path": "gateway/run.py",
+      "accessCount": 2,
+      "lastAccessed": 1789183400394,
+      "type": "file"
+    },
+    {
+      "path": "docs/hermes-architecture.drawio",
+      "accessCount": 2,
+      "lastAccessed": 1789193050460,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/main_tui_launch.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183319107,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/web_server.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183369254,
+      "type": "file"
+    },
+    {
+      "path": "tui_gateway/slash_worker.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183430065,
+      "type": "file"
+    },
+    {
+      "path": "tools/mcp_tool.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183440288,
+      "type": "file"
+    },
+    {
+      "path": "tools/code_kernel.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183450691,
+      "type": "file"
+    },
+    {
+      "path": "tools/process_registry.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183456302,
+      "type": "file"
+    },
+    {
+      "path": "tools/browser_tool_session.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183466055,
+      "type": "file"
+    },
+    {
+      "path": "hermes_startup_watchdog.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183480214,
+      "type": "file"
+    },
+    {
+      "path": "hermes_cli/local_runtime/supervisor.py",
+      "accessCount": 1,
+      "lastAccessed": 1789183552813,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

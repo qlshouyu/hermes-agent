@@ -1,0 +1,574 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="31.4.5">
+
+  <!-- ==================== PAGE 1 : 进程拓扑 ==================== -->
+  <diagram name="1 · 进程拓扑与通信" id="page1">
+    <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="p1_title" value="Hermes-Agent · 进程拓扑与通信" style="text;html=1;fontSize=22;fontStyle=1;fontFamily=PingFang SC;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="16" width="700" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_sub" value="三条并行的派生链，共用一组工具子进程。边的颜色与粗细表示进程间耦合强度，标签为通信方式。" style="text;html=1;fontSize=12;fontFamily=PingFang SC;fontColor=#666666;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="56" width="1000" height="22" as="geometry" />
+        </mxCell>
+
+        <!-- ===== A : 终端交互 ===== -->
+        <mxCell id="p1_A" value="A · 终端交互　hermes --tui" style="swimlane;startSize=32;html=1;fontFamily=PingFang SC;fontSize=13;fontStyle=1;fillColor=#f9f9f9;strokeColor=#999999;verticalAlign=middle;align=left;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="380" height="420" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_a1" value="hermes_cli/main.py&#xa;CLI 分发器" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="p1_A">
+          <mxGeometry x="20" y="60" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_a2" value="node ui-tui/dist/entry.js&#xa;Ink 渲染前端" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="p1_A">
+          <mxGeometry x="20" y="160" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_a3" value="python -m tui_gateway.entry&#xa;Agent 运行时" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="p1_A">
+          <mxGeometry x="20" y="260" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_a4" value="tui_gateway.slash_worker　每会话一个" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="p1_A">
+          <mxGeometry x="20" y="355" width="340" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_ea1" value="subprocess.call · 阻塞等退出码&#xa;弱耦合：无 IPC" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=9;labelBackgroundColor=#ffffff;strokeColor=#6c8ebf;strokeWidth=1.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p1_A" source="p1_a1" target="p1_a2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_ea2" value="stdio JSON-RPC&#xa;中耦合：协议边界" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=9;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p1_A" source="p1_a2" target="p1_a3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_ea3" value="stdio JSON" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=9;labelBackgroundColor=#ffffff;strokeColor=#6c8ebf;strokeWidth=1.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p1_A" source="p1_a3" target="p1_a4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===== B : 桌面应用 ===== -->
+        <mxCell id="p1_B" value="B · 桌面应用　apps/desktop (Electron)" style="swimlane;startSize=32;html=1;fontFamily=PingFang SC;fontSize=13;fontStyle=1;fillColor=#f9f9f9;strokeColor=#999999;verticalAlign=middle;align=left;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="460" y="100" width="620" height="530" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_b1" value="electron/main.ts　Electron 主进程" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="p1_B">
+          <mxGeometry x="20" y="50" width="580" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p1_B2" value="serve 后端链" style="swimlane;startSize=28;html=1;fontFamily=PingFang SC;fontSize=11;fontStyle=1;fillColor=#ffffff;strokeColor=#b3b3b3;verticalAlign=middle;align=left;spacingLeft=10;" vertex="1" parent="p1_B">
+          <mxGeometry x="50" y="125" width="290" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_b2" value="hermes serve --port 0&#xa;= hermes_cli/web_server.py&#xa;随 App 退出" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="p1_B2">
+          <mxGeometry x="15" y="40" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_b3" value="import tui_gateway.server&#xa;同进程内嵌 · 不是子进程" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="p1_B2">
+          <mxGeometry x="15" y="135" width="260" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_b4" value="slash_worker" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="p1_B2">
+          <mxGeometry x="15" y="225" width="125" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_b5" value="compute_host&#xa;turn_isolation" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="p1_B2">
+          <mxGeometry x="150" y="225" width="125" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_eb2" value="强耦合：同进程 import，零 IPC" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=9;labelBackgroundColor=#ffffff;strokeColor=#b85450;strokeWidth=4;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p1_B2" source="p1_b2" target="p1_b3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_eb3" value="stdio JSON" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=9;labelBackgroundColor=#ffffff;strokeColor=#6c8ebf;strokeWidth=1.5;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p1_B2" source="p1_b3" target="p1_b4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_eb4" value="stdio JSON 帧" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=9;labelBackgroundColor=#ffffff;strokeColor=#6c8ebf;strokeWidth=1.5;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p1_B2" source="p1_b3" target="p1_b5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p1_B3" value="Electron 直属子进程" style="swimlane;startSize=28;html=1;fontFamily=PingFang SC;fontSize=11;fontStyle=1;fillColor=#ffffff;strokeColor=#b3b3b3;verticalAlign=middle;align=left;spacingLeft=10;" vertex="1" parent="p1_B">
+          <mxGeometry x="370" y="125" width="230" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_b6" value="node-pty shell ×N&#xa;桌面终端面板" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="p1_B3">
+          <mxGeometry x="15" y="40" width="200" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_b7" value="ssh -N -L&#xa;远程后端隧道" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="p1_B3">
+          <mxGeometry x="15" y="100" width="200" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_b8" value="BrowserWindow ×N&#xa;渲染进程" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="p1_B3">
+          <mxGeometry x="15" y="160" width="200" height="48" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p1_b9" value="gateway run　分离派生（DETACHED_PROCESS / start_new_session）&#xa;零耦合：App 退出后继续存活，before-quit 的 SIGTERM 触达不到" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#f5f5f5;strokeColor=#b85450;dashed=1;" vertex="1" parent="p1_B">
+          <mxGeometry x="20" y="445" width="580" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p1_eb1" value="spawn · HTTP + WS（内核分配端口）" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=9;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=2;exitX=0.28;exitY=1;exitDx=0;exitDy=0;entryX=0.45;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p1_B" source="p1_b1" target="p1_B2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_eb5" value="node-pty / ssh / IPC" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=9;labelBackgroundColor=#ffffff;strokeColor=#6c8ebf;strokeWidth=1.5;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p1_B" source="p1_b1" target="p1_B3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_eb8" value="detached · 刻意脱离生命周期" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=9;labelBackgroundColor=#ffffff;strokeColor=#b85450;strokeWidth=2;dashed=1;exitX=0.017;exitY=1;exitDx=0;exitDy=0;entryX=0.017;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p1_B" source="p1_b1" target="p1_b9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===== C : 服务端 ===== -->
+        <mxCell id="p1_C" value="C · 服务端 / 容器长驻" style="swimlane;startSize=32;html=1;fontFamily=PingFang SC;fontSize=13;fontStyle=1;fillColor=#f9f9f9;strokeColor=#999999;verticalAlign=middle;align=left;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="100" width="400" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_c1" value="systemd · launchd · s6 /init" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="p1_C">
+          <mxGeometry x="20" y="55" width="360" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_c2" value="gateway/run.py　start_gateway&#xa;消息网关主循环" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="p1_C">
+          <mxGeometry x="20" y="150" width="360" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_c3" value="同进程线程（非 OS 进程）：cron-scheduler · housekeeping · startup-watchdog" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;fontColor=#666666;" vertex="1" parent="p1_C">
+          <mxGeometry x="20" y="240" width="360" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_ec1" value="服务单元 / s6 动态服务" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=9;labelBackgroundColor=#ffffff;strokeColor=#6c8ebf;strokeWidth=1.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p1_C" source="p1_c1" target="p1_c2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_ec2" value="强耦合：共享 GIL 与事件循环" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=9;labelBackgroundColor=#ffffff;strokeColor=#b85450;strokeWidth=3;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p1_C" source="p1_c2" target="p1_c3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===== E : 外部拉起 ===== -->
+        <mxCell id="p1_E" value="E · 被外部客户端拉起（不在 Hermes 进程树内）" style="swimlane;startSize=32;html=1;fontFamily=PingFang SC;fontSize=13;fontStyle=1;fillColor=#f9f9f9;strokeColor=#999999;verticalAlign=middle;align=left;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="440" width="400" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_e1" value="Claude Code · Cursor · Codex" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="p1_E">
+          <mxGeometry x="20" y="55" width="360" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_e2" value="hermes mcp serve　只读旁路" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="p1_E">
+          <mxGeometry x="20" y="122" width="360" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_e3" value="Zed · VS Code · JetBrains" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="p1_E">
+          <mxGeometry x="20" y="189" width="360" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_e4" value="hermes acp　stdout 留给协议" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="p1_E">
+          <mxGeometry x="20" y="240" width="360" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_ee1" value="stdio MCP" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=9;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p1_E" source="p1_e1" target="p1_e2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_ee2" value="stdio ACP" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=9;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p1_E" source="p1_e3" target="p1_e4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===== D : 工具扇出 ===== -->
+        <mxCell id="p1_D" value="D · 共享工具子进程扇出　⟨A 的 tui_gateway.entry / B 的 tui_gateway.server / C 的 gateway/run.py 均按需派生⟩" style="swimlane;startSize=32;html=1;fontFamily=PingFang SC;fontSize=13;fontStyle=1;fillColor=#f9f9f9;strokeColor=#999999;dashed=1;verticalAlign=middle;align=left;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="770" width="980" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_d1" value="MCP stdio server ×N&#xa;每个 mcp.json 条目一个" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="p1_D">
+          <mxGeometry x="20" y="50" width="215" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_d2" value="mcp_death_supervisor&#xa;管道 EOF → killpg 回收孤儿" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="p1_D">
+          <mxGeometry x="20" y="125" width="215" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_d3" value="hermes_kernel_runner.py&#xa;code_execution 持久 REPL" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="p1_D">
+          <mxGeometry x="265" y="50" width="215" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_d4" value="terminal_tool 命令&#xa;Popen / PTY · start_new_session" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="p1_D">
+          <mxGeometry x="265" y="125" width="215" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_d5" value="浏览器后端&#xa;agent-browser · Lightpanda · Chrome" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="p1_D">
+          <mxGeometry x="510" y="50" width="215" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_d6" value="llama-server&#xa;本地模型 · HTTP :port/v1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="p1_D">
+          <mxGeometry x="510" y="125" width="215" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_d7" value="PTY 反弹终端&#xa;ptyprocess / pywinpty（仅 B）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="p1_D">
+          <mxGeometry x="755" y="50" width="205" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_d8" value="均为一次性或按会话派生&#xa;宿主猝死由看门狗兜底回收" style="text;html=1;fontFamily=PingFang SC;fontSize=10;fontColor=#666666;align=left;verticalAlign=middle;" vertex="1" parent="p1_D">
+          <mxGeometry x="755" y="125" width="205" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_ed1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#9673a6;strokeWidth=1.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p1_D" source="p1_d1" target="p1_d2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 图例 ===== -->
+        <mxCell id="p1_L" value="图例 · 进程耦合强度" style="swimlane;startSize=30;html=1;fontFamily=PingFang SC;fontSize=12;fontStyle=1;fillColor=none;strokeColor=#666666;verticalAlign=middle;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="770" width="400" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_l1" value="强耦合 · 同进程 import / 共享 GIL" style="text;html=1;fontFamily=PingFang SC;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="p1_L">
+          <mxGeometry x="110" y="38" width="280" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_l1s" value="" style="endArrow=classic;html=1;strokeColor=#b85450;strokeWidth=4;" edge="1" parent="p1_L">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="15" y="48" as="sourcePoint" /><mxPoint x="100" y="48" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="p1_l2" value="中耦合 · 协议子进程（stdio JSON-RPC）" style="text;html=1;fontFamily=PingFang SC;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="p1_L">
+          <mxGeometry x="110" y="73" width="280" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_l2s" value="" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="p1_L">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="15" y="83" as="sourcePoint" /><mxPoint x="100" y="83" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="p1_l3" value="弱耦合 · 普通派生 / 无 IPC" style="text;html=1;fontFamily=PingFang SC;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="p1_L">
+          <mxGeometry x="110" y="108" width="280" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_l3s" value="" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=1.5;" edge="1" parent="p1_L">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="15" y="118" as="sourcePoint" /><mxPoint x="100" y="118" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="p1_l4" value="零耦合 · 分离派生，生命周期独立" style="text;html=1;fontFamily=PingFang SC;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="p1_L">
+          <mxGeometry x="110" y="143" width="280" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_l4s" value="" style="endArrow=classic;html=1;strokeColor=#b85450;strokeWidth=2;dashed=1;" edge="1" parent="p1_L">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="15" y="153" as="sourcePoint" /><mxPoint x="100" y="153" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="p1_l5" value="填充色：绿 = Python　橙 = Node　黄 = 渲染 / PTY　紫 = 协议 / MCP　灰 = Shell 或外部" style="text;html=1;fontFamily=PingFang SC;fontSize=9;fontColor=#666666;align=left;verticalAlign=middle;" vertex="1" parent="p1_L">
+          <mxGeometry x="15" y="170" width="375" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ==================== PAGE 2 : 模块调用关系 ==================== -->
+  <diagram name="2 · 模块调用关系（分层）" id="page2">
+    <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="p2_title" value="Hermes-Agent · 模块调用关系（分层）" style="text;html=1;fontSize=22;fontStyle=1;fontFamily=PingFang SC;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="190" y="8" width="800" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_sub" value="箭头方向 = import / 调用方向（A → B 表示 A 依赖 B）。数字为全仓引用次数：模 = 模块顶层 import，延 = 函数体内延迟 import。本页只画单向主导边，双向环见第 3 页。" style="text;html=1;fontSize=11;fontFamily=PingFang SC;fontColor=#666666;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="190" y="46" width="1150" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- 层标签（左栏，x 0..130） -->
+        <mxCell id="p2_bandA" value="边缘扩展" style="text;html=1;fontFamily=PingFang SC;fontSize=11;fontStyle=1;fontColor=#9673a6;align=right;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="0" y="95" width="130" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_bandB" value="宿主进程" style="text;html=1;fontFamily=PingFang SC;fontSize=11;fontStyle=1;fontColor=#6c8ebf;align=right;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="0" y="178" width="130" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_bandC" value="Agent 内核" style="text;html=1;fontFamily=PingFang SC;fontSize=11;fontStyle=1;fontColor=#82b366;align=right;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="0" y="430" width="130" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_bandD" value="工具运行时" style="text;html=1;fontFamily=PingFang SC;fontSize=11;fontStyle=1;fontColor=#d6b656;align=right;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="0" y="700" width="130" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_bandE" value="会话状态" style="text;html=1;fontFamily=PingFang SC;fontSize=11;fontStyle=1;fontColor=#d79b00;align=right;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="0" y="990" width="130" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_bandF" value="基础设施" style="text;html=1;fontFamily=PingFang SC;fontSize=11;fontStyle=1;fontColor=#666666;align=right;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="0" y="1120" width="130" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- L1 plugins -->
+        <mxCell id="p2_plugins" value="plugins/　241 模块 · 8.7 万行&#xa;platforms ×22 · memory · context_engine · model-providers · kanban" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="190" y="80" width="950" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_providers" value="providers/&#xa;781 行" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="80" width="150" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- L2 hosts -->
+        <mxCell id="p2_mcp" value="mcp_serve.py&#xa;728 行" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="40" y="210" width="130" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_hcli" value="hermes_cli/ + cli.py&#xa;479 模块 · 20.9 万行" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="190" y="210" width="180" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_gw" value="gateway/&#xa;151 模块 · 8.4 万行" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="390" y="210" width="140" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_tui" value="tui_gateway/&#xa;68 模块 · 2.7 万行" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="550" y="210" width="150" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_cron" value="cron/&#xa;23 模块" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="720" y="210" width="110" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_acp" value="acp_adapter/&#xa;14 模块" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="850" y="210" width="130" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_batch" value="batch_runner.py&#xa;1,008 行" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="210" width="140" height="64" as="geometry" />
+        </mxCell>
+
+        <!-- L3 run_agent -->
+        <mxCell id="p2_ra" value="run_agent.py　·　AIAgent 门面（1,556 行）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="190" y="380" width="910" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- L4 agent -->
+        <mxCell id="p2_agent" value="agent/　279 模块 · 11.1 万行&#xa;turn_*.py 轮次阶段 · providers · memory · compression · prompt builder · secret_scope" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="190" y="500" width="910" height="64" as="geometry" />
+        </mxCell>
+
+        <!-- L5 tools -->
+        <mxCell id="p2_mt" value="model_tools.py&#xa;顶层调用 discover_builtin_tools()" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="190" y="640" width="280" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_ts" value="toolsets.py&#xa;TOOLSETS 表" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="510" y="640" width="170" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_tools" value="tools/*.py　299 模块 · 10.3 万行　terminal · browser · file · delegate · mcp · kanban" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="190" y="750" width="910" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_reg" value="tools/registry.py&#xa;零本地依赖 · 只 import hermes_constants" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#f5f5f5;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="250" y="870" width="290" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_env" value="tools/environments/&#xa;local · docker · ssh · modal · daytona · singularity" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#f5f5f5;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="700" y="870" width="290" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- L6 state -->
+        <mxCell id="p2_state" value="hermes_state.py + 21 个兄弟模块　1.6 万行&#xa;SessionDB · schema · wal · fts · search · messages · repair · compression · registry" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="190" y="980" width="910" height="64" as="geometry" />
+        </mxCell>
+
+        <!-- L7 base -->
+        <mxCell id="p2_base" value="基础设施层　·　被每一层直接引用（hermes_constants 单项就被引用 572 次）" style="swimlane;startSize=28;html=1;fontFamily=PingFang SC;fontSize=11;fontStyle=1;fillColor=#f9f9f9;strokeColor=#999999;verticalAlign=middle;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="190" y="1100" width="910" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_bc" value="hermes_constants.py&#xa;get_hermes_home() · profile 感知路径" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="p2_base">
+          <mxGeometry x="20" y="40" width="210" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_bl" value="hermes_logging.py&#xa;agent / errors / gateway.log" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="p2_base">
+          <mxGeometry x="250" y="40" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_bt" value="hermes_time.py&#xa;时区与调度时钟" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="p2_base">
+          <mxGeometry x="470" y="40" width="190" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_bu" value="utils.py&#xa;通用助手" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="p2_base">
+          <mxGeometry x="680" y="40" width="200" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ===== edges ===== -->
+        <mxCell id="p2_e1" value="229" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=10;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=3;exitX=0.095;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_plugins" target="p2_hcli">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e2" value="202　模 120&#xa;平台适配器继承 gateway.platforms.base" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=10;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=3;exitX=0.284;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_plugins" target="p2_gw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_e3" value="112" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=10;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=3;exitX=0.93;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_plugins" target="p2_agent">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1073" y="160" /><mxPoint x="1180" y="160" /><mxPoint x="1180" y="532" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_e4" value="119" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=10;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=3;exitX=0.98;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_plugins" target="p2_tools">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1121" y="190" /><mxPoint x="1250" y="190" /><mxPoint x="1250" y="782" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_e5" value="79　模 78" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=10;labelBackgroundColor=#ffffff;strokeColor=#6c8ebf;strokeWidth=2;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_plugins" target="p2_providers">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p2_f1" value="from run_agent import AIAgent" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=10;labelBackgroundColor=#ffffff;strokeColor=#82b366;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_hcli" target="p2_ra">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.286;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_gw" target="p2_ra">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_f3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.478;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_tui" target="p2_ra">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_f4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.643;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_cron" target="p2_ra">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_f5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.797;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_acp" target="p2_ra">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_f6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.945;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_batch" target="p2_ra">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p2_bypass" value="旁路：不构造 AIAgent&#xa;不加载 tools registry&#xa;只读别的进程落盘的 state.db" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=10;labelBackgroundColor=#ffffff;strokeColor=#b85450;strokeWidth=3;dashed=1;exitX=0.885;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_mcp" target="p2_state">
+          <mxGeometry x="-0.16" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="155" y="1012" /></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="p2_g1" value="37" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=10;labelBackgroundColor=#ffffff;strokeColor=#82b366;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_ra" target="p2_agent">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_g2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#d6b656;strokeWidth=2;exitX=0.154;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_agent" target="p2_mt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_g3" value="122" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=10;labelBackgroundColor=#ffffff;strokeColor=#d6b656;strokeWidth=3;exitX=0.78;exitY=1;exitDx=0;exitDy=0;entryX=0.78;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_agent" target="p2_tools">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_g4" value="发现式导入 299 个工具模块" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=10;labelBackgroundColor=#ffffff;strokeColor=#d6b656;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.154;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_mt" target="p2_tools">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_g5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#d6b656;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_mt" target="p2_ts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_g6" value="导入时 register() 自注册" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=10;labelBackgroundColor=#ffffff;strokeColor=#d6b656;strokeWidth=2;exitX=0.23;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_tools" target="p2_reg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_g7" value="终端后端由 tools/terminal_tool_backends.py 等导入" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=10;labelBackgroundColor=#ffffff;strokeColor=#d6b656;strokeWidth=2;exitX=0.72;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_tools" target="p2_env">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_g8" value="hermes_state_registry.acquire()" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=10;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_agent" target="p2_state">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1140" y="532" /><mxPoint x="1140" y="1012" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_g9" value="全部层级直接依赖" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=10;labelBackgroundColor=#ffffff;strokeColor=#666666;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2_state" target="p2_base">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p2_note" value="本页刻意省略了 8 组双向依赖环（如 hermes_cli ⇄ agent 共 784 处引用）。&#xa;&#xa;那些环几乎全部由函数体内的延迟 import 构成——这是本仓 facade + siblings 约定用来打破 import 环的手段。&#xa;&#xa;完整的环与耦合强度见第 3 页。" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=11;align=left;verticalAlign=top;spacingLeft=12;spacingTop=8;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="1100" width="280" height="150" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ==================== PAGE 3 : 耦合热点 ==================== -->
+  <diagram name="3 · 耦合热点与循环依赖" id="page3">
+    <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="p3_title" value="Hermes-Agent · 耦合热点与循环依赖" style="text;html=1;fontSize=22;fontStyle=1;fontFamily=PingFang SC;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="8" width="800" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_sub" value="节点标注 Martin 耦合指标：Ca = 被多少模块依赖（传入耦合）　Ce = 依赖多少模块（传出耦合）　I = Ce/(Ca+Ce) 不稳定性（0 最稳定，1 最易变）　流量 = 全仓 import 引用总数。" style="text;html=1;fontSize=11;fontFamily=PingFang SC;fontColor=#666666;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="46" width="1300" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- nodes -->
+        <mxCell id="p3_hcli" value="hermes_cli/ + cli.py&#xa;Ca 16 · Ce 19 · I 0.54&#xa;流量 2,795　耦合黑洞" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=3;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="440" width="280" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_agent" value="agent/&#xa;Ca 15 · Ce 14 · I 0.48&#xa;流量 1,809" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="560" y="180" width="280" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_tools" value="tools/&#xa;Ca 15 · Ce 14 · I 0.48&#xa;流量 1,646" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="980" y="440" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_gw" value="gateway/&#xa;Ca 10 · Ce 16 · I 0.62&#xa;流量 1,231" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="980" y="700" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_plugins" value="plugins/&#xa;Ca 5 · Ce 11 · I 0.69&#xa;流量 845" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=12;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="560" y="780" width="280" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_cron" value="cron/&#xa;Ca 5 · Ce 11 · I 0.69&#xa;流量 239" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="180" y="700" width="240" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_tui" value="tui_gateway/&#xa;Ca 3 · Ce 11 · I 0.79&#xa;流量 532　最不稳定" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="160" y="440" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_state" value="hermes_state*&#xa;Ca 10 · Ce 5 · I 0.33&#xa;流量 189" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=12;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="180" y="180" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_const" value="hermes_constants&#xa;Ca 15 · Ce 1 · I 0.06&#xa;流量 573　稳定基石" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=PingFang SC;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="980" y="180" width="260" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 循环耦合环（红色双向） ===== -->
+        <mxCell id="p3_c1" value="⇄ 784&#xa;模 30/延 375　⇄　模 28/延 351" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=11;labelBackgroundColor=#ffffff;strokeColor=#b85450;strokeWidth=6;startArrow=classic;startFill=1;endArrow=classic;endFill=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_hcli" target="p3_agent">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_c2" value="⇄ 582" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=11;labelBackgroundColor=#ffffff;strokeColor=#b85450;strokeWidth=5;startArrow=classic;startFill=1;endArrow=classic;endFill=1;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_hcli" target="p3_tools">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_c3" value="⇄ 411" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=11;labelBackgroundColor=#ffffff;strokeColor=#b85450;strokeWidth=4.5;startArrow=classic;startFill=1;endArrow=classic;endFill=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_hcli" target="p3_gw">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="770" y="768" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p3_c4" value="⇄ 349" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=11;labelBackgroundColor=#ffffff;strokeColor=#b85450;strokeWidth=4;startArrow=classic;startFill=1;endArrow=classic;endFill=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0.15;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_agent" target="p3_tools">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="930" y="248" /><mxPoint x="930" y="400" /><mxPoint x="1019" y="400" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p3_c5" value="⇄ 227" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=11;labelBackgroundColor=#ffffff;strokeColor=#b85450;strokeWidth=3.5;startArrow=classic;startFill=1;endArrow=classic;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_tools" target="p3_gw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_c6" value="⇄ 83" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=11;labelBackgroundColor=#ffffff;strokeColor=#b85450;strokeWidth=2.5;startArrow=classic;startFill=1;endArrow=classic;endFill=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_hcli" target="p3_cron">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="630" y="723" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p3_c7" value="⇄ 74" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=11;labelBackgroundColor=#ffffff;strokeColor=#b85450;strokeWidth=2.5;startArrow=classic;startFill=1;endArrow=classic;endFill=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_hcli" target="p3_state">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="500" y="463" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p3_c8" value="⇄ 40" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=11;labelBackgroundColor=#ffffff;strokeColor=#b85450;strokeWidth=2;startArrow=classic;startFill=1;endArrow=classic;endFill=1;exitX=1;exitY=0.9;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_tools" target="p3_cron">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1290" y="521" /><mxPoint x="1290" y="940" /><mxPoint x="300" y="940" /></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== 单向强耦合（橙色） ===== -->
+        <mxCell id="p3_u1" value="229" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=11;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=3.5;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_plugins" target="p3_hcli">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_u2" value="202" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=11;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=3.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_plugins" target="p3_gw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_u3" value="112" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=11;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=3;exitX=1;exitY=0.15;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_plugins" target="p3_agent">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1370" y="794" /><mxPoint x="1370" y="130" /><mxPoint x="770" y="130" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p3_u4" value="119" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=11;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=3;exitX=1;exitY=0.85;exitDx=0;exitDy=0;entryX=0.85;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_plugins" target="p3_tools">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1310" y="857" /><mxPoint x="1310" y="600" /><mxPoint x="1201" y="600" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p3_u5" value="191" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=11;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=3.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_tui" target="p3_hcli">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_u6" value="122" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=11;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=3;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_tui" target="p3_agent">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="290" y="350" /><mxPoint x="490" y="350" /><mxPoint x="490" y="248" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p3_u7" value="118" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=11;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=3;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_tui" target="p3_tools">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="290" y="620" /><mxPoint x="1110" y="620" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p3_u8" value="157" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=11;labelBackgroundColor=#ffffff;strokeColor=#d79b00;strokeWidth=3.5;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_gw" target="p3_agent">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="890" y="745" /><mxPoint x="890" y="248" /></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== 稳定依赖（灰） ===== -->
+        <mxCell id="p3_s1" value="稳定依赖 · I=0.06" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=PingFang SC;fontSize=10;labelBackgroundColor=#ffffff;strokeColor=#999999;strokeWidth=2;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_agent" target="p3_const">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_s2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#999999;strokeWidth=2;exitX=0.75;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3_tools" target="p3_const">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 图例 ===== -->
+        <mxCell id="p3_L" value="图例 · 耦合强度" style="swimlane;startSize=30;html=1;fontFamily=PingFang SC;fontSize=12;fontStyle=1;fillColor=none;strokeColor=#666666;verticalAlign=middle;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="160" y="990" width="520" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_L1" value="循环耦合（双向环）· 线宽 ∝ 引用总数" style="text;html=1;fontFamily=PingFang SC;fontSize=11;align=left;verticalAlign=middle;" vertex="1" parent="p3_L">
+          <mxGeometry x="130" y="40" width="380" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_L1s" value="" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#b85450;strokeWidth=6;" edge="1" parent="p3_L">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="15" y="50" as="sourcePoint" /><mxPoint x="120" y="50" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="p3_L2" value="单向强耦合（≥100 处引用）" style="text;html=1;fontFamily=PingFang SC;fontSize=11;align=left;verticalAlign=middle;" vertex="1" parent="p3_L">
+          <mxGeometry x="130" y="80" width="380" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_L2s" value="" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=3.5;" edge="1" parent="p3_L">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="15" y="90" as="sourcePoint" /><mxPoint x="120" y="90" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="p3_L3" value="稳定依赖（指向低 I 的基石模块，健康）" style="text;html=1;fontFamily=PingFang SC;fontSize=11;align=left;verticalAlign=middle;" vertex="1" parent="p3_L">
+          <mxGeometry x="130" y="120" width="380" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_L3s" value="" style="endArrow=classic;html=1;strokeColor=#999999;strokeWidth=2;" edge="1" parent="p3_L">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="15" y="130" as="sourcePoint" /><mxPoint x="120" y="130" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="p3_L4" value="边标注格式：⇄ 总数　模 = 模块顶层 import ／ 延 = 函数体内延迟 import" style="text;html=1;fontFamily=PingFang SC;fontSize=10;fontColor=#666666;align=left;verticalAlign=middle;" vertex="1" parent="p3_L">
+          <mxGeometry x="15" y="148" width="495" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ===== 结论 ===== -->
+        <mxCell id="p3_note" value="读图要点" style="swimlane;startSize=30;html=1;fontFamily=PingFang SC;fontSize=12;fontStyle=1;fillColor=none;strokeColor=#b85450;verticalAlign=middle;align=left;spacingLeft=10;fontColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="720" y="990" width="620" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_n1" value="① hermes_cli 是耦合黑洞：全仓 8 个循环耦合环里它占 5 个，流量 2,795 居首，Ca 16 / Ce 19 双高——既被广泛依赖又广泛依赖别人，是最难安全改动的模块。&#xa;&#xa;② 环几乎全由延迟 import 撑起：hermes_cli ⇄ agent 的 784 处引用中，模块顶层只占 58 处，其余 726 处在函数体内。这是 facade + siblings 约定刻意为之——代价是打桩要打在门面上，不能打在定义处。&#xa;&#xa;③ 健康的部分：hermes_constants（I=0.06）被 15 个模块依赖却几乎不依赖别人，是合格的稳定基石；plugins（I=0.69）、tui_gateway（I=0.79）虽高不稳定但 Ca 低，属正常的边缘模块。&#xa;&#xa;④ 值得警惕：gateway 的 Ce 16 高于 Ca 10（I=0.62）——它被当作核心服务，实际却在向外索取依赖；cron、tui_gateway、web_server、acp 都直接 import 它的子模块，而不是通过某个稳定接口。" style="text;html=1;fontFamily=PingFang SC;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;whiteSpace=wrap;" vertex="1" parent="p3_note">
+          <mxGeometry x="10" y="34" width="600" height="140" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+</mxfile>
