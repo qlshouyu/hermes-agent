@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "entries": {
+    "79a93d4a2f8f50b95f852280616242fee1855dc99a3c75211917f55e72e95fae": {
+      "last_emitted_at_ms": 1789200187188,
+      "message": "Use parallel execution for independent tasks. Use run_in_background for long operations (npm install, builds, tests)."
+    },
+    "8e51f677984ee3a5d39f2e1cf4f5b1604e824d5d51a56fbdeb2b05741d4822d3": {
+      "last_emitted_at_ms": 1789199668987,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document groups and prompt RPC"
+    },
+    "87434e0570ba36d7eea5516d51d7df83ad7340bb11d59b2da84b04fa1d4c61c9": {
+      "last_emitted_at_ms": 1789199656858,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document session and profiles RPC"
+    },
+    "466399dafa2d20f60587180bad0a07358eb7f2bce724df0ff682f038ad33f5ad": {
+      "last_emitted_at_ms": 1789199648837,
+      "message": "Read multiple files in parallel when possible for faster analysis."
+    },
+    "1a5522066f0d8e0a9ca1d76d1a83a5454838b3638e899d6927bb664dcdedca90": {
+      "last_emitted_at_ms": 1789199646357,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document server and browser control RPC"
+    },
+    "00006e0d4b23c904b1f88c5e5159768f910c0640b486bf2127c7faaf93f78e65": {
+      "last_emitted_at_ms": 1789199632920,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document remaining tools RPC methods"
+    },
+    "23d55c260ab801cc0b5cafb0ced65a041b485d40e70aed63bf50ad00690e5cdf": {
+      "last_emitted_at_ms": 1789198746961,
+      "message": "Spawning agent: Explore (sonnet) | Task: Map desktop module structure"
+    },
+    "a3f13227db0c70a19e9fa96125cb0894069554d7fceb4021e1363e6ced9c96a7": {
+      "last_emitted_at_ms": 1789198729398,
+      "message": "Spawning agent: Explore (sonnet) | Task: Map desktop RPC call surface"
+    },
+    "17aaadf600f952f65fd1854c617c48ecadf7a89ff8976ab70e5cc4537f2069a2": {
+      "last_emitted_at_ms": 1789198711823,
+      "message": "Spawning agent: Explore (sonnet) | Task: Map desktop HTTP call surface"
+    },
+    "6b47ce6cd89d2ce0866ff835fe6e91274963131e856dac4d12677582b38eb414": {
+      "last_emitted_at_ms": 1789198692898,
+      "message": "Spawning agent: Explore (sonnet) | Task: Map desktop connection architecture"
+    },
+    "95c63ebc440655ef624289fbbd6cac190b017a0792bbda3183b42884ff936b5a": {
+      "last_emitted_at_ms": 1789197399317,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document gateway OpenAI HTTP API"
+    },
+    "957ea31b14d786fa5f647f074c21c7e015173ceacc98b0fded3d5b16bf777daf": {
+      "last_emitted_at_ms": 1789197385074,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document voice vault misc RPC"
+    },
+    "8f140a98089c048c4517e75bb9fe80584812e1464418dbd3eae380bbcbf8d28e": {
+      "last_emitted_at_ms": 1789197374642,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document tools config slash RPC"
+    },
+    "ff5b22ea086ac0e365c5ad494e2e1ddbffedc7d8977f40b6cf472a946084bdb0": {
+      "last_emitted_at_ms": 1789197362978,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document prompt and session RPC"
+    }
+  },
+  "updated_at": "2026-09-12T08:03:07.188Z"
+}
