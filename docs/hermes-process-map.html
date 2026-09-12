@@ -1,0 +1,614 @@
+<title>Hermes 进程与模块依赖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#EFF2F0;
+  --surface:#FBFCFB;
+  --surface-2:#E6EBE8;
+  --ink:#131C21;
+  --ink-2:#3B4A50;
+  --muted:#63757A;
+  --line:#CCD5D0;
+  --line-2:#B4C1BC;
+  --patina:#0F7867;
+  --patina-soft:#DCEDE8;
+  --bronze:#8E5D1E;
+  --bronze-soft:#F2E7D4;
+  --alert:#AB3B24;
+  --alert-soft:#F6E1DB;
+  --shadow:0 1px 2px rgba(19,28,33,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1418;
+    --surface:#141E23;
+    --surface-2:#1B272C;
+    --ink:#DFE8E5;
+    --ink-2:#B4C4C1;
+    --muted:#84979B;
+    --line:#26353B;
+    --line-2:#36494F;
+    --patina:#45B79E;
+    --patina-soft:#12302B;
+    --bronze:#D19B52;
+    --bronze-soft:#2C2314;
+    --alert:#E4795F;
+    --alert-soft:#33190F;
+    --shadow:0 1px 2px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1418;
+  --surface:#141E23;
+  --surface-2:#1B272C;
+  --ink:#DFE8E5;
+  --ink-2:#B4C4C1;
+  --muted:#84979B;
+  --line:#26353B;
+  --line-2:#36494F;
+  --patina:#45B79E;
+  --patina-soft:#12302B;
+  --bronze:#D19B52;
+  --bronze-soft:#2C2314;
+  --alert:#E4795F;
+  --alert-soft:#33190F;
+  --shadow:0 1px 2px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:"Archivo","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  font-size:15px;
+  line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1140px;margin:0 auto;padding-inline:20px;padding-block:0 72px}
+.spine{max-width:720px}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+code{font-size:.88em;color:var(--ink-2);background:var(--surface-2);padding:.08em .34em;border-radius:3px}
+a{color:var(--patina)}
+h1,h2,h3{text-wrap:balance;margin:0}
+
+/* ---------- masthead ---------- */
+.mast{border-bottom:1px solid var(--line);padding-block:56px 30px;margin-bottom:44px}
+.kicker{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--patina);font-weight:500;margin-bottom:18px;
+}
+h1{font-size:clamp(30px,5.4vw,46px);font-weight:700;letter-spacing:-.02em;line-height:1.12}
+.thesis{margin-top:18px;max-width:660px;font-size:17px;color:var(--ink-2);line-height:1.7}
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
+.stat{
+  background:var(--surface);border:1px solid var(--line);border-radius:5px;
+  padding:9px 14px;display:flex;flex-direction:column;gap:1px;min-width:112px;
+}
+.stat b{font-family:"IBM Plex Mono",monospace;font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.stat span{font-size:11px;color:var(--muted);letter-spacing:.03em}
+
+/* ---------- sections ---------- */
+section{margin-bottom:60px}
+.shead{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--line-2);padding-bottom:9px;margin-bottom:26px}
+.shead .n{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;color:var(--patina);letter-spacing:.08em;flex:none}
+.shead h2{font-size:21px;font-weight:600;letter-spacing:-.01em}
+.shead .aside{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);flex:none;display:none}
+@media(min-width:640px){.shead .aside{display:block}}
+p{margin:0 0 15px}
+.lede{color:var(--ink-2)}
+
+/* ---------- process tree ---------- */
+.panels{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:900px){.panels{grid-template-columns:1fr 1fr}}
+.panel{
+  background:var(--surface);border:1px solid var(--line);border-radius:6px;
+  padding:16px 16px 18px;box-shadow:var(--shadow);overflow-x:auto;
+}
+.panel.full{grid-column:1/-1}
+.ptitle{display:flex;align-items:center;gap:9px;margin-bottom:14px;flex-wrap:wrap}
+.ptitle h3{font-size:14px;font-weight:600;letter-spacing:-.005em}
+.ptitle .cmd{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted)}
+
+ul.tree,ul.tree ul{list-style:none;margin:0;padding:0}
+ul.tree ul{margin-left:9px;padding-left:15px;border-left:1px solid var(--line-2)}
+ul.tree li{position:relative;padding-top:7px}
+ul.tree ul>li::before{
+  content:"";position:absolute;left:-15px;top:19px;width:11px;height:1px;background:var(--line-2);
+}
+.node{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-width:0}
+.kind{
+  font-family:"IBM Plex Mono",monospace;font-size:9.5px;font-weight:600;letter-spacing:.07em;
+  padding:1.5px 5px;border-radius:3px;flex:none;line-height:1.5;
+}
+.k-py{background:var(--patina-soft);color:var(--patina)}
+.k-node{background:var(--bronze-soft);color:var(--bronze)}
+.k-sh{background:var(--surface-2);color:var(--muted)}
+.k-ext{background:var(--alert-soft);color:var(--alert)}
+.nm{font-family:"IBM Plex Mono",monospace;font-size:12.5px;font-weight:500;color:var(--ink)}
+.ds{font-size:11.5px;color:var(--muted)}
+.tr{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--ink-2);
+  border:1px dashed var(--line-2);border-radius:3px;padding:0 5px;line-height:1.6;
+}
+.thread{font-size:11.5px;color:var(--muted);font-style:italic}
+.ref{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--muted)}
+
+/* ---------- figures ---------- */
+figure{margin:0}
+.figbox{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px 16px;box-shadow:var(--shadow)}
+.scroller{overflow-x:auto}
+.scroller svg{display:block;min-width:560px;max-width:100%;height:auto;margin:0 auto}
+figcaption{margin-top:14px;font-size:12.5px;color:var(--muted);line-height:1.65;max-width:760px}
+.bx{fill:var(--surface);stroke:var(--line-2);stroke-width:1}
+.bx-2{fill:var(--surface-2);stroke:var(--line-2);stroke-width:1}
+.bx-a{fill:var(--patina-soft);stroke:var(--patina);stroke-width:1.2}
+.ln{stroke:var(--line-2);stroke-width:1.4;fill:none}
+.ln-a{stroke:var(--patina);stroke-width:1.6;fill:none}
+.ln-x{stroke:var(--alert);stroke-width:1.4;fill:none;stroke-dasharray:5 4}
+.tx{fill:var(--ink);font-family:"IBM Plex Mono",monospace;font-size:11px}
+.tx-s{fill:var(--muted);font-family:"IBM Plex Mono",monospace;font-size:9.5px}
+.tx-band{fill:var(--muted);font-family:"Archivo","PingFang SC",sans-serif;font-size:11px;font-weight:600;letter-spacing:.04em}
+.tx-a{fill:var(--patina);font-family:"IBM Plex Mono",monospace;font-size:10px}
+.tx-x{fill:var(--alert);font-family:"IBM Plex Mono",monospace;font-size:10px}
+
+/* ---------- callouts ---------- */
+.call{border-left:3px solid var(--patina);background:var(--surface);padding:14px 16px;border-radius:0 5px 5px 0;margin:20px 0;font-size:14px}
+.call.warn{border-left-color:var(--alert)}
+.call .ct{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--patina);font-weight:600;margin-bottom:5px}
+.call.warn .ct{color:var(--alert)}
+.call p:last-child{margin-bottom:0}
+
+/* ---------- table ---------- */
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;min-width:800px;font-size:12.5px}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);white-space:nowrap}
+thead th{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;background:var(--surface-2);position:sticky;top:0;
+}
+tbody tr:last-child td{border-bottom:none}
+td.p{font-family:"IBM Plex Mono",monospace;font-weight:500;color:var(--ink);white-space:nowrap}
+.y{color:var(--patina);font-weight:600}
+.n{color:var(--muted)}
+.l{color:var(--bronze)}
+.x{color:var(--alert);font-weight:600}
+.tlegend{margin-top:10px;font-size:11.5px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+
+/* ---------- findings ---------- */
+.finds{display:grid;gap:14px;grid-template-columns:1fr}
+@media(min-width:820px){.finds{grid-template-columns:1fr 1fr}}
+.find{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:15px 16px;box-shadow:var(--shadow)}
+.find h3{font-size:14px;font-weight:600;margin-bottom:7px;line-height:1.45}
+.find p{font-size:13px;color:var(--ink-2);margin:0;line-height:1.7}
+.find .tag{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--patina);font-weight:600;display:block;margin-bottom:6px}
+.find.hot .tag{color:var(--alert)}
+footer{border-top:1px solid var(--line);padding-top:18px;font-size:11.5px;color:var(--muted);font-family:"IBM Plex Mono",monospace}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <div class="kicker">源码分析 · NousResearch / Hermes-Agent · main @ fc71fb6</div>
+  <h1>Hermes 进程与模块依赖</h1>
+  <p class="thesis">同一套 Agent 内核被七类宿主进程复用：CLI、TUI 后端、消息网关、定时调度、桌面后端、ACP、MCP。这份图谱区分了<strong>真正派生 OS 进程的边界</strong>与<strong>只是同进程 import 的模块边界</strong>——两者在这个代码库里极易混淆。</p>
+  <div class="stats">
+    <div class="stat"><b>1,635</b><span>Python 模块</span></div>
+    <div class="stat"><b>67.4 万</b><span>行 Python（不含测试）</span></div>
+    <div class="stat"><b>7</b><span>类宿主进程</span></div>
+    <div class="stat"><b>6</b><span>依赖层</span></div>
+    <div class="stat"><b>1</b><span>旁路进程</span></div>
+  </div>
+</header>
+
+<!-- ================= 1. 进程拓扑 ================= -->
+<section>
+  <div class="shead">
+    <span class="n">01</span>
+    <h2>进程拓扑 — 谁派生了谁</h2>
+    <span class="aside">按部署形态分三支</span>
+  </div>
+  <p class="lede spine">Hermes 没有单一的进程树，而是三条并行的派生链，共用同一组“工具子进程扇出”。最容易画错的一条边是 Desktop：<code>hermes serve</code> 是 Electron 的子进程、随 App 退出；而消息网关是<strong>分离派生（detached）</strong>的，故意脱离 App 生命周期，这样 App 关掉后机器人还在跑。</p>
+
+  <div class="panels">
+
+    <div class="panel">
+      <div class="ptitle"><h3>A · 终端交互</h3><span class="cmd">hermes --tui</span></div>
+      <ul class="tree">
+        <li>
+          <span class="node"><span class="kind k-py">PY</span><span class="nm">hermes_cli/main.py</span><span class="ds">CLI 分发器</span></span>
+          <ul>
+            <li>
+              <span class="node"><span class="kind k-node">NODE</span><span class="nm">ui-tui/dist/entry.js</span><span class="ds">Ink 渲染</span></span>
+              <div class="node"><span class="tr">subprocess.call · 阻塞等待退出码</span><span class="ref">main_tui_launch.py:800</span></div>
+              <ul>
+                <li>
+                  <span class="node"><span class="kind k-py">PY</span><span class="nm">python -m tui_gateway.entry</span><span class="ds">Agent 运行时</span></span>
+                  <div class="node"><span class="tr">stdio JSON-RPC</span><span class="ref">gatewayClient.ts:487</span></div>
+                  <ul>
+                    <li><span class="node"><span class="kind k-py">PY</span><span class="nm">tui_gateway.slash_worker</span><span class="ds">每会话一个，跑完整 HermesCLI</span></span>
+                        <div class="node"><span class="tr">stdio JSON</span><span class="ref">server.py:228</span></div></li>
+                    <li><span class="node"><span class="nm">⟨工具进程扇出⟩</span><span class="ds">见面板 D</span></span></li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle"><h3>C · 服务器 / 容器长驻</h3><span class="cmd">hermes gateway run</span></div>
+      <ul class="tree">
+        <li>
+          <span class="node"><span class="kind k-sh">SUP</span><span class="nm">systemd · launchd · s6 /init</span></span>
+          <ul>
+            <li>
+              <span class="node"><span class="kind k-py">PY</span><span class="nm">gateway/run.py</span><span class="ds">start_gateway 事件循环</span></span>
+              <div class="node"><span class="tr">平台 API · 控制 socket · PID 文件</span></div>
+              <ul>
+                <li><span class="thread">线程（非进程）：cron-scheduler · housekeeping · startup-watchdog</span></li>
+                <li><span class="node"><span class="nm">⟨工具进程扇出⟩</span><span class="ds">见面板 D</span></span></li>
+              </ul>
+            </li>
+            <li><span class="node"><span class="kind k-sh">SH</span><span class="nm">sleep infinity</span><span class="ds">s6 场景下 CMD 进程 os.execvp 自我让位</span></span>
+                <div class="node"><span class="ref">hermes_cli/gateway.py:5829</span></div></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+
+    <div class="panel full">
+      <div class="ptitle"><h3>B · 桌面应用</h3><span class="cmd">apps/desktop · Electron</span></div>
+      <ul class="tree">
+        <li>
+          <span class="node"><span class="kind k-node">NODE</span><span class="nm">electron/main.ts</span><span class="ds">Electron 主进程</span></span>
+          <ul>
+            <li>
+              <span class="node"><span class="kind k-py">PY</span><span class="nm">hermes serve --port 0</span><span class="ds">= hermes_cli/web_server.py · 随 App 退出</span></span>
+              <div class="node"><span class="tr">HTTP + WebSocket（内核分配端口）</span><span class="ref">main.ts:1428</span></div>
+              <ul>
+                <li>
+                  <span class="node"><span class="kind k-sh">同进程</span><span class="nm">import tui_gateway.server</span><span class="ds">不是子进程——整模块内嵌</span></span>
+                  <div class="node"><span class="ref">hermes_cli/web_server.py:174</span></div>
+                  <ul>
+                    <li><span class="node"><span class="kind k-py">PY</span><span class="nm">tui_gateway.slash_worker</span><span class="ds">每会话</span></span></li>
+                    <li><span class="node"><span class="kind k-py">PY</span><span class="nm">tui_gateway.compute_host</span><span class="ds">dashboard.turn_isolation 开启时，把工具执行移出事件循环</span></span>
+                        <div class="node"><span class="tr">stdio JSON 帧 + hello 握手</span><span class="ref">host_supervisor.py:309</span></div></li>
+                    <li><span class="node"><span class="nm">⟨工具进程扇出⟩</span><span class="ds">见面板 D</span></span></li>
+                  </ul>
+                </li>
+                <li><span class="node"><span class="kind k-sh">PTY</span><span class="nm">ptyprocess / pywinpty</span><span class="ds">Dashboard 内嵌终端，PTY 字节经 WebSocket 转发</span></span></li>
+              </ul>
+            </li>
+            <li><span class="node"><span class="kind k-node">NODE</span><span class="nm">node-pty shell ×N</span><span class="ds">桌面终端面板，每标签页一个</span></span></li>
+            <li><span class="node"><span class="kind k-sh">SSH</span><span class="nm">ssh -N -L</span><span class="ds">连接远程 Hermes 后端的常驻隧道</span></span></li>
+            <li><span class="node"><span class="kind k-node">NODE</span><span class="nm">BrowserWindow ×N</span><span class="ds">主窗口 · 唤醒指示器 · Intro 揭示窗</span></span></li>
+            <li><span class="node"><span class="kind k-py">PY</span><span class="nm">gateway run</span><span class="ds">分离派生 — start_new_session / DETACHED_PROCESS，App 退出后继续存活</span></span>
+                <div class="node"><span class="tr">before-quit 的 SIGTERM 触达不到它</span></div></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle"><h3>D · 共享工具进程扇出</h3><span class="cmd">任何跑 Agent 轮次的宿主都会派生</span></div>
+      <ul class="tree">
+        <li><span class="node"><span class="kind k-py">MCP</span><span class="nm">stdio MCP server ×N</span><span class="ds">每个 mcp.json 条目一个</span></span>
+            <ul><li><span class="node"><span class="nm">mcp_death_supervisor</span><span class="ds">共享看门狗，管道 EOF 检测宿主猝死后 killpg 回收孤儿</span></span></li></ul></li>
+        <li><span class="node"><span class="kind k-py">PY</span><span class="nm">hermes_kernel_runner.py</span><span class="ds">code_execution 持久 REPL 内核，本地 RPC socket</span></span></li>
+        <li><span class="node"><span class="kind k-sh">SH</span><span class="nm">terminal_tool 命令</span><span class="ds">Popen / PTY，start_new_session，可后台长驻</span></span></li>
+        <li><span class="node"><span class="kind k-node">WEB</span><span class="nm">agent-browser · Lightpanda · Chrome</span><span class="ds">浏览器后端，CDP 通信</span></span></li>
+        <li><span class="node"><span class="kind k-sh">LLM</span><span class="nm">llama-server</span><span class="ds">本地模型 provider，HTTP :port/v1 + 健康检查线程</span></span></li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle"><h3>E · 反向：Hermes 被拉起</h3><span class="cmd">不在 Hermes 进程树内</span></div>
+      <ul class="tree">
+        <li><span class="node"><span class="kind k-ext">EXT</span><span class="nm">Claude Code · Cursor · Codex</span></span>
+            <ul><li><span class="node"><span class="kind k-py">PY</span><span class="nm">hermes mcp serve</span><span class="ds">把会话/消息暴露为 MCP 工具</span></span>
+                <div class="node"><span class="tr">stdio MCP JSON-RPC</span></div></li></ul></li>
+        <li><span class="node"><span class="kind k-ext">EXT</span><span class="nm">Zed · VS Code · JetBrains</span></span>
+            <ul><li><span class="node"><span class="kind k-py">PY</span><span class="nm">hermes acp</span><span class="ds">stdout 留给协议，日志走 stderr</span></span>
+                <div class="node"><span class="tr">stdio ACP JSON-RPC</span></div></li></ul></li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="call">
+    <div class="ct">容易画错的三条边</div>
+    <p><strong>① cron 不是进程。</strong> 默认由 <code>InProcessCronScheduler</code> 跑在 gateway 进程的 <code>cron-scheduler</code> 线程里；<code>cron/scheduler_detached_worker.py</code> 里的 “detached worker” 指的是 <code>ThreadPoolExecutor</code> 线程，不是 OS 进程。</p>
+    <p><strong>② 子智能体委派不是进程。</strong> <code>delegate_tool</code> / kanban swarm 的子 Agent 是同进程内的对象，配合 asyncio 与线程运行。</p>
+    <p><strong>③ Dashboard 不派生 TUI 后端。</strong> <code>web_server.py</code> 直接 <code>import tui_gateway.server</code>，在自己进程里跑轮次；浏览器与 Electron 渲染进程是通过 WebSocket 接进来的，不是管道。</p>
+  </div>
+</section>
+
+<!-- ================= 2. 模块分层 ================= -->
+<section>
+  <div class="shead">
+    <span class="n">02</span>
+    <h2>模块分层依赖脊柱</h2>
+    <span class="aside">AST 扫描 1,635 个模块，仅计模块级 import</span>
+  </div>
+  <p class="lede spine">下图只画<strong>模块顶层</strong>的 import（即 import 时刻真正成立的依赖）。函数体内的延迟导入被刻意排除——那是这个代码库用来打破环的手段，混进来会让整张图变成一团糊。</p>
+
+  <figure class="figbox">
+    <div class="scroller">
+      <svg viewBox="0 0 1020 700" role="img" aria-label="Hermes 模块六层依赖图：边缘扩展 plugins 依赖宿主进程层，六个宿主进程共同依赖 run_agent.py 门面与 agent 内核，再往下是工具运行时、会话状态与基础设施；mcp_serve.py 绕过中间三层直接读会话状态。">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--line-2)"/>
+          </marker>
+          <marker id="ar-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--patina)"/>
+          </marker>
+        </defs>
+
+        <!-- band labels -->
+        <text class="tx-band" x="125" y="60" text-anchor="end">边缘扩展</text>
+        <text class="tx-band" x="125" y="174" text-anchor="end">宿主进程</text>
+        <text class="tx-band" x="125" y="273" text-anchor="end">Agent 门面</text>
+        <text class="tx-band" x="125" y="341" text-anchor="end">Agent 内核</text>
+        <text class="tx-band" x="125" y="441" text-anchor="end">工具运行时</text>
+        <text class="tx-band" x="125" y="542" text-anchor="end">会话状态</text>
+        <text class="tx-band" x="125" y="640" text-anchor="end">基础设施</text>
+
+        <!-- L5 plugins -->
+        <rect class="bx-2" x="140" y="34" width="760" height="44" rx="4"/>
+        <text class="tx" x="520" y="52" text-anchor="middle">plugins/  ·  241 模块 / 8.7 万行</text>
+        <text class="tx-s" x="520" y="68" text-anchor="middle">platforms ×22（telegram·discord·slack·feishu…） · memory · context_engine · model-providers · kanban</text>
+
+        <!-- L5 -> L4 -->
+        <line class="ln" x1="190" y1="78" x2="190" y2="136" marker-end="url(#ar)"/>
+        <line class="ln" x1="300" y1="78" x2="300" y2="136" marker-end="url(#ar)"/>
+        <text class="tx-s" x="312" y="104">平台适配器继承 gateway.platforms.base</text>
+        <text class="tx-s" x="312" y="118">120 处模块级 import — 依赖是 plugins → gateway，不是反向</text>
+
+        <!-- L4 hosts -->
+        <rect class="bx" x="140" y="142" width="100" height="54" rx="4"/>
+        <text class="tx" x="190" y="165" text-anchor="middle" font-size="10">cli.py +</text>
+        <text class="tx" x="190" y="179" text-anchor="middle" font-size="10">hermes_cli/</text>
+        <rect class="bx" x="250" y="142" width="100" height="54" rx="4"/>
+        <text class="tx" x="300" y="165" text-anchor="middle" font-size="10">gateway/</text>
+        <text class="tx-s" x="300" y="179" text-anchor="middle">消息网关</text>
+        <rect class="bx" x="360" y="142" width="100" height="54" rx="4"/>
+        <text class="tx" x="410" y="165" text-anchor="middle" font-size="10">tui_gateway/</text>
+        <text class="tx-s" x="410" y="179" text-anchor="middle">TUI+桌面后端</text>
+        <rect class="bx" x="470" y="142" width="100" height="54" rx="4"/>
+        <text class="tx" x="520" y="165" text-anchor="middle" font-size="10">cron/</text>
+        <text class="tx-s" x="520" y="179" text-anchor="middle">定时调度</text>
+        <rect class="bx" x="580" y="142" width="100" height="54" rx="4"/>
+        <text class="tx" x="630" y="165" text-anchor="middle" font-size="10">acp_adapter/</text>
+        <text class="tx-s" x="630" y="179" text-anchor="middle">编辑器协议</text>
+        <rect class="bx" x="690" y="142" width="100" height="54" rx="4"/>
+        <text class="tx" x="740" y="165" text-anchor="middle" font-size="10">batch_runner</text>
+        <text class="tx-s" x="740" y="179" text-anchor="middle">批处理</text>
+        <rect class="bx-a" x="800" y="142" width="100" height="54" rx="4"/>
+        <text class="tx" x="850" y="165" text-anchor="middle" font-size="10">mcp_serve.py</text>
+        <text class="tx-a" x="850" y="179" text-anchor="middle" font-size="9.5">旁路</text>
+
+        <!-- L4 -> L3a -->
+        <line class="ln" x1="190" y1="196" x2="190" y2="244" marker-end="url(#ar)"/>
+        <line class="ln" x1="300" y1="196" x2="300" y2="244" marker-end="url(#ar)"/>
+        <line class="ln" x1="410" y1="196" x2="410" y2="244" marker-end="url(#ar)"/>
+        <line class="ln" x1="520" y1="196" x2="520" y2="244" marker-end="url(#ar)"/>
+        <line class="ln" x1="630" y1="196" x2="630" y2="244" marker-end="url(#ar)"/>
+        <line class="ln" x1="740" y1="196" x2="740" y2="244" marker-end="url(#ar)"/>
+        <text class="tx-s" x="196" y="222">六个宿主各自 from run_agent import AIAgent</text>
+
+        <!-- bypass -->
+        <polyline class="ln-a" points="850,196 850,214 955,214 955,537 908,537" marker-end="url(#ar-a)"/>
+        <text class="tx-a" x="948" y="378" text-anchor="middle" transform="rotate(-90 948 378)">不构造 AIAgent · 不加载 tools registry · 只读 state.db</text>
+
+        <!-- L3a -->
+        <rect class="bx" x="140" y="248" width="760" height="40" rx="4"/>
+        <text class="tx" x="520" y="272" text-anchor="middle">run_agent.py  ·  AIAgent 门面（1,556 行）</text>
+
+        <line class="ln" x1="520" y1="288" x2="520" y2="312" marker-end="url(#ar)"/>
+
+        <!-- L3b -->
+        <rect class="bx" x="140" y="316" width="760" height="40" rx="4"/>
+        <text class="tx" x="520" y="334" text-anchor="middle">agent/  ·  279 模块 / 11.1 万行</text>
+        <text class="tx-s" x="520" y="349" text-anchor="middle">turn_*.py 轮次阶段 · providers · memory · compression · prompt builder · secret_scope</text>
+
+        <line class="ln" x1="520" y1="356" x2="520" y2="410" marker-end="url(#ar)"/>
+
+        <!-- L2 -->
+        <rect class="bx" x="140" y="414" width="760" height="44" rx="4"/>
+        <text class="tx" x="520" y="433" text-anchor="middle">工具运行时  ·  299 模块 / 10.3 万行</text>
+        <text class="tx-s" x="520" y="449" text-anchor="middle">model_tools.py → tools/*.py → tools/registry.py ← tools/environments/（展开见图 3）</text>
+
+        <line class="ln" x1="520" y1="458" x2="520" y2="512" marker-end="url(#ar)"/>
+
+        <!-- L1 -->
+        <rect class="bx" x="140" y="516" width="760" height="42" rx="4"/>
+        <text class="tx" x="520" y="534" text-anchor="middle">hermes_state.py + 21 个兄弟模块  ·  1.6 万行</text>
+        <text class="tx-s" x="520" y="549" text-anchor="middle">SessionDB · schema · wal · fts · search · messages · repair · compression · registry</text>
+
+        <!-- L1 -> L0 bus -->
+        <line class="ln" x1="520" y1="558" x2="520" y2="586"/>
+        <line class="ln" x1="230" y1="586" x2="810" y2="586"/>
+        <line class="ln" x1="230" y1="586" x2="230" y2="610" marker-end="url(#ar)"/>
+        <line class="ln" x1="423" y1="586" x2="423" y2="610" marker-end="url(#ar)"/>
+        <line class="ln" x1="616" y1="586" x2="616" y2="610" marker-end="url(#ar)"/>
+        <line class="ln" x1="809" y1="586" x2="809" y2="610" marker-end="url(#ar)"/>
+        <text class="tx-s" x="828" y="582">每一层都直接依赖这一排</text>
+
+        <!-- L0 -->
+        <rect class="bx-2" x="140" y="616" width="181" height="38" rx="4"/>
+        <text class="tx" x="230" y="634" text-anchor="middle" font-size="10">hermes_constants</text>
+        <text class="tx-s" x="230" y="647" text-anchor="middle">profile 感知路径</text>
+        <rect class="bx-2" x="333" y="616" width="181" height="38" rx="4"/>
+        <text class="tx" x="423" y="634" text-anchor="middle" font-size="10">hermes_logging</text>
+        <text class="tx-s" x="423" y="647" text-anchor="middle">agent/errors/gateway.log</text>
+        <rect class="bx-2" x="526" y="616" width="181" height="38" rx="4"/>
+        <text class="tx" x="616" y="634" text-anchor="middle" font-size="10">hermes_time</text>
+        <text class="tx-s" x="616" y="647" text-anchor="middle">时区与调度时钟</text>
+        <rect class="bx-2" x="719" y="616" width="181" height="38" rx="4"/>
+        <text class="tx" x="809" y="634" text-anchor="middle" font-size="10">utils.py</text>
+        <text class="tx-s" x="809" y="647" text-anchor="middle">通用助手</text>
+      </svg>
+    </div>
+    <figcaption><strong>箭头方向即 import 方向</strong>（A → B 表示 A 依赖 B）。六个宿主进程共用同一条 <code>AIAgent → agent/ → 工具 → 会话状态</code> 脊柱；<code>mcp_serve.py</code> 是唯一例外，它绕过中间三层，只经 <code>hermes_state_registry</code> 读取其它进程落盘的 <code>state.db</code>。层间还有若干横向边未画：<code>plugins/model-providers → providers/</code>（78 处）、<code>cron/ → gateway.delivery</code>、<code>tui_gateway/ → gateway.hosted_rooms</code>。</figcaption>
+  </figure>
+
+  <div class="call">
+    <div class="ct">分层不是无环的 — 环被延迟导入吃掉了</div>
+    <p><code>agent/ ⇄ hermes_cli/</code> 在模块级是 <strong>28 ⇄ 28</strong>，看上去只是小幅互引；但函数体内的延迟导入是 <strong>355 ⇄ 351</strong>。<code>tools/ ⇄ hermes_cli/</code>、<code>gateway/ ⇄ hermes_cli/</code> 同理。这正是 <code>AGENTS.md</code> 里 “facade + siblings” 约定的直接后果：兄弟模块在函数里 <code>from &lt;facade&gt; import name</code>，既打破了 import 环，也决定了<strong>测试打桩要打在门面上而不是定义处</strong>。读这张图时要记住：静态的层次感是靠约定维持的，不是靠物理隔离。</p>
+  </div>
+</section>
+
+<!-- ================= 3. 工具链 ================= -->
+<section>
+  <div class="shead">
+    <span class="n">03</span>
+    <h2>工具运行时链 — 顺带纠一处文档偏差</h2>
+    <span class="aside">图 2 中“工具运行时”一层的展开</span>
+  </div>
+  <p class="lede spine">工具层是全项目唯一一处“导入即产生副作用”的设计：<code>model_tools.py</code> 在模块顶层调用 <code>discover_builtin_tools()</code>，发现式地 import 全部 299 个工具模块，每个模块在导入时向 <code>registry</code> 自注册。谁 import 了 <code>model_tools</code>，谁就一次性付掉整套工具发现的成本。</p>
+
+  <figure class="figbox">
+    <div class="scroller">
+      <svg viewBox="0 0 800 336" role="img" aria-label="工具运行时依赖链：run_agent/cli/batch_runner 依赖 model_tools.py，model_tools 发现式导入 tools 下 299 个模块，这些模块导入时向 tools/registry.py 注册；tools/environments 是 tools 模块的上游依赖，而非 model_tools 的下游消费者。">
+        <defs>
+          <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--line-2)"/>
+          </marker>
+          <marker id="ar2x" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--alert)"/>
+          </marker>
+        </defs>
+
+        <rect class="bx" x="210" y="20" width="380" height="42" rx="4"/>
+        <text class="tx" x="400" y="38" text-anchor="middle">run_agent.py  ·  cli.py  ·  batch_runner.py</text>
+        <text class="tx-s" x="400" y="53" text-anchor="middle">消费者</text>
+
+        <line class="ln" x1="400" y1="62" x2="400" y2="100" marker-end="url(#ar2)"/>
+        <text class="tx-s" x="606" y="86">import 即触发一次性工具发现</text>
+
+        <rect class="bx" x="210" y="104" width="380" height="42" rx="4"/>
+        <text class="tx" x="400" y="122" text-anchor="middle">model_tools.py</text>
+        <text class="tx-s" x="400" y="137" text-anchor="middle">顶层调用 discover_builtin_tools()</text>
+
+        <line class="ln" x1="400" y1="146" x2="400" y2="184" marker-end="url(#ar2)"/>
+        <text class="tx-s" x="606" y="170">发现式导入 299 个工具模块</text>
+
+        <rect class="bx" x="210" y="188" width="380" height="42" rx="4"/>
+        <text class="tx" x="400" y="206" text-anchor="middle">tools/*.py  ·  299 模块</text>
+        <text class="tx-s" x="400" y="221" text-anchor="middle">terminal · browser · file · delegate · mcp · kanban …</text>
+
+        <line class="ln" x1="400" y1="230" x2="400" y2="268" marker-end="url(#ar2)"/>
+        <text class="tx-s" x="606" y="254">导入时 register() 自注册</text>
+
+        <rect class="bx-2" x="210" y="272" width="380" height="42" rx="4"/>
+        <text class="tx" x="400" y="290" text-anchor="middle">tools/registry.py</text>
+        <text class="tx-s" x="400" y="305" text-anchor="middle">零本地依赖 — 只 import hermes_constants</text>
+
+        <!-- environments -->
+        <rect class="bx" x="10" y="188" width="185" height="42" rx="4"/>
+        <text class="tx" x="102" y="206" text-anchor="middle" font-size="10">tools/environments/</text>
+        <text class="tx-s" x="102" y="221" text-anchor="middle">local·docker·ssh·modal·daytona</text>
+        <line class="ln" x1="195" y1="209" x2="206" y2="209" marker-end="url(#ar2)"/>
+
+        <!-- the edge that doesn't exist -->
+        <polyline class="ln-x" points="102,188 102,126 206,126" marker-end="url(#ar2x)"/>
+        <text class="tx-x" x="106" y="116">AGENTS.md 记为下游消费者</text>
+        <text class="tx-x" x="106" y="104">— 实测无此依赖</text>
+      </svg>
+    </div>
+    <figcaption>灰色实线为实测存在的依赖；红色虚线是 <code>AGENTS.md</code> “Dependency chain” 一节声称、但代码里不存在的边。</figcaption>
+  </figure>
+
+  <div class="call warn">
+    <div class="ct">文档与代码不一致</div>
+    <p><code>AGENTS.md:220</code> 写的依赖链是 <code>tools/registry.py ← tools/*.py ← model_tools.py ← run_agent.py, cli.py, batch_runner.py, environments/</code>。前三段完全属实，但末尾把 <code>environments/</code> 列为 <code>model_tools.py</code> 的<strong>下游消费者</strong>方向反了：<code>grep -rn "model_tools" tools/environments/</code> 结果为空，而 <code>tools/terminal_tool_backends.py</code> 等反过来 import <code>tools.environments.*</code>。真实位置是链条的<strong>最上游</strong>。修正后应写作 <code>tools/environments/ ← tools/*.py</code>。</p>
+  </div>
+</section>
+
+<!-- ================= 4. 矩阵 ================= -->
+<section>
+  <div class="shead">
+    <span class="n">04</span>
+    <h2>进程 × 模块加载矩阵</h2>
+    <span class="aside">每个入口在自己进程里实际拉起什么</span>
+  </div>
+
+  <div class="tblwrap">
+    <table>
+      <thead>
+        <tr>
+          <th>入口 / 进程</th><th>agent/</th><th>tools registry</th><th>hermes_state*</th>
+          <th>gateway/</th><th>tui_gateway/</th><th>构造 AIAgent</th><th>统一日志</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="p">hermes_cli/main.py</td><td class="l">延迟</td><td class="l">延迟</td><td class="y">是</td><td class="l">延迟</td><td class="l">延迟</td><td class="l">仅 oneshot</td><td class="y">是</td></tr>
+        <tr><td class="p">cli.py · HermesCLI</td><td class="y">是</td><td class="y">是</td><td class="y">是</td><td class="n">否</td><td class="l">延迟</td><td class="y">是</td><td class="y">是</td></tr>
+        <tr><td class="p">gateway/run.py</td><td class="y">是</td><td class="y">是</td><td class="y">是</td><td class="y">本体</td><td class="n">否</td><td class="y">是</td><td class="y">是</td></tr>
+        <tr><td class="p">tui_gateway/server.py</td><td class="y">是</td><td class="y">是</td><td class="y">是</td><td class="y">部分</td><td class="y">本体</td><td class="y">是</td><td class="y">是</td></tr>
+        <tr><td class="p">cron/scheduler.py</td><td class="y">是</td><td class="l">经参数</td><td class="y">是</td><td class="y">大量</td><td class="n">否</td><td class="y">是</td><td class="y">是</td></tr>
+        <tr><td class="p">acp_adapter/entry.py</td><td class="y">是</td><td class="y">是</td><td class="y">是</td><td class="l">session_context</td><td class="n">否</td><td class="y">是</td><td class="x">否 — 自建</td></tr>
+        <tr><td class="p">hermes_cli/web_server.py</td><td class="l">经 tui_gateway</td><td class="y">是</td><td class="y">是</td><td class="y">大量</td><td class="y">内嵌整模块</td><td class="l">间接</td><td class="y">是</td></tr>
+        <tr><td class="p">batch_runner.py</td><td class="n">否</td><td class="y">经 model_tools</td><td class="n">否</td><td class="n">否</td><td class="n">否</td><td class="y">是</td><td class="n">否</td></tr>
+        <tr><td class="p">mcp_serve.py</td><td class="x">否</td><td class="x">否</td><td class="y">是</td><td class="x">否</td><td class="x">否</td><td class="x">否</td><td class="x">否 — basicConfig</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="tlegend">
+    <span><span class="y">是</span> 模块级直接依赖</span>
+    <span><span class="l">延迟 / 间接</span> 函数体内导入或经他人转手</span>
+    <span><span class="n">否</span> 无此依赖</span>
+    <span><span class="x">否</span> 值得留意的缺席</span>
+  </div>
+</section>
+
+<!-- ================= 5. 结论 ================= -->
+<section>
+  <div class="shead">
+    <span class="n">05</span>
+    <h2>五个值得记住的结论</h2>
+  </div>
+  <div class="finds">
+    <div class="find">
+      <span class="tag">一个内核，七个宿主</span>
+      <h3><code>run_agent.AIAgent</code> 是全项目唯一的收敛点</h3>
+      <p>CLI、gateway、tui_gateway、cron、acp_adapter、batch_runner 六路都 <code>from run_agent import AIAgent</code>，dashboard 经 tui_gateway 间接构造。要改动轮次行为，这里是唯一的必经之路——也是为什么 <code>AGENTS.md</code> 把“核心是窄腰”写成第一条不变量。</p>
+    </div>
+    <div class="find hot">
+      <span class="tag">唯一旁路</span>
+      <h3><code>mcp_serve.py</code> 不是一个 Agent 进程</h3>
+      <p>它既不构造 AIAgent 也不加载 tools registry，只通过 <code>hermes_state_registry</code> 读取其它进程落盘的 <code>state.db</code>，把会话与消息暴露成 MCP 工具。把它画进 Agent 主链是错的：它是一个只读旁路桥。</p>
+    </div>
+    <div class="find">
+      <span class="tag">最易画错的一条边</span>
+      <h3>Dashboard → tui_gateway → run_agent</h3>
+      <p><code>web_server.py</code> 从不直接 import <code>run_agent</code>，而是把整个 <code>tui_gateway.server</code> 拉进自己进程跑轮次（<code>web_server.py:174</code>）。它同时还大量依赖 <code>gateway.*</code> 的状态与控制模块，是全项目耦合面最广的入口。</p>
+    </div>
+    <div class="find">
+      <span class="tag">依赖方向反直觉</span>
+      <h3>plugins 依赖 gateway，而不是被 gateway 依赖</h3>
+      <p>22 个平台适配器住在 <code>plugins/platforms/</code>，继承 <code>gateway.platforms.base</code>，形成 120 处模块级 <code>plugins → gateway</code>。核心不认识插件，插件认识核心——这正是“能力在边缘”的物理体现。</p>
+    </div>
+    <div class="find hot">
+      <span class="tag">游离于统一基建之外</span>
+      <h3>两个入口不走 <code>hermes_logging</code></h3>
+      <p><code>mcp_serve.py</code> 用 <code>logging.basicConfig</code>，<code>acp_adapter/entry.py</code> 自建 <code>RedactingFormatter</code> 输出到 stderr（stdout 必须留给协议）。后者有充分理由，前者更像是历史遗留——这两个进程的日志不会出现在 <code>hermes logs</code> 里。</p>
+    </div>
+    <div class="find">
+      <span class="tag">进程边界的设计意图</span>
+      <h3>网关脱离桌面 App 是刻意的</h3>
+      <p><code>hermes serve</code> 随 App 退出，<code>gateway run</code> 用 <code>start_new_session</code> / <code>DETACHED_PROCESS</code> 分离派生，让 <code>before-quit</code> 的 SIGTERM 触达不到它，关掉桌面后机器人继续在线。<code>gateway/AGENTS.md</code> 明确写了“不要把网关重新挂回后端之下”。</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  分析方法：对 1,635 个 Python 模块做 AST 全量扫描统计 import（排除 tests/ evals/ website/），叠加对 <code>Popen</code>·<code>spawn</code>·<code>fork</code>·<code>execv</code>·<code>multiprocessing</code> 的全仓追踪与 s6 / docker-compose 服务定义核对。行数与文件数为扫描当时口径。
+</footer>
+
+</div>

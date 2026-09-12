@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "entries": {
+    "79a93d4a2f8f50b95f852280616242fee1855dc99a3c75211917f55e72e95fae": {
+      "last_emitted_at_ms": 1789202270704,
+      "message": "Use parallel execution for independent tasks. Use run_in_background for long operations (npm install, builds, tests)."
+    },
+    "445ed27a3872b681d98190bae61ccb84954e1bc4e140df5370be958dee776b3a": {
+      "last_emitted_at_ms": 1789201729685,
+      "message": "Verify changes work after editing. Test functionality before marking complete."
+    },
+    "466399dafa2d20f60587180bad0a07358eb7f2bce724df0ff682f038ad33f5ad": {
+      "last_emitted_at_ms": 1789201438898,
+      "message": "Read multiple files in parallel when possible for faster analysis."
+    },
+    "a1ed44b264937e1086be3040b1f5909dd65226f7b94465a52f4fa256446fe435": {
+      "last_emitted_at_ms": 1789201403762,
+      "message": "Spawning agent: general-purpose (sonnet) | Task: WS 服务端推送事件目录"
+    },
+    "e9f3e7fc2b962ff458cb440c90cb2fc36261568b3e12ac1539e06cef7f2f53cf": {
+      "last_emitted_at_ms": 1789201314964,
+      "message": "Spawning agent: fork (inherit) | Task: Document ws-config methods to ws-config.md"
+    },
+    "fa2099798882226caa20552831917fed7c00b19e81fb162b75c678a700192d18": {
+      "last_emitted_at_ms": 1789201241634,
+      "message": "Spawning agent: general-purpose (sonnet) | Task: WS 交互与外设方法"
+    },
+    "bc2084c085559c7f51f39ee078027a39a10668e3537dd215f62f1c6684592a97": {
+      "last_emitted_at_ms": 1789201227523,
+      "message": "Spawning agent: general-purpose (sonnet) | Task: WS 配置与能力方法"
+    },
+    "696a1b732a2931af27b34cd8e75ffdfd8d607fd6c8bc9d6a652e916b4b407200": {
+      "last_emitted_at_ms": 1789201216531,
+      "message": "Spawning agent: general-purpose (sonnet) | Task: WS 会话与对话方法"
+    },
+    "aa63cfdbe96bac621af229360dda2caf34746c7a0bb03a48d8147320c96305d9": {
+      "last_emitted_at_ms": 1789201190401,
+      "message": "Spawning agent: general-purpose (sonnet) | Task: 鉴权WS握手与插件接口"
+    },
+    "bcc40008a25b5cda23a37672667186ed724253a15729a95a0da848608789f38b": {
+      "last_emitted_at_ms": 1789201176890,
+      "message": "Spawning agent: general-purpose (sonnet) | Task: REST 文件Git本地模型接口"
+    },
+    "c0c00cd723785af2737647e134453199e5b4af35557c202dd7ff910f8f56eaec": {
+      "last_emitted_at_ms": 1789201167788,
+      "message": "Spawning agent: general-purpose (sonnet) | Task: REST 音频消息OAuth接口"
+    },
+    "ed6704b3a1f69b5448477139c4642ae75187ca3ad3d21be07be119c8b99d9091": {
+      "last_emitted_at_ms": 1789201159076,
+      "message": "Spawning agent: general-purpose (sonnet) | Task: REST Profile 接口"
+    },
+    "0be2cbe47254156a07232c8ccaaa4a9586f2dee450bccf456b9bc25b22632ac3": {
+      "last_emitted_at_ms": 1789201146779,
+      "message": "Spawning agent: general-purpose (sonnet) | Task: REST 工具技能MCP接口"
+    },
+    "5fdca5bb3cd24edcddfdb1fd57b90e5fcbc4d2f074c5145b77c7835ae767259c": {
+      "last_emitted_at_ms": 1789201138961,
+      "message": "Spawning agent: general-purpose (sonnet) | Task: REST 定时任务与运维接口"
+    },
+    "99a6f23df16ef49a05ace7e11e437865bff6f03224bb415dd9fd65bf7f367761": {
+      "last_emitted_at_ms": 1789201132364,
+      "message": "Spawning agent: general-purpose (sonnet) | Task: REST 配置模型记忆接口"
+    },
+    "ce43861c878be3aa9a2bfb1bd2d90bc4ecd68362d79aadd6fd6542d54914da82": {
+      "last_emitted_at_ms": 1789201123876,
+      "message": "Spawning agent: general-purpose (sonnet) | Task: REST 会话与状态接口"
+    }
+  },
+  "updated_at": "2026-09-12T08:37:50.704Z"
+}

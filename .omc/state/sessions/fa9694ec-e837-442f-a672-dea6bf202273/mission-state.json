@@ -1,0 +1,489 @@
+{
+  "updatedAt": "2026-09-12T08:03:54.506Z",
+  "missions": [
+    {
+      "id": "session:fa9694ec-e837-442f-a672-dea6bf202273:none",
+      "source": "session",
+      "name": "none",
+      "objective": "Session mission",
+      "createdAt": "2026-09-12T03:21:38.842Z",
+      "updatedAt": "2026-09-12T08:03:54.506Z",
+      "status": "done",
+      "workerCount": 23,
+      "taskCounts": {
+        "total": 23,
+        "pending": 0,
+        "blocked": 0,
+        "inProgress": 0,
+        "completed": 23,
+        "failed": 0
+      },
+      "agents": [
+        {
+          "name": "Explore:a6da3ef",
+          "role": "Explore",
+          "ownership": "a6da3ef6efb36bb1e",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T08:03:48.176Z"
+        },
+        {
+          "name": "Explore:a5fb210",
+          "role": "Explore",
+          "ownership": "a5fb210c1b15644e7",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T03:28:25.338Z"
+        },
+        {
+          "name": "Explore:a126948",
+          "role": "Explore",
+          "ownership": "a1269489ff0628789",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T06:37:27.203Z"
+        },
+        {
+          "name": "Explore:aae1608",
+          "role": "Explore",
+          "ownership": "aae1608e34ec87968",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T06:55:20.318Z"
+        },
+        {
+          "name": "Explore:a03fad2",
+          "role": "Explore",
+          "ownership": "a03fad24e8dda9482",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T06:56:45.336Z"
+        },
+        {
+          "name": "Explore:a9a7158",
+          "role": "Explore",
+          "ownership": "a9a71589795484753",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "completedSummary": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "updatedAt": "2026-09-12T06:59:09.787Z"
+        },
+        {
+          "name": "Explore:ab0c488",
+          "role": "Explore",
+          "ownership": "ab0c488637c113e82",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T06:56:25.429Z"
+        },
+        {
+          "name": "Explore:ad15623",
+          "role": "Explore",
+          "ownership": "ad15623745bd786ab",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T06:57:59.126Z"
+        },
+        {
+          "name": "Explore:ad2fde8",
+          "role": "Explore",
+          "ownership": "ad2fde8cd2f5d3ef9",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "completedSummary": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "updatedAt": "2026-09-12T06:59:04.476Z"
+        },
+        {
+          "name": "Explore:ac0c2f7",
+          "role": "Explore",
+          "ownership": "ac0c2f7cf828e5d03",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "completedSummary": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "updatedAt": "2026-09-12T07:00:28.464Z"
+        },
+        {
+          "name": "Explore:a6626cb",
+          "role": "Explore",
+          "ownership": "a6626cbd210d92d94",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "completedSummary": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "updatedAt": "2026-09-12T06:59:15.896Z"
+        },
+        {
+          "name": "Explore:aba2e40",
+          "role": "Explore",
+          "ownership": "aba2e406d0eb74658",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "completedSummary": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "updatedAt": "2026-09-12T07:23:40.791Z"
+        },
+        {
+          "name": "Explore:ac87088",
+          "role": "Explore",
+          "ownership": "ac87088ede6ae3b33",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "completedSummary": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "updatedAt": "2026-09-12T07:22:43.272Z"
+        },
+        {
+          "name": "Explore:a9af458",
+          "role": "Explore",
+          "ownership": "a9af458a569591b78",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T07:19:38.613Z"
+        },
+        {
+          "name": "Explore:a716dc3",
+          "role": "Explore",
+          "ownership": "a716dc3654634b124",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T07:21:27.150Z"
+        },
+        {
+          "name": "Explore:a51e509",
+          "role": "Explore",
+          "ownership": "a51e50974214262dd",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "completedSummary": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "updatedAt": "2026-09-12T07:47:11.398Z"
+        },
+        {
+          "name": "Explore:a09a227",
+          "role": "Explore",
+          "ownership": "a09a227ac0a17632d",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "completedSummary": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "updatedAt": "2026-09-12T07:49:57.369Z"
+        },
+        {
+          "name": "Explore:a2413a2",
+          "role": "Explore",
+          "ownership": "a2413a274fae6c06c",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T07:48:30.565Z"
+        },
+        {
+          "name": "Explore:ab98dfa",
+          "role": "Explore",
+          "ownership": "ab98dfa295397cb42",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T07:43:18.705Z"
+        },
+        {
+          "name": "Explore:a073c0d",
+          "role": "Explore",
+          "ownership": "a073c0db3725e3f4c",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "completedSummary": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "updatedAt": "2026-09-12T07:59:22.895Z"
+        },
+        {
+          "name": "Explore:a930f2d",
+          "role": "Explore",
+          "ownership": "a930f2d5a90115939",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "completedSummary": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "updatedAt": "2026-09-12T08:00:21.652Z"
+        },
+        {
+          "name": "Explore:af03ad7",
+          "role": "Explore",
+          "ownership": "af03ad70d92fd84fc",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "completedSummary": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "updatedAt": "2026-09-12T08:00:26.890Z"
+        },
+        {
+          "name": "Explore:a2443da",
+          "role": "Explore",
+          "ownership": "a2443da0076e70025",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "completedSummary": "Marked as stale during unmatched stop reconciliation - exceed...",
+          "updatedAt": "2026-09-12T08:03:54.506Z"
+        }
+      ],
+      "timeline": [
+        {
+          "id": "session-start:af03ad70d92fd84fc:2026-09-12T07:54:16.989Z",
+          "at": "2026-09-12T07:54:16.989Z",
+          "kind": "update",
+          "agent": "Explore:af03ad7",
+          "detail": "started Explore:af03ad7",
+          "sourceKey": "session-start:af03ad70d92fd84fc"
+        },
+        {
+          "id": "session-stop:a2a00633b2c0889de:2026-09-12T07:54:25.290Z",
+          "at": "2026-09-12T07:54:25.290Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:a2a00633b2c0889de"
+        },
+        {
+          "id": "session-start:a2443da0076e70025:2026-09-12T07:54:29.101Z",
+          "at": "2026-09-12T07:54:29.101Z",
+          "kind": "update",
+          "agent": "Explore:a2443da",
+          "detail": "started Explore:a2443da",
+          "sourceKey": "session-start:a2443da0076e70025"
+        },
+        {
+          "id": "session-stop:ab6df495dbd680a56:2026-09-12T07:54:38.827Z",
+          "at": "2026-09-12T07:54:38.827Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:ab6df495dbd680a56"
+        },
+        {
+          "id": "session-stop:a6db42000e99c19a2:2026-09-12T07:54:49.615Z",
+          "at": "2026-09-12T07:54:49.615Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:a6db42000e99c19a2"
+        },
+        {
+          "id": "session-stop:aebd63cbc6698dcc1:2026-09-12T07:54:57.631Z",
+          "at": "2026-09-12T07:54:57.631Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:aebd63cbc6698dcc1"
+        },
+        {
+          "id": "session-stop:a9cbfaea9ddec93ec:2026-09-12T07:55:01.792Z",
+          "at": "2026-09-12T07:55:01.792Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:a9cbfaea9ddec93ec"
+        },
+        {
+          "id": "session-stop:aea5f7705a4fa1874:2026-09-12T07:55:11.009Z",
+          "at": "2026-09-12T07:55:11.009Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:aea5f7705a4fa1874"
+        },
+        {
+          "id": "session-stop:a470a78ac84b76bf6:2026-09-12T07:55:22.596Z",
+          "at": "2026-09-12T07:55:22.596Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:a470a78ac84b76bf6"
+        },
+        {
+          "id": "session-stop:afb4bb19b2fb7d74e:2026-09-12T07:55:29.957Z",
+          "at": "2026-09-12T07:55:29.957Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:afb4bb19b2fb7d74e"
+        },
+        {
+          "id": "session-stop:a9dc59d31eb4988fe:2026-09-12T07:55:35.452Z",
+          "at": "2026-09-12T07:55:35.452Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:a9dc59d31eb4988fe"
+        },
+        {
+          "id": "session-stop:aa9be08fd0bbb3bf0:2026-09-12T07:55:43.548Z",
+          "at": "2026-09-12T07:55:43.548Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:aa9be08fd0bbb3bf0"
+        },
+        {
+          "id": "session-stop:a6d4707e41fc30a4c:2026-09-12T07:55:55.419Z",
+          "at": "2026-09-12T07:55:55.419Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:a6d4707e41fc30a4c"
+        },
+        {
+          "id": "session-stop:ae2763077b27254a9:2026-09-12T07:56:02.276Z",
+          "at": "2026-09-12T07:56:02.276Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:ae2763077b27254a9"
+        },
+        {
+          "id": "session-stop:a64fb180a3c0c86bc:2026-09-12T07:56:07.908Z",
+          "at": "2026-09-12T07:56:07.908Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:a64fb180a3c0c86bc"
+        },
+        {
+          "id": "session-stop:a57b8f2e254c774bf:2026-09-12T07:56:15.755Z",
+          "at": "2026-09-12T07:56:15.755Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:a57b8f2e254c774bf"
+        },
+        {
+          "id": "session-stop:ab974976222b8d5c9:2026-09-12T07:56:27.809Z",
+          "at": "2026-09-12T07:56:27.809Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:ab974976222b8d5c9"
+        },
+        {
+          "id": "session-stop:ac4e6d7c59a3dc17c:2026-09-12T07:56:35.345Z",
+          "at": "2026-09-12T07:56:35.345Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:ac4e6d7c59a3dc17c"
+        },
+        {
+          "id": "session-stop:abfb16b62c4dbcef1:2026-09-12T07:56:40.304Z",
+          "at": "2026-09-12T07:56:40.304Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:abfb16b62c4dbcef1"
+        },
+        {
+          "id": "session-stop:a102c0f01749c5206:2026-09-12T07:56:47.981Z",
+          "at": "2026-09-12T07:56:47.981Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:a102c0f01749c5206"
+        },
+        {
+          "id": "session-stop:a6f02d20d59cddcc8:2026-09-12T07:57:00.038Z",
+          "at": "2026-09-12T07:57:00.038Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:a6f02d20d59cddcc8"
+        },
+        {
+          "id": "session-stop:a0f653bf835eb0cc9:2026-09-12T07:57:50.520Z",
+          "at": "2026-09-12T07:57:50.520Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:a0f653bf835eb0cc9"
+        },
+        {
+          "id": "session-stop:a41ead943004079b0:2026-09-12T07:59:09.215Z",
+          "at": "2026-09-12T07:59:09.215Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:a41ead943004079b0"
+        },
+        {
+          "id": "session-stop:a073c0db3725e3f4c:2026-09-12T07:59:22.895Z",
+          "at": "2026-09-12T07:59:22.895Z",
+          "kind": "completion",
+          "agent": "Explore:a073c0d",
+          "detail": "Marked as stale during unmatched stop reconciliation - exceeded timeout",
+          "sourceKey": "session-stop:a073c0db3725e3f4c"
+        },
+        {
+          "id": "session-stop:ad4036a96eb6147cb:2026-09-12T08:00:15.449Z",
+          "at": "2026-09-12T08:00:15.449Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:ad4036a96eb6147cb"
+        },
+        {
+          "id": "session-stop:a930f2d5a90115939:2026-09-12T08:00:21.652Z",
+          "at": "2026-09-12T08:00:21.652Z",
+          "kind": "completion",
+          "agent": "Explore:a930f2d",
+          "detail": "Marked as stale during unmatched stop reconciliation - exceeded timeout",
+          "sourceKey": "session-stop:a930f2d5a90115939"
+        },
+        {
+          "id": "session-stop:af03ad70d92fd84fc:2026-09-12T08:00:26.890Z",
+          "at": "2026-09-12T08:00:26.890Z",
+          "kind": "completion",
+          "agent": "Explore:af03ad7",
+          "detail": "Marked as stale during unmatched stop reconciliation - exceeded timeout",
+          "sourceKey": "session-stop:af03ad70d92fd84fc"
+        },
+        {
+          "id": "session-stop:a398a0b28a72671b8:2026-09-12T08:03:48.176Z",
+          "at": "2026-09-12T08:03:48.176Z",
+          "kind": "completion",
+          "agent": "Explore:a6da3ef",
+          "detail": "completed",
+          "sourceKey": "session-stop:a398a0b28a72671b8"
+        },
+        {
+          "id": "session-stop:a2443da0076e70025:2026-09-12T08:03:54.506Z",
+          "at": "2026-09-12T08:03:54.506Z",
+          "kind": "completion",
+          "agent": "Explore:a2443da",
+          "detail": "Marked as stale during unmatched stop reconciliation - exceeded timeout",
+          "sourceKey": "session-stop:a2443da0076e70025"
+        }
+      ]
+    }
+  ]
+}
