@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "entries": {
+    "79a93d4a2f8f50b95f852280616242fee1855dc99a3c75211917f55e72e95fae": {
+      "last_emitted_at_ms": 1789197873633,
+      "message": "Use parallel execution for independent tasks. Use run_in_background for long operations (npm install, builds, tests)."
+    },
+    "95c63ebc440655ef624289fbbd6cac190b017a0792bbda3183b42884ff936b5a": {
+      "last_emitted_at_ms": 1789197399317,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document gateway OpenAI HTTP API"
+    },
+    "957ea31b14d786fa5f647f074c21c7e015173ceacc98b0fded3d5b16bf777daf": {
+      "last_emitted_at_ms": 1789197385074,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document voice vault misc RPC"
+    },
+    "8f140a98089c048c4517e75bb9fe80584812e1464418dbd3eae380bbcbf8d28e": {
+      "last_emitted_at_ms": 1789197374642,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document tools config slash RPC"
+    },
+    "466399dafa2d20f60587180bad0a07358eb7f2bce724df0ff682f038ad33f5ad": {
+      "last_emitted_at_ms": 1789197372332,
+      "message": "Read multiple files in parallel when possible for faster analysis."
+    },
+    "ff5b22ea086ac0e365c5ad494e2e1ddbffedc7d8977f40b6cf472a946084bdb0": {
+      "last_emitted_at_ms": 1789197362978,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document prompt and session RPC"
+    },
+    "f50ffa67f9aee4f15ec0bf21f001881662d0972651711aef864c2ef844b11159": {
+      "last_emitted_at_ms": 1789196027973,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document auth oauth websocket routes"
+    },
+    "1f81e6923f049a7de2c38aa6dc600e1df041cce130414e442d107e9fc58a3f5a": {
+      "last_emitted_at_ms": 1789196010638,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document mcp messaging audio memory routes"
+    },
+    "ff69758dd559c84e95b0b26acf70f99415ec2f4e9e5305b711fa98411b24578d": {
+      "last_emitted_at_ms": 1789195995766,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document cron skills tools routes"
+    },
+    "df304ec0f7b0392606a47b784eac101775b059ea10bc79ae01ca1bd6941527b1": {
+      "last_emitted_at_ms": 1789195981624,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document models and config routes"
+    },
+    "c63bb7f1bc52a106e35107f4ee411fd354fc65bd9fd6b3b9cdf1a188df12aa37": {
+      "last_emitted_at_ms": 1789195953467,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document status dashboard analytics routes"
+    },
+    "0fb9413078c093ef3dd60d50e8d0ee7c17391cc439da4ecf88efc22d6ca6befe": {
+      "last_emitted_at_ms": 1789195941076,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document profiles and sessions routes"
+    },
+    "6946c3e956a1867df6916475df94df1f5dfd694aafd50e3307c47f3e2beb9a01": {
+      "last_emitted_at_ms": 1789195926659,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document git and files routes"
+    },
+    "a7db6199290d357278fbbf64235c5475a4ee74d09db003dbd9f3cb929cab7117": {
+      "last_emitted_at_ms": 1789195914014,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document ops and actions routes"
+    },
+    "b8cc69e8fb4646120d1b7267057c37d446551044ce7964e46e7673c6504230c4": {
+      "last_emitted_at_ms": 1789194685444,
+      "message": "Spawning agent: Explore (sonnet) | Task: Document web_server startup args"
+    }
+  },
+  "updated_at": "2026-09-12T07:24:33.633Z"
+}
