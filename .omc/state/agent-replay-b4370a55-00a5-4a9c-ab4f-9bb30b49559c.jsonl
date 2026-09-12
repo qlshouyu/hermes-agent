@@ -1,0 +1,3 @@
+{"t":0,"agent":"system","event":"skill_invoked","skill_name":"superpowers:brainstorming"}
+{"t":0,"agent":"system","event":"skill_invoked","skill_name":"artifact-design"}
+{"t":0,"agent":"a2e40ae","agent_type":"unknown","event":"agent_stop","success":true,"duration_ms":0}
