@@ -1,0 +1,704 @@
+<title>hermes serve 抽取方案对比</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  --ink:#151b23; --ink-2:#46525f; --ink-3:#6d7987;
+  --paper:#f5f7f9; --surface:#ffffff; --sunk:#eef1f5;
+  --rule:#dce2ea; --rule-soft:#e9edf2;
+  --host:#2f6fd0;  /* 宿主进程 · 蓝 */
+  --core:#26765a;  /* Agent 内核 · 绿 = 低成本 */
+  --tool:#a86d12;  /* 工具运行时 · 黄 = 需留意 */
+  --edge:#b3302a;  /* 边界 · 红 = 高风险 */
+  --proto:#63499d; /* 协议 · 紫 */
+  --core-wash:#e7f2ec; --tool-wash:#f8efdd; --edge-wash:#fbe9e7; --host-wash:#e8f0fb;
+  --sans:"IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --cond:"IBM Plex Sans Condensed","Noto Sans SC","PingFang SC",system-ui,sans-serif;
+  --mono:"IBM Plex Mono","SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#e4eaf1; --ink-2:#a3b1c0; --ink-3:#7a8795;
+    --paper:#10151b; --surface:#171e26; --sunk:#1c242d;
+    --rule:#2a343f; --rule-soft:#212a33;
+    --host:#76a8f2; --core:#4fbb8b; --tool:#dba045; --edge:#f07065; --proto:#a98ee0;
+    --core-wash:#142b22; --tool-wash:#2e2415; --edge-wash:#34191a; --host-wash:#152436;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf1; --ink-2:#a3b1c0; --ink-3:#7a8795;
+  --paper:#10151b; --surface:#171e26; --sunk:#1c242d;
+  --rule:#2a343f; --rule-soft:#212a33;
+  --host:#76a8f2; --core:#4fbb8b; --tool:#dba045; --edge:#f07065; --proto:#a98ee0;
+  --core-wash:#142b22; --tool-wash:#2e2415; --edge-wash:#34191a; --host-wash:#152436;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--sans); font-size:16px; line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px; margin:0 auto; padding-inline:24px; padding-block:0 88px}
+.prose{max-width:70ch}
+h1,h2,h3,h4{font-family:var(--cond); font-weight:600; text-wrap:balance; line-height:1.25; margin:0}
+code,.mono,.num{font-family:var(--mono); font-variant-numeric:tabular-nums}
+code{font-size:.87em; background:var(--sunk); padding:.1em .38em; border-radius:3px; color:var(--ink-2)}
+a{color:var(--host)}
+:focus-visible{outline:2px solid var(--host); outline-offset:2px}
+
+/* ─── header ─── */
+header{border-bottom:1px solid var(--rule); background:var(--surface)}
+.head-inner{max-width:1080px; margin:0 auto; padding-inline:24px; padding-block:44px 30px}
+.eyebrow{
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--host); margin:0 0 14px
+}
+h1{font-size:clamp(30px,5.2vw,46px); letter-spacing:-.015em}
+.thesis{max-width:66ch; margin:16px 0 0; font-size:17.5px; color:var(--ink-2)}
+.meta{
+  display:flex; flex-wrap:wrap; gap:6px 22px; margin-top:26px;
+  font-family:var(--mono); font-size:12.5px; color:var(--ink-3)
+}
+.meta b{color:var(--ink-2); font-weight:600}
+
+/* ─── section scaffolding ─── */
+section{margin-top:64px}
+.sec-head{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:8px}
+.sec-head h2{font-size:25px; letter-spacing:-.01em}
+.sec-tag{
+  font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); border:1px solid var(--rule); border-radius:99px; padding:2px 9px
+}
+.lede{margin:0 0 26px; color:var(--ink-2); max-width:70ch}
+p{margin:0 0 16px}
+.prose p:last-child{margin-bottom:0}
+
+/* ─── verdict banner ─── */
+.verdict{
+  margin-top:38px; background:var(--surface);
+  border:1px solid var(--rule); border-left:4px solid var(--core);
+  border-radius:4px; padding:26px 28px
+}
+.verdict h2{font-size:21px; margin-bottom:10px}
+.verdict p{color:var(--ink-2); max-width:72ch}
+.verdict strong{color:var(--ink); font-weight:600}
+
+/* ─── data tables ─── */
+.tscroll{overflow-x:auto; margin:0 0 8px}
+table{border-collapse:collapse; width:100%; font-size:14.5px; min-width:520px}
+caption{
+  text-align:left; font-family:var(--mono); font-size:11.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink-3); padding-bottom:9px
+}
+th,td{text-align:left; padding:9px 16px 9px 0; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+thead th{
+  font-family:var(--mono); font-weight:600; font-size:11.5px; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule)
+}
+tbody tr:last-child td{border-bottom:none}
+td.n{font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; color:var(--ink)}
+td.src{font-family:var(--mono); font-size:12.5px; color:var(--ink-3)}
+.grid-2{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:34px 44px; margin-top:8px}
+
+/* ─── churn chart ─── */
+.chart{margin-top:6px; display:grid; gap:11px}
+.bar-row{display:grid; grid-template-columns:158px 1fr 62px; align-items:center; gap:14px}
+.bar-lbl{font-family:var(--mono); font-size:12.5px; color:var(--ink-2); text-align:right}
+.bar-track{background:var(--sunk); height:15px; border-radius:2px; overflow:hidden}
+.bar-fill{height:100%; background:var(--host); border-radius:2px}
+.bar-fill.hot{background:var(--edge)}
+.bar-fill.warm{background:var(--tool)}
+.bar-val{font-family:var(--mono); font-size:12.5px; font-variant-numeric:tabular-nums; color:var(--ink-2)}
+.axis{
+  grid-template-columns:158px 1fr 62px; display:grid; gap:14px;
+  font-family:var(--mono); font-size:11px; color:var(--ink-3); margin-top:2px
+}
+.axis span:nth-child(2){display:flex; justify-content:space-between}
+
+/* ─── openings list ─── */
+.openings{display:grid; gap:0; border-top:1px solid var(--rule)}
+.opening{
+  display:grid; grid-template-columns:190px 1fr; gap:6px 26px;
+  padding:18px 0; border-bottom:1px solid var(--rule-soft)
+}
+.opening dt{font-family:var(--cond); font-weight:600; font-size:16px; color:var(--ink)}
+.opening dd{margin:0; color:var(--ink-2); font-size:15px}
+.opening .where{
+  display:block; margin-top:7px; font-family:var(--mono); font-size:12px; color:var(--ink-3)
+}
+
+/* ─── option blocks ─── */
+.opt{margin-top:40px; border-top:3px solid var(--rule); padding-top:22px}
+.opt.good{border-top-color:var(--core)}
+.opt.bad{border-top-color:var(--edge)}
+.opt.mixed{border-top-color:var(--tool)}
+.opt-head{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
+.opt-no{
+  font-family:var(--mono); font-size:12px; font-weight:600; letter-spacing:.08em;
+  color:var(--ink-3)
+}
+.opt-head h3{font-size:23px; letter-spacing:-.01em}
+.pill{
+  font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.06em;
+  padding:3px 10px; border-radius:99px; white-space:nowrap
+}
+.pill.good{background:var(--core-wash); color:var(--core)}
+.pill.bad{background:var(--edge-wash); color:var(--edge)}
+.pill.mixed{background:var(--tool-wash); color:var(--tool)}
+.opt-sub{margin:10px 0 22px; color:var(--ink-2); max-width:72ch}
+.facets{display:grid; gap:0; border-top:1px solid var(--rule-soft)}
+.facet{
+  display:grid; grid-template-columns:132px 1fr; gap:4px 26px;
+  padding:14px 0; border-bottom:1px solid var(--rule-soft)
+}
+.facet dt{
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink-3); padding-top:4px
+}
+.facet dd{margin:0; color:var(--ink-2)}
+.facet dd strong{color:var(--ink); font-weight:600}
+.facet.cost dd strong{color:var(--edge)}
+.facet.win dd strong{color:var(--core)}
+
+.kicker{
+  margin-top:22px; background:var(--sunk); border-radius:4px; padding:16px 20px;
+  font-size:15px; color:var(--ink-2)
+}
+.kicker b{font-family:var(--cond); font-size:15.5px; color:var(--ink); display:block; margin-bottom:4px}
+.kicker.flag{background:var(--core-wash)}
+
+/* ─── matrix ─── */
+.matrix table{min-width:660px; font-size:14px}
+.matrix th:first-child{width:23%}
+.matrix td{padding:11px 16px 11px 0}
+.matrix .mark{
+  font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.05em;
+  display:inline-block; padding:2px 8px; border-radius:3px; margin-right:8px; vertical-align:2px
+}
+.mark.a{background:var(--core-wash); color:var(--core)}
+.mark.b{background:var(--tool-wash); color:var(--tool)}
+.mark.c{background:var(--edge-wash); color:var(--edge)}
+.matrix td span.t{color:var(--ink-2)}
+
+/* ─── steps ─── */
+ol.steps{margin:0; padding:0; list-style:none; counter-reset:s; display:grid; gap:0; border-top:1px solid var(--rule)}
+ol.steps li{
+  counter-increment:s; display:grid; grid-template-columns:34px 1fr; gap:20px;
+  padding:17px 0; border-bottom:1px solid var(--rule-soft)
+}
+ol.steps li::before{
+  content:counter(s); font-family:var(--mono); font-size:13px; font-weight:600;
+  color:var(--host); padding-top:2px
+}
+ol.steps b{font-family:var(--cond); font-weight:600; font-size:16.5px; display:block; margin-bottom:3px}
+ol.steps span{color:var(--ink-2); font-size:15px}
+pre{
+  margin:9px 0 0; background:var(--sunk); border-radius:4px; padding:12px 15px;
+  overflow-x:auto; font-family:var(--mono); font-size:12.5px; line-height:1.6; color:var(--ink-2)
+}
+pre code{background:none; padding:0; font-size:inherit}
+
+/* ─── triggers ─── */
+.trigger{
+  border-left:3px solid var(--rule); padding:4px 0 4px 20px; margin-top:26px; max-width:72ch
+}
+.trigger.t2{border-left-color:var(--proto)}
+.trigger.t3{border-left-color:var(--host)}
+.trigger h4{font-size:17px; margin-bottom:7px}
+.trigger p{color:var(--ink-2); margin:0}
+
+footer{
+  margin-top:70px; padding-top:22px; border-top:1px solid var(--rule);
+  font-family:var(--mono); font-size:12px; color:var(--ink-3); line-height:1.8
+}
+
+@media (max-width:640px){
+  .opening,.facet{grid-template-columns:1fr; gap:3px}
+  .facet dt{padding-top:0}
+  .bar-row,.axis{grid-template-columns:112px 1fr 54px; gap:9px}
+  .bar-lbl{font-size:11px}
+  .head-inner{padding-block:34px 24px}
+}
+</style>
+
+<header>
+  <div class="head-inner">
+    <p class="eyebrow">Hermes-Agent · 架构决策备忘</p>
+    <h1>B 线能不能单独抽出来</h1>
+    <p class="thesis">
+      把端到端架构图里「B · <code>hermes serve</code> 桌面 / Dashboard 后端」这条线剥离出来、自建桌面端与 Web 端，
+      同时继续跟随上游 <span class="mono">NousResearch/hermes-agent</span> 升级——三种做法的成本、风险与真实产出对比。
+    </p>
+    <div class="meta">
+      <span><b>仓库</b> qlshouyu/hermes-agent（fork）</span>
+      <span><b>分支</b> docs/hermes-process-map</span>
+      <span><b>基线</b> fc71fb63e5 · v0.21.2</span>
+      <span><b>日期</b> 2026-09-12</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="verdict">
+    <h2>先给结论</h2>
+    <p>
+      <strong>能抽，但抽的不是代码，是契约。</strong>
+      B 线在代码层面无法剥离——它对 <code>hermes_cli</code> 有 262 处 import，依赖的又恰好是配置、鉴权、工具配置、插件这些核心层，
+      抽 B 线等于抽走整个 <code>hermes_cli</code>（479 模块、20.9 万行）。
+      但 B 线在<strong>进程和协议层面早已是独立的</strong>：<code>hermes serve</code> 启动时会设 <code>HERMES_SERVE_HEADLESS=1</code> 关掉内置前端，
+      只暴露 241 个 REST 端点 + 一条 JSON-RPC WebSocket——这个模式就是为外部前端准备的。
+    </p>
+    <p style="margin-top:14px">
+      因此推荐<strong>方案 1</strong>：把 <code>hermes serve</code> 当黑盒后端进程，前端在仓库外自建。
+      它是三个方案里唯一能做到「<strong>升级永远零冲突</strong>」的，因为你对上游仓库的改动量是零。
+      代价是把风险从「合并冲突」换成了「接口漂移」——而漂移是可以用契约快照测出来的，冲突不能。
+    </p>
+  </div>
+
+  <section>
+    <div class="sec-head">
+      <h2>一、事实基线</h2>
+      <span class="sec-tag">全部数字来自当前 HEAD 实测</span>
+    </div>
+    <p class="lede">下面每个数字都决定了某个方案的成败，所以先把它们摊开。</p>
+
+    <div class="grid-2">
+      <div>
+        <div class="tscroll">
+          <table>
+            <caption>B 线的代码体量</caption>
+            <thead><tr><th>构成</th><th>规模</th><th>位置</th></tr></thead>
+            <tbody>
+              <tr><td>FastAPI 主模块</td><td class="n">1,865 行</td><td class="src">web_server.py</td></tr>
+              <tr><td>路由层</td><td class="n">22 个 router</td><td class="src">web_routers/</td></tr>
+              <tr><td>兄弟模块</td><td class="n">25 个文件</td><td class="src">web_* · dashboard_* · pty_*</td></tr>
+              <tr><td><b>合计</b></td><td class="n"><b>23,493 行</b></td><td class="src">全在 hermes_cli/ 下</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <div class="tscroll">
+          <table>
+            <caption>对外契约面</caption>
+            <thead><tr><th>通道</th><th>规模</th><th>协议</th></tr></thead>
+            <tbody>
+              <tr><td>REST</td><td class="n">241 端点</td><td class="src">/api/*</td></tr>
+              <tr><td>对话主干</td><td class="n">279 方法</td><td class="src">/api/ws · JSON-RPC</td></tr>
+              <tr><td>终端</td><td class="n">1</td><td class="src">/api/pty · PTY 流</td></tr>
+              <tr><td>广播</td><td class="n">2</td><td class="src">/api/pub · /api/events</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:36px">
+      <div>
+        <div class="tscroll">
+          <table>
+            <caption>耦合：B 线 import 了谁</caption>
+            <thead><tr><th>目标包</th><th>引用数</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><code>hermes_cli.*</code></td><td class="n">262</td><td class="src">config · auth · tools_config · plugins_cmd</td></tr>
+              <tr><td><code>fastapi</code></td><td class="n">38</td><td class="src">框架本身</td></tr>
+              <tr><td><code>tools</code></td><td class="n">28</td><td class="src">工具注册中心</td></tr>
+              <tr><td><code>agent</code></td><td class="n">27</td><td class="src">中断域 · 轮次</td></tr>
+              <tr><td><code>gateway</code></td><td class="n">9</td><td class="src">网关状态控制</td></tr>
+              <tr><td><code>tui_gateway</code></td><td class="n">6</td><td class="src"><b>含 ws.handle_ws</b></td></tr>
+              <tr><td><code>plugins</code> · <code>cron</code></td><td class="n">10</td><td class="src">插件与定时</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:13.5px; color:var(--ink-3); margin-top:10px; max-width:52ch">
+          397 处顶层 import + 258 处函数内延迟 import。延迟 import 是本仓打破循环依赖的惯用手法，
+          意味着这些依赖<span style="color:var(--tool)">不会在静态分析里现形，但运行时一个都跑不掉</span>。
+        </p>
+      </div>
+
+      <div>
+        <div class="tscroll">
+          <table>
+            <caption>前端实际消费的端点数</caption>
+            <thead><tr><th>前端</th><th>端点</th><th>含义</th></tr></thead>
+            <tbody>
+              <tr><td>apps/desktop</td><td class="n">218</td><td class="src">你要复刻的上限</td></tr>
+              <tr><td>web（Dashboard）</td><td class="n">130</td><td class="src">纯浏览器可达子集</td></tr>
+              <tr><td>可复用的客户端</td><td class="n">—</td><td class="src">apps/shared/src/json-rpc-gateway.ts</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:13.5px; color:var(--ink-3); margin-top:10px; max-width:52ch">
+          <code>apps/shared/</code> 里已有 <code>json-rpc-gateway.ts</code>、<code>websocket-url.ts</code>、
+          <code>backend-scope.ts</code>——桌面端与 Web 端共用的传输层，MIT 协议，可以直接拿走。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>二、上游改这条线的速度</h2>
+      <span class="sec-tag">近 12 个月提交数</span>
+    </div>
+    <p class="lede">
+      这是全篇最关键的一组数字。它同时判了方案 2 和方案 3 的死刑，也划出了方案 1 真正的风险边界。
+    </p>
+
+    <div class="chart">
+      <div class="bar-row">
+        <span class="bar-lbl">apps/desktop</span>
+        <span class="bar-track"><span class="bar-fill hot" style="width:100%"></span></span>
+        <span class="bar-val">4,493</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-lbl">tui_gateway/</span>
+        <span class="bar-track"><span class="bar-fill hot" style="width:29.0%"></span></span>
+        <span class="bar-val">1,305</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-lbl">web_server.py</span>
+        <span class="bar-track"><span class="bar-fill warm" style="width:15.9%"></span></span>
+        <span class="bar-val">715</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-lbl">web/（Dashboard）</span>
+        <span class="bar-track"><span class="bar-fill" style="width:8.2%"></span></span>
+        <span class="bar-val">369</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-lbl">web_routers/</span>
+        <span class="bar-track"><span class="bar-fill" style="width:4.1%"></span></span>
+        <span class="bar-val">183</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-lbl">main_dashboard.py</span>
+        <span class="bar-track"><span class="bar-fill" style="width:0.3%"></span></span>
+        <span class="bar-val">12</span>
+      </div>
+      <div class="axis"><span></span><span><span>0</span><span>4,493 commits / 年</span></span><span></span></div>
+    </div>
+
+    <div class="kicker" style="margin-top:28px">
+      <b>路由面本身也在动</b>
+      近 180 天的 diff 里，路由装饰器行<span class="mono" style="color:var(--core)"> +549 </span>、
+      <span class="mono" style="color:var(--edge)">−311</span>。
+      删除不是笔误——端点确实会消失、改名、换参数。而 <code>FastAPI(title="Hermes Agent", version=__version__)</code>
+      说明<b style="display:inline">API 版本号就是应用版本号</b>，上游没有独立的接口版本承诺，也没有弃用窗口。
+    </div>
+
+    <div class="kicker" style="margin-top:14px">
+      <b>上游明确不承诺内部路径稳定</b>
+      <code>COMPAT_MANIFEST.md</code> 开篇第一句：<i>“Internal import paths are not a stable API.”</i>
+      2026 年 9 月的一次拆分（PR #102117）一口气搬动了 1,148 个名字，兼容层只保留到 2026-09-14——也就是两天后。
+      任何依赖 <code>from hermes_cli.xxx import yyy</code> 的抽取层，都会被这类重构反复击穿。
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>三、上游已经给外部前端开好的口子</h2>
+      <span class="sec-tag">方案 1 的可行性前提</span>
+    </div>
+    <p class="lede">
+      在读代码之前我以为方案 1 需要打补丁。实测下来不需要——这四个口子是现成的，说明「只跑后端、前端你自己来」是被支持的用法。
+    </p>
+
+    <dl class="openings">
+      <div class="opening">
+        <dt>无头模式关掉内置前端</dt>
+        <dd>
+          <code>hermes serve</code> 会在导入 web_server 之前设 <code>HERMES_SERVE_HEADLESS=1</code>，
+          <code>mount_spa()</code> 随之不挂载。后端只剩 API，不会跟你的前端抢路由。
+          <span class="where">hermes_cli/main_dashboard.py:713 · _resolve_dashboard_web_dist()</span>
+        </dd>
+      </div>
+      <div class="opening">
+        <dt>CORS 放行任意本地端口</dt>
+        <dd>
+          <code>allow_origin_regex = ^https?://(localhost|127\.0\.0\.1)(:\d+)?$</code>——
+          Vite dev server 跑在 5173、打包后跑在别的端口，都不用改后端。
+          <span class="where">hermes_cli/web_server.py:381</span>
+        </dd>
+      </div>
+      <div class="opening">
+        <dt>WebSocket 信任非 Web 源</dt>
+        <dd>
+          Origin 是 <code>file://</code> / <code>app://</code> / <code>null</code> 时直接放行（打包后的 Electron 就是这种）；
+          是 http(s) 时只比对主机名、<b>忽略端口</b>。自建桌面端与本地 Web 端都能直连 <code>/api/ws</code>。
+          <span class="where">web_server_chat.py:165 · web_server.py:537 _is_accepted_host()</span>
+        </dd>
+      </div>
+      <div class="opening">
+        <dt>Token 可由你固定</dt>
+        <dd>
+          <code>HERMES_DASHBOARD_SESSION_TOKEN</code> 环境变量会被直接采纳为会话令牌（否则每次启动随机生成）。
+          另有 <code>--ssh-session-token-file</code>，且该参数<b>只对 <code>serve</code> 开放</b>——又一处「serve 是给外部调用方用的」的证据。
+          <span class="where">web_server.py:308 · main.py:2427</span>
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>四、三个方案逐一剖析</h2>
+      <span class="sec-tag">成本 · 升级代价 · 真实产出</span>
+    </div>
+
+    <!-- 方案 1 -->
+    <div class="opt good">
+      <div class="opt-head">
+        <span class="opt-no">方案 1</span>
+        <h3>黑盒进程 + 仓库外自建前端</h3>
+        <span class="pill good">推荐</span>
+      </div>
+      <p class="opt-sub">
+        一行 Python 都不改。<code>hermes serve --port N</code> 起后端；你的桌面端和 Web 端是 hermes-agent 之外的独立项目，
+        只通过 HTTP + WebSocket 调用。上游仓库对你而言是只读的。
+      </p>
+      <dl class="facets">
+        <div class="facet win">
+          <dt>升级代价</dt>
+          <dd><strong>零。</strong><code>git pull</code> 永远不会冲突，因为你对上游文件的改动量是 0。这是三个方案里唯一做到这点的。</dd>
+        </div>
+        <div class="facet">
+          <dt>初期工作量</dt>
+          <dd>前端全量自研。但传输层可直接复用 <code>apps/shared/src/</code> 下的 JSON-RPC 客户端，不必从零实现 279 个方法的协议。</dd>
+        </div>
+        <div class="facet cost">
+          <dt>真实风险</dt>
+          <dd><strong>接口漂移。</strong>180 天删了 311 条路由行，上游随时可能改掉你依赖的端点，而且不会通知你。这个风险<b>不会因为选别的方案而消失</b>——方案 2、3 只是把它伪装成了合并冲突。</dd>
+        </div>
+        <div class="facet win">
+          <dt>缓解手段</dt>
+          <dd>漂移<strong>可测</strong>：抓 <code>/openapi.json</code> 存基线快照，每次 pull 后 diff，只对你实际用到的端点子集报警。冲突不可测，只能人工解。</dd>
+        </div>
+        <div class="facet">
+          <dt>作用域</dt>
+          <dd>你大概率只需要 218 个端点里的 30–50 个（会话、消息、配置、模型）。依赖面越小，漂移暴露越小。</dd>
+        </div>
+        <div class="facet">
+          <dt>放弃成本</dt>
+          <dd>低。前端是独立项目，随时可以换后端或退回官方 Dashboard，不留残骸。</dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- 方案 2 -->
+    <div class="opt bad">
+      <div class="opt-head">
+        <span class="opt-no">方案 2</span>
+        <h3>抽成独立 Python 包 / 仓库</h3>
+        <span class="pill bad">不建议</span>
+      </div>
+      <p class="opt-sub">
+        把 <code>web_server.py</code> + <code>web_routers/</code> 物理搬到新仓库或新包，独立发版，反转 262 处 <code>hermes_cli</code> 依赖。
+      </p>
+      <dl class="facets">
+        <div class="facet cost">
+          <dt>依赖真相</dt>
+          <dd>被依赖最多的是 <code>web_deps</code>(21)、<code>config</code>(19)、<code>web_models</code>(18)、<code>auth</code>(13)、<code>tools_config</code>(10)、<code>plugins_cmd</code>(10)。
+          <strong>这些是 Hermes 的配置与身份核心，不是外围工具。</strong>抽 B 线 = 把 <code>hermes_cli</code>（479 模块 / 20.9 万行）一起抽走。</dd>
+        </div>
+        <div class="facet cost">
+          <dt>对话主干拦路</dt>
+          <dd><code>/api/ws</code> 里直接 <code>from tui_gateway.ws import handle_ws</code>。要么把 <code>tui_gateway</code>（一年 <strong>1,305 次提交</strong>）一并抽走，要么放弃对话功能——而对话正是你要做的产品核心。</dd>
+        </div>
+        <div class="facet cost">
+          <dt>升级代价</dt>
+          <dd><code>web_server.py</code> 一年 <strong>715 次提交</strong>，约每周 14 次。每一次都要人工 port 到你的独立包。这不是一次性迁移，是一份常设岗位。</dd>
+        </div>
+        <div class="facet cost">
+          <dt>结构性风险</dt>
+          <dd>上游白纸黑字声明内部导入路径不稳定，且刚演示过一次搬动 1,148 个名字。你的抽取层建立在明确不被承诺的地基上。</dd>
+        </div>
+        <div class="facet">
+          <dt>产出物</dt>
+          <dd>付出全部这些代价之后，你得到的是——<b>一个 HTTP + WebSocket 后端</b>。和方案 1 直接跑 <code>hermes serve</code> 拿到的东西，功能上完全一致。</dd>
+        </div>
+      </dl>
+      <div class="kicker">
+        <b>核心判断</b>
+        方案 2 的成本最高，而产出与方案 1 等价。唯一的额外收益是「代码归我管」——但只要你还想跟随上游升级，这份所有权就是净负债。
+      </div>
+    </div>
+
+    <!-- 方案 3 -->
+    <div class="opt mixed">
+      <div class="opt-head">
+        <span class="opt-no">方案 3</span>
+        <h3>留在仓库内，重构出清晰边界</h3>
+        <span class="pill mixed">分两种，结论相反</span>
+      </div>
+      <p class="opt-sub">
+        仍在 hermes-agent 里，把 B 线收拢成有明确接口的子系统。这个方案必须拆成两个变体来判断，因为它们的升级代价差了几个数量级。
+      </p>
+
+      <dl class="facets">
+        <div class="facet cost">
+          <dt>变体 A<br>改既有文件</dt>
+          <dd>
+            <strong>不建议。</strong>你要重构的正是全仓变更最快的文件：<code>web_server.py</code>(715/年) + <code>web_routers/</code>(183/年) ≈
+            <b>每天 2.5 次上游提交落在你改过的区域</b>。每次 <code>git pull</code> 都是一次手工三方合并，且合并的是你不熟悉的上游改动。
+            当前 fork 的自有提交数是 0（<code>git log</code> 作者全是上游贡献者），这份「零冲突债务」会在动第一刀时结束。
+          </dd>
+        </div>
+        <div class="facet win">
+          <dt>变体 B<br>只加不改</dt>
+          <dd>
+            <strong>可取，且建议与方案 1 组合。</strong>只在仓库内<b>新增</b>文件——比如一个 <code>contract/</code> 目录，放 OpenAPI 基线快照、
+            契约测试、以及（可选）一个薄的聚合 router，<b>不碰任何既有文件</b>。
+            Git 对新增文件永不产生冲突，所以升级代价仍然是零。
+          </dd>
+        </div>
+        <div class="facet">
+          <dt>变体 B 的价值</dt>
+          <dd>它把方案 1 唯一的风险（接口漂移）变成 CI 里一条会失败的测试。你在合并上游代码的那一刻就知道哪个端点变了，而不是在用户点不动按钮的时候。</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="matrix">
+    <div class="sec-head">
+      <h2>五、正面对比</h2>
+      <span class="sec-tag">方案 3 按变体 B（只加不改）计</span>
+    </div>
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr><th>维度</th><th>方案 1 · 黑盒进程</th><th>方案 2 · 独立包</th><th>方案 3B · 仓内只加不改</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>每次跟随上游升级</td>
+            <td><span class="mark a">零冲突</span><span class="t">改动量为 0</span></td>
+            <td><span class="mark c">持续</span><span class="t">约 14 次/周需 port</span></td>
+            <td><span class="mark a">零冲突</span><span class="t">新增文件不冲突</span></td>
+          </tr>
+          <tr>
+            <td>初期投入</td>
+            <td><span class="mark b">中</span><span class="t">前端全量自研</span></td>
+            <td><span class="mark c">极高</span><span class="t">2.3 万行 + 依赖反转</span></td>
+            <td><span class="mark b">中 + 小</span><span class="t">方案 1 之上加契约层</span></td>
+          </tr>
+          <tr>
+            <td>接口漂移暴露</td>
+            <td><span class="mark b">有，靠测试兜</span><span class="t">未测则静默失败</span></td>
+            <td><span class="mark c">有，且叠加冲突</span><span class="t">两种风险都吃</span></td>
+            <td><span class="mark a">有，但 CI 可见</span><span class="t">pull 时即报警</span></td>
+          </tr>
+          <tr>
+            <td>UI / 交互自主性</td>
+            <td><span class="mark a">完全自主</span><span class="t">不受上游前端约束</span></td>
+            <td><span class="mark a">完全自主</span><span class="t">同左</span></td>
+            <td><span class="mark a">完全自主</span><span class="t">同左</span></td>
+          </tr>
+          <tr>
+            <td>后端能力跟进</td>
+            <td><span class="mark a">自动获得</span><span class="t">上游新功能直接可用</span></td>
+            <td><span class="mark c">需手工搬运</span><span class="t">落后于上游</span></td>
+            <td><span class="mark a">自动获得</span><span class="t">同方案 1</span></td>
+          </tr>
+          <tr>
+            <td>回退 / 放弃成本</td>
+            <td><span class="mark a">低</span><span class="t">前端是独立项目</span></td>
+            <td><span class="mark c">高</span><span class="t">已脱离上游主干</span></td>
+            <td><span class="mark a">低</span><span class="t">删掉新增目录即可</span></td>
+          </tr>
+          <tr>
+            <td>多端 / 远程部署</td>
+            <td><span class="mark b">需处理鉴权</span><span class="t">CORS 限本地，远程要反代</span></td>
+            <td><span class="mark b">同左</span><span class="t">机制不变</span></td>
+            <td><span class="mark b">同左</span><span class="t">机制不变</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink-3); margin-top:14px; max-width:68ch">
+      注意最后一行：三个方案在远程访问上完全一样。CORS 正则只放行 localhost，跨机访问需要反向代理或 SSH 隧道
+      （上游自己也是这么做的——<code>apps/desktop</code> 里有 <code>ssh -N -L</code> 隧道）。这不是选型能解决的问题。
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>六、什么情况下该推翻这个推荐</h2>
+      <span class="sec-tag">方案 2 / 3A 的合理适用场景</span>
+    </div>
+    <p class="lede">上面的判断建立在「你要持续跟随上游升级」这个前提上。前提变了，结论就变。</p>
+
+    <div class="trigger t2">
+      <h4>选方案 2，如果——你打算不再跟随上游</h4>
+      <p>
+        比如要把这个后端作为产品交付给第三方，需要自己承诺 API 版本与 SLA。
+        那么「不能跟随升级」就不再是成本而是设计目标，方案 2 的全部代价立刻变得合理。
+        但这是一次<b>不可逆</b>的分叉：分叉之后上游的新模型、新平台适配、新工具都与你无关。
+      </p>
+    </div>
+
+    <div class="trigger t3">
+      <h4>选方案 3A，如果——你打算把改动回推上游</h4>
+      <p>
+        如果这层边界是以 PR 形式提给 <span class="mono">NousResearch/hermes-agent</span> 的，
+        合并冲突这个问题会自动消失——因为合并之后，你的代码就是上游代码。
+        考虑到架构图第 4 页已经指出「<code>gateway</code> 被当作核心服务、实际却在向外索取依赖，<code>cron</code>、<code>tui_gateway</code>、
+        <code>web_server</code>、<code>acp</code> 都直接 import 它的子模块而不是通过稳定接口」，
+        这个方向在技术上是站得住的。但它的成功取决于上游是否接受，不完全由你控制。
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>七、若选方案 1，第一步做什么</h2>
+      <span class="sec-tag">全部可在现有 HEAD 上验证</span>
+    </div>
+    <ol class="steps">
+      <li>
+        <div>
+          <b>用固定 token 起一个无头后端</b>
+          <span>确认它只暴露 API、不挂载前端，并用这个 token 打一个已知端点验证鉴权。</span>
+          <pre><code>HERMES_DASHBOARD_SESSION_TOKEN=dev-fixed-token \
+  hermes serve --port 8765</code></pre>
+        </div>
+      </li>
+      <li>
+        <div>
+          <b>抓取并冻结契约基线</b>
+          <span>FastAPI 自带 <code>/openapi.json</code>，把它作为你和上游之间的合同原件存进版本库。</span>
+        </div>
+      </li>
+      <li>
+        <div>
+          <b>圈定你真正需要的端点子集</b>
+          <span>桌面端 218、Web 端 130 只是上限。先列出你的产品实际要的那 30–50 个，依赖面越小漂移暴露越小。</span>
+        </div>
+      </li>
+      <li>
+        <div>
+          <b>打通 <code>/api/ws</code> 的 JSON-RPC 客户端</b>
+          <span>这是对话主干，也是唯一非 REST 的部分。直接移植 <code>apps/shared/src/json-rpc-gateway.ts</code> 与 <code>websocket-url.ts</code>，不要重写协议。</span>
+        </div>
+      </li>
+      <li>
+        <div>
+          <b>加一条漂移告警</b>
+          <span>每次同步上游后重新抓 openapi，与基线 diff，只对子集内的变化失败。这一步就是方案 3B——仓库内只加不改的那个目录。</span>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <footer>
+    数据采集自 qlshouyu/hermes-agent @ fc71fb63e5（2026-09-12），上游 NousResearch/hermes-agent。<br>
+    提交数为 <span class="mono">git log --since="1 year ago" -- &lt;path&gt;</span> 计数；路由增删为近 180 天 diff 中 @router/@app 装饰器行的增删计数。<br>
+    配色沿用 docs/hermes-architecture.drawio 的分层图例：蓝＝宿主进程 · 绿＝内核／低成本 · 黄＝需留意 · 红＝高风险边界 · 紫＝协议。
+  </footer>
+
+</div>
