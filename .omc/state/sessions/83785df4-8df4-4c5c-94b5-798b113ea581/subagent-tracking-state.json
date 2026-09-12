@@ -1,0 +1,134 @@
+{
+  "agents": [
+    {
+      "agent_id": "arest-sessions-715cfeda3affa8b5",
+      "agent_type": "rest-sessions",
+      "started_at": "2026-09-12T08:18:44.025Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T08:24:28.821Z",
+      "duration_ms": 344796
+    },
+    {
+      "agent_id": "arest-config-ad5ebf2aa43a64de",
+      "agent_type": "rest-config",
+      "started_at": "2026-09-12T08:18:52.483Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T08:24:11.896Z",
+      "duration_ms": 319413
+    },
+    {
+      "agent_id": "arest-cron-ops-d7cf014ed4b206e3",
+      "agent_type": "rest-cron-ops",
+      "started_at": "2026-09-12T08:18:59.090Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T08:24:00.237Z",
+      "duration_ms": 301147
+    },
+    {
+      "agent_id": "arest-tools-3a17ac3e16b226c0",
+      "agent_type": "rest-tools",
+      "started_at": "2026-09-12T08:19:06.897Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T08:24:45.009Z",
+      "duration_ms": 338112
+    },
+    {
+      "agent_id": "arest-profiles-0877604e3a3ab141",
+      "agent_type": "rest-profiles",
+      "started_at": "2026-09-12T08:19:19.200Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T08:24:49.185Z",
+      "duration_ms": 329985
+    },
+    {
+      "agent_id": "arest-audio-msg-9954aabcb6f4b592",
+      "agent_type": "rest-audio-msg",
+      "started_at": "2026-09-12T08:19:27.913Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T08:25:58.286Z",
+      "duration_ms": 390373
+    },
+    {
+      "agent_id": "arest-files-git-1e829ecdb0eff056",
+      "agent_type": "rest-files-git",
+      "started_at": "2026-09-12T08:19:37.010Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T08:26:03.110Z",
+      "duration_ms": 386100
+    },
+    {
+      "agent_id": "arest-auth-ws-6d1e0d8d6f6fba5f",
+      "agent_type": "rest-auth-ws",
+      "started_at": "2026-09-12T08:19:50.529Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T08:27:04.590Z",
+      "duration_ms": 434061
+    },
+    {
+      "agent_id": "aws-session-bb43b9e15f652e71",
+      "agent_type": "ws-session",
+      "started_at": "2026-09-12T08:20:16.655Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T08:29:19.553Z",
+      "duration_ms": 542898
+    },
+    {
+      "agent_id": "aws-config-3e02824e93f7eb37",
+      "agent_type": "ws-config",
+      "started_at": "2026-09-12T08:20:27.650Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T08:32:49.355Z",
+      "duration_ms": 741705
+    },
+    {
+      "agent_id": "aws-interactive-ff78fa88bc26bf19",
+      "agent_type": "ws-interactive",
+      "started_at": "2026-09-12T08:20:41.756Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T08:30:18.193Z",
+      "duration_ms": 576437
+    },
+    {
+      "agent_id": "a4d29432a74808f2f",
+      "agent_type": "fork",
+      "started_at": "2026-09-12T08:21:55.084Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T08:31:25.541Z",
+      "duration_ms": 570457
+    },
+    {
+      "agent_id": "aws-events-a1c1fc49a661de0d",
+      "agent_type": "ws-events",
+      "started_at": "2026-09-12T08:23:23.888Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T08:33:00.565Z",
+      "duration_ms": 576677
+    },
+    {
+      "agent_id": "af9d012e4826c0c12",
+      "agent_type": "unknown",
+      "started_at": "2026-09-12T08:50:47.453Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T08:50:47.453Z",
+      "duration_ms": 0
+    }
+  ],
+  "total_spawned": 13,
+  "total_completed": 14,
+  "total_failed": 0,
+  "last_updated": "2026-09-12T08:50:47.555Z"
+}
