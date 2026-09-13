@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentRuntime Port 与装饰器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+
+:root{
+  --ink:#151b23; --ink-2:#46525f; --ink-3:#6d7987;
+  --paper:#f5f7f9; --surface:#ffffff; --sunk:#eef1f5;
+  --rule:#dce2ea; --rule-soft:#e9edf2;
+  --host:#2f6fd0;  /* 宿主进程 · 蓝 */
+  --core:#26765a;  /* Agent 内核 · 绿 = 采纳 */
+  --tool:#a86d12;  /* 工具运行时 · 黄 = 需留意 */
+  --edge:#b3302a;  /* 边界 · 红 = 弃用 */
+  --proto:#63499d; /* 协议 · 紫 */
+  --core-wash:#e7f2ec; --tool-wash:#f8efdd; --edge-wash:#fbe9e7;
+  --host-wash:#e8f0fb; --proto-wash:#efeaf8;
+  --sans:"IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --cond:"IBM Plex Sans Condensed","Noto Sans SC","PingFang SC",system-ui,sans-serif;
+  --mono:"IBM Plex Mono","SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#e4eaf1; --ink-2:#a3b1c0; --ink-3:#7a8795;
+    --paper:#10151b; --surface:#171e26; --sunk:#1c242d;
+    --rule:#2a343f; --rule-soft:#212a33;
+    --host:#76a8f2; --core:#4fbb8b; --tool:#dba045; --edge:#f07065; --proto:#a98ee0;
+    --core-wash:#142b22; --tool-wash:#2e2415; --edge-wash:#34191a;
+    --host-wash:#152436; --proto-wash:#231d33;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf1; --ink-2:#a3b1c0; --ink-3:#7a8795;
+  --paper:#10151b; --surface:#171e26; --sunk:#1c242d;
+  --rule:#2a343f; --rule-soft:#212a33;
+  --host:#76a8f2; --core:#4fbb8b; --tool:#dba045; --edge:#f07065; --proto:#a98ee0;
+  --core-wash:#142b22; --tool-wash:#2e2415; --edge-wash:#34191a;
+  --host-wash:#152436; --proto-wash:#231d33;
+}
+
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans);
+  font-size:16px; line-height:1.75; -webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px; margin:0 auto; padding-inline:24px; padding-block:0 88px}
+h1,h2,h3,h4{font-family:var(--cond); font-weight:600; text-wrap:balance; line-height:1.25; margin:0}
+p{margin:0 0 16px}
+code,.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+code{font-size:.87em; background:var(--sunk); padding:.1em .38em; border-radius:3px; color:var(--ink-2)}
+a{color:var(--host)}
+:focus-visible{outline:2px solid var(--host); outline-offset:2px}
+
+header{border-bottom:1px solid var(--rule); background:var(--surface)}
+.head-inner{max-width:1080px; margin:0 auto; padding-inline:24px; padding-block:44px 30px}
+.eyebrow{font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--host); margin:0 0 14px}
+h1{font-size:clamp(30px,5.2vw,46px); letter-spacing:-.015em}
+.thesis{max-width:66ch; margin:16px 0 0; font-size:17.5px; color:var(--ink-2)}
+.meta{display:flex; flex-wrap:wrap; gap:6px 22px; margin-top:26px;
+  font-family:var(--mono); font-size:12.5px; color:var(--ink-3)}
+.meta b{color:var(--ink-2); font-weight:600}
+
+section{margin-top:62px}
+.sec-head{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:8px}
+.sec-head h2{font-size:25px; letter-spacing:-.01em}
+.sec-tag{font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); border:1px solid var(--rule); border-radius:99px; padding:2px 9px}
+.lede{margin:0 0 26px; color:var(--ink-2); max-width:70ch}
+h3.sub{font-size:18px; margin:34px 0 12px}
+
+/* 决策横幅 */
+.verdict{margin-top:38px; background:var(--surface); border:1px solid var(--rule);
+  border-left:4px solid var(--core); border-radius:4px; padding:26px 28px}
+.verdict h2{font-size:21px; margin-bottom:10px}
+.verdict p{color:var(--ink-2); max-width:72ch}
+.verdict strong{color:var(--ink); font-weight:600}
+.decided{display:flex; flex-wrap:wrap; gap:10px; margin-top:18px}
+.chip{font-family:var(--mono); font-size:12px; font-weight:600; padding:5px 12px; border-radius:4px}
+.chip.keep{background:var(--core-wash); color:var(--core)}
+.chip.drop{background:var(--edge-wash); color:var(--edge); text-decoration:line-through}
+
+/* 表格 */
+.tscroll{overflow-x:auto}
+table{border-collapse:collapse; width:100%; font-size:14.5px; min-width:560px}
+th,td{text-align:left; padding:10px 16px 10px 0; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+thead th{font-family:var(--mono); font-weight:600; font-size:11.5px; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule)}
+tbody tr:last-child td{border-bottom:none}
+td.n{font-family:var(--mono); white-space:nowrap; color:var(--ink)}
+td.m,th.m{font-family:var(--mono); font-size:13px}
+td.note{color:var(--ink-3); font-size:13.5px}
+caption{text-align:left; font-family:var(--mono); font-size:11.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink-3); padding-bottom:9px}
+
+.tag{font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:.05em;
+  padding:2px 7px; border-radius:3px; white-space:nowrap; display:inline-block}
+.tag.ok{background:var(--core-wash); color:var(--core)}
+.tag.no{background:var(--edge-wash); color:var(--edge)}
+.tag.mid{background:var(--tool-wash); color:var(--tool)}
+
+/* 三层结构 */
+.layers{display:grid; gap:14px; margin-top:10px}
+.layer{display:grid; grid-template-columns:150px 1fr; gap:22px; align-items:start;
+  border:1px solid var(--rule); border-radius:4px; padding:18px 22px; background:var(--surface)}
+.layer.own{border-left:4px solid var(--core)}
+.layer.guard{border-left:4px solid var(--proto)}
+.layer.up{border-left:4px solid var(--host)}
+.layer .lname{font-family:var(--cond); font-weight:600; font-size:17px}
+.layer .lwho{font-family:var(--mono); font-size:11px; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--ink-3); display:block; margin-top:4px}
+.layer .lbody{color:var(--ink-2); font-size:15px}
+.layer .lbody b{color:var(--ink)}
+.layer .lrepo{font-family:var(--mono); font-size:12px; color:var(--ink-3); display:block; margin-top:8px}
+
+/* 规则 */
+.rules{display:grid; gap:0; border-top:1px solid var(--rule); margin-top:8px}
+.rule{display:grid; grid-template-columns:58px 1fr; gap:20px; padding:20px 0;
+  border-bottom:1px solid var(--rule-soft)}
+.rn{font-family:var(--mono); font-size:12px; font-weight:600; color:var(--host); padding-top:4px}
+.rule h4{font-size:17.5px; margin-bottom:7px}
+.rule p{color:var(--ink-2); font-size:15px; margin:0 0 10px}
+.rule p:last-child{margin-bottom:0}
+.why{font-size:13.5px; color:var(--ink-3); border-left:2px solid var(--rule); padding-left:14px}
+
+pre{margin:10px 0 0; background:var(--sunk); border-radius:4px; padding:14px 17px;
+  overflow-x:auto; font-family:var(--mono); font-size:12.5px; line-height:1.65; color:var(--ink-2)}
+pre code{background:none; padding:0; font-size:inherit}
+pre .c{color:var(--ink-3)}
+pre .k{color:var(--host)}
+pre .g{color:var(--core)}
+
+.kicker{margin-top:22px; background:var(--sunk); border-radius:4px; padding:16px 20px;
+  font-size:15px; color:var(--ink-2)}
+.kicker b{font-family:var(--cond); font-size:15.5px; color:var(--ink); display:block; margin-bottom:4px}
+.kicker.warn{background:var(--tool-wash)}
+.kicker.warn b{color:var(--tool)}
+.kicker.good{background:var(--core-wash)}
+.kicker.good b{color:var(--core)}
+
+/* 保留方案块 */
+.opt{margin-top:40px; border-top:3px solid var(--core); padding-top:22px}
+.opt-head{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
+.opt-no{font-family:var(--mono); font-size:12px; font-weight:600; letter-spacing:.08em; color:var(--ink-3)}
+.opt-head h3{font-size:23px; letter-spacing:-.01em}
+.pill{font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.06em;
+  padding:3px 10px; border-radius:99px; background:var(--core-wash); color:var(--core)}
+.opt-sub{margin:10px 0 22px; color:var(--ink-2); max-width:72ch}
+.facets{display:grid; gap:0; border-top:1px solid var(--rule-soft)}
+.facet{display:grid; grid-template-columns:132px 1fr; gap:4px 26px;
+  padding:14px 0; border-bottom:1px solid var(--rule-soft)}
+.facet dt{font-family:var(--mono); font-size:11.5px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink-3); padding-top:4px}
+.facet dd{margin:0; color:var(--ink-2)}
+.facet dd strong{color:var(--ink); font-weight:600}
+.facet.win dd strong{color:var(--core)}
+.facet.cost dd strong{color:var(--edge)}
+
+/* 弃用留档 */
+.dropped{border-left:3px solid var(--rule); padding:4px 0 4px 20px; margin-top:26px; max-width:72ch}
+.dropped h4{font-size:17px; margin-bottom:7px; color:var(--ink-2)}
+.dropped p{color:var(--ink-3); margin:0; font-size:14.5px}
+.dropped b{color:var(--ink-2)}
+
+footer{margin-top:70px; padding-top:22px; border-top:1px solid var(--rule);
+  font-family:var(--mono); font-size:12px; color:var(--ink-3); line-height:1.8}
+
+@media (max-width:640px){
+  .layer,.rule,.facet{grid-template-columns:1fr; gap:8px}
+  .facet dt{padding-top:0}
+  .head-inner{padding-block:34px 24px}
+}
+
+
+.wrap{max-width:1120px}
+.head-inner{max-width:1120px}
+nav.top{position:sticky; top:0; z-index:5; background:color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--rule)}
+nav.top .inner{max-width:1120px; margin:0 auto; padding-inline:24px; padding-block:10px; display:flex; flex-wrap:wrap; gap:6px 18px}
+nav.top a{font-family:var(--mono); font-size:12.5px; color:var(--ink-2); text-decoration:none; padding:3px 0}
+nav.top a:hover{color:var(--host)}
+section, .cat, .layer-block, article.card{scroll-margin-top:64px}
+
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-top:8px}
+.stat{background:var(--surface); border:1px solid var(--rule); border-radius:4px; padding:16px 18px}
+.stat .n{font-family:var(--cond); font-size:34px; font-weight:700; line-height:1}
+.stat .l{font-family:var(--mono); font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-top:6px}
+.stat .d{font-size:13.5px; color:var(--ink-2); margin-top:8px}
+.stat.north{border-top:3px solid var(--host)} .stat.north .n{color:var(--host)}
+.stat.south{border-top:3px solid var(--tool)} .stat.south .n{color:var(--tool)}
+.stat.deco{border-top:3px solid var(--proto)} .stat.deco .n{color:var(--proto)}
+
+/* 位置图 */
+.stack{margin-top:22px; display:grid; gap:8px}
+.tier{display:grid; grid-template-columns:150px 1fr; gap:14px; align-items:stretch}
+.tier .tl{font-family:var(--mono); font-size:11.5px; letter-spacing:.06em; color:var(--ink-3); padding-top:10px; text-align:right}
+.tier .tb{border:1px solid var(--rule); border-radius:4px; padding:10px 14px; background:var(--surface); font-size:14px; color:var(--ink-2)}
+.tier .tb b{font-family:var(--cond); color:var(--ink)}
+.tier .tb .pill2{display:inline-block; font-family:var(--mono); font-size:11.5px; padding:2px 8px; border-radius:3px; margin:3px 6px 3px 0}
+.tb.host{border-left:4px solid var(--ink-3)}
+.tb.north{border-left:4px solid var(--host)} .tb.north .pill2{background:var(--host-wash); color:var(--host)}
+.tb.l1{border-left:4px solid var(--proto)} .tb.l1 .pill2, .tb.l2 .pill2, .tb.l3 .pill2{background:var(--proto-wash); color:var(--proto)}
+.tb.l2{border-left:4px solid var(--proto)} .tb.l3{border-left:4px solid var(--proto)}
+.tb.up{border-left:4px solid var(--core); background:var(--core-wash)}
+.tb.south{border-left:4px solid var(--tool)} .tb.south .pill2{background:var(--tool-wash); color:var(--tool)}
+.tb.adapt{border-left:4px solid var(--ink-3)}
+.arrow{font-family:var(--mono); font-size:11px; color:var(--ink-3); padding-left:164px; line-height:1.2}
+
+/* 分类与卡片 */
+.subnav{display:flex; flex-wrap:wrap; gap:8px; margin:4px 0 8px}
+.subnav a{font-family:var(--mono); font-size:12px; text-decoration:none; color:var(--ink-2); border:1px solid var(--rule);
+  border-radius:99px; padding:3px 11px; background:var(--surface)}
+.subnav a:hover{color:var(--host); border-color:var(--host)}
+.cat{margin-top:30px}
+.count{font-family:var(--mono); font-size:12px; font-weight:600; color:var(--ink-3); border:1px solid var(--rule);
+  border-radius:99px; padding:1px 8px; margin-left:10px; vertical-align:middle}
+.cat-desc{color:var(--ink-2); max-width:80ch; margin:0 0 14px}
+.where{font-size:13.5px; color:var(--ink-3); margin:-6px 0 14px}
+h4.grp{font-family:var(--cond); font-size:15.5px; margin:22px 0 10px; color:var(--ink-2); letter-spacing:.02em}
+article.card{background:var(--surface); border:1px solid var(--rule); border-radius:4px; padding:18px 22px 16px; margin:12px 0}
+article.card.north{border-left:4px solid var(--host)}
+article.card.south{border-left:4px solid var(--tool)}
+article.card.deco{border-left:4px solid var(--proto)}
+.card-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:8px 10px; margin-bottom:6px}
+.card-head h4{font-family:var(--mono); font-size:17px; font-weight:600; margin-right:4px}
+.tag.dir{background:var(--sunk); color:var(--ink-2)}
+.tag.cat{background:var(--host-wash); color:var(--host)}
+article.south .tag.cat{background:var(--tool-wash); color:var(--tool)}
+article.deco .tag.cat{background:var(--proto-wash); color:var(--proto)}
+.tag.lyr{background:var(--proto); color:#fff}
+.tag.def{background:var(--sunk); color:var(--ink-3)}
+.role{font-weight:500; color:var(--ink); margin:0 0 6px}
+.desc{color:var(--ink-2); font-size:15px; margin:0 0 10px}
+pre.sig{margin:10px 0 12px; font-size:12.5px}
+table.mt{min-width:620px; font-size:13.5px}
+table.mt td.m{font-family:var(--mono); font-size:12.5px; color:var(--ink)}
+th.num, td.num{text-align:right; white-space:nowrap; font-family:var(--mono)}
+.facets{margin:8px 0 4px}
+.facet{grid-template-columns:110px 1fr; padding:9px 0}
+.facet dd{font-size:14.5px}
+.layer-block{margin-top:38px}
+.lbadge{display:inline-block; font-family:var(--mono); font-size:12px; font-weight:700; color:#fff; background:var(--proto);
+  border-radius:3px; padding:1px 7px; margin-right:10px; vertical-align:middle}
+.chain{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:8px 0 4px}
+.chain .node{font-family:var(--mono); font-size:12px; padding:5px 10px; border-radius:4px; background:var(--proto-wash);
+  color:var(--proto); border:1px solid transparent; position:relative}
+.chain .node:not(:last-child)::after{content:"→"; color:var(--ink-3); margin-left:10px}
+.chain .node.host{background:var(--sunk); color:var(--ink-2)}
+.chain .node.up{background:var(--core-wash); color:var(--core)}
+.chain .node.opt{background:transparent; border:1px dashed var(--proto)}
+.hint{font-size:13px; color:var(--ink-3); margin:4px 0 6px}
+#quick table{font-size:13.5px; min-width:860px}
+#quick td.m a{font-family:var(--mono); color:var(--ink); text-decoration:none}
+#quick td.m a:hover{color:var(--host)}
+.to-top{position:fixed; right:18px; bottom:18px; font-family:var(--mono); font-size:12px; background:var(--surface);
+  border:1px solid var(--rule); border-radius:99px; padding:6px 12px; color:var(--ink-2); text-decoration:none}
+@media (max-width:640px){ .tier{grid-template-columns:1fr} .tier .tl{text-align:left; padding-top:0} .arrow{padding-left:0}
+  .facet{grid-template-columns:1fr} }
+@media print{ nav.top,.to-top{display:none} article.card{break-inside:avoid} }
+
+</style>
+</head>
+<body>
+<header id="top">
+  <div class="head-inner">
+    <p class="eyebrow">Hermes-Agent · AgentRuntime · 接口清单</p>
+    <h1>Port 与装饰器</h1>
+    <p class="thesis">AgentRuntime 抽取方案中新增的全部 Port 与装饰器，按分类逐个说明：它是什么、谁实现谁调用、替代了上游哪些调用、两种运行模式下怎么工作。</p>
+    <div class="meta">
+      <span><b>配套方案</b> <a href="agent-runtime-extraction-plan.html">agent-runtime-extraction-plan.html</a></span>
+      <span><b>基线</b> fc71fb63e5 · v0.21.2</span>
+      <span><b>日期</b> 2026-09-13</span>
+      <span><b>状态</b> 设计稿，待评审</span>
+    </div>
+  </div>
+</header>
+<nav class="top" aria-label="页内导航"><div class="inner"><a href="#overview">总览</a><a href="#north">北向 Port · 5</a><a href="#south">南向 Port · 9</a><a href="#decorators">装饰器 · 15</a><a href="#quick">速查表</a></div></nav>
+
+<div class="wrap">
+
+<section id="overview">
+  <div class="sec-head"><h2>总览</h2><span class="sec-tag">3 类 · 14 个 Port · 15 个装饰器</span></div>
+  <p class="lede">Port 约束「谁能调用什么」，装饰器负责「在不改上游代码的前提下叠加行为」。三者在调用链上的位置如下。</p>
+  <div class="stats">
+    <div class="stat north"><div class="n">5</div><div class="l">北向 Port</div><div class="d">2 类：宿主调用 3 个 · 宿主实现的回调 2 个</div></div>
+    <div class="stat south"><div class="n">9</div><div class="l">南向 Port</div><div class="d">4 类：配置与凭证 · 宿主上下文 · 扩展系统 · 业务能力</div></div>
+    <div class="stat deco"><div class="n">15</div><div class="l">装饰器</div><div class="d">L1 会话 7 · L2 执行 6 · L3 依赖 2（含 1 个可选）</div></div>
+  </div>
+
+  <div class="stack" aria-label="调用链位置">
+    <div class="tier"><div class="tl">宿主</div><div class="tb host">自建前端 / 服务；可选地经 launcher 接管上游 gateway · tui_gateway · cron</div></div>
+    <div class="arrow">↓ 只依赖北向 Port</div>
+    <div class="tier"><div class="tl">北向 Port</div><div class="tb north"><span class="pill2">AgentRuntimePort</span><span class="pill2">AgentSessionPort</span><span class="pill2">SessionMaintenancePort</span><span class="pill2">EventSinkPort ↑</span><span class="pill2">InteractionPort ↑</span></div></div>
+    <div class="tier"><div class="tl">L1 会话装饰器</div><div class="tb l1"><span class="pill2">CapabilityGate</span><span class="pill2">ConcurrencyGuard</span><span class="pill2">ErrorMapping</span><span class="pill2">Tracing</span><span class="pill2">Metrics</span><span class="pill2">CacheInvariant</span></div></div>
+    <div class="tier"><div class="tl">上游 ③④（不修改）</div><div class="tb up"><b>run_agent.AIAgent</b> · agent/ · model_tools · tools/ · hermes_state* ……</div></div>
+    <div class="tier"><div class="tl">L2 执行装饰器</div><div class="tb l2">挂在模型调用与工具调用上：<span class="pill2">_route_policy</span><span class="pill2">_llm_span</span><span class="pill2">_tool_arg_policy</span><span class="pill2">_tool_span</span><span class="pill2">_emit_tool_event</span><span class="pill2">guarded_request_middleware</span></div></div>
+    <div class="tier"><div class="tl">L3 依赖装饰器</div><div class="tb l3">上游代码读取外层模块属性时被转发：<span class="pill2">SymbolBinder 转发函数</span><span class="pill2">DecoratedAIAgent（可选）</span></div></div>
+    <div class="arrow">↓ 转发到南向 Port</div>
+    <div class="tier"><div class="tl">南向 Port</div><div class="tb south"><span class="pill2">ConfigPort</span><span class="pill2">CredentialPort</span><span class="pill2">ProviderCatalogPort</span><span class="pill2">SessionContextPort</span><span class="pill2">ProfilePort</span><span class="pill2">HostProcessPort</span><span class="pill2">PluginPort</span><span class="pill2">SchedulerPort</span><span class="pill2">PlatformPort</span></div></div>
+    <div class="tier"><div class="tl">适配器</div><div class="tb adapt"><b>Hosted</b>：调用上游原函数，行为不变 · <b>Standalone</b>：独立实现，能力子集</div></div>
+  </div>
+</section>
+
+<section id="north">
+  <div class="sec-head"><h2>北向 Port</h2><span class="sec-tag">约束上层调用 · 5 个</span></div>
+  <p class="lede">位于 <code>src/hermes_agent_runtime/ports/inbound.py</code>。由上游 <code>AIAgent</code> 的真实公开面归纳：18 个公开方法、80 个构造参数、21 个回调，以及宿主对私有属性的 110 处访问。</p>
+  <div class="subnav"><a href='#north-call'>宿主调用 · 运行时实现</a><a href='#north-callback'>宿主实现 · 运行时回调</a></div>
+  <div class='cat' id='north-call'><h3 class='sub'>宿主调用 · 运行时实现<span class='count'>3</span></h3><p class='cat-desc'>宿主主动调用、由运行时实现的接口。宿主只持有这三类对象，不再 import <code>run_agent</code> / <code>agent.*</code> / <code>tools.*</code>。</p><article class='card north' id='AgentRuntimePort'><div class='card-head'><h4>AgentRuntimePort</h4><span class='tag dir'>宿主 → 运行时</span><span class='tag cat'>宿主调用 · 运行时实现</span></div><p class='role'>运行时入口：宿主唯一需要持有的对象。</p><p class='desc'>按 <code>RuntimeSpec</code> 打开会话，并声明当前运行模式下有哪些工具集与能力可用。取代宿主直接 <code>AIAgent(...)</code> 构造：上游现有 <strong>21 处</strong>构造点、<strong>80 个</strong>构造参数，统一收敛到这一个入口。</p><pre class="sig"><code>open_session(spec: RuntimeSpec, *, events: EventSinkPort | None = None,
+             interaction: InteractionPort | None = None) -&gt; AgentSessionPort
+maintenance(session: AgentSessionPort) -&gt; SessionMaintenancePort
+capabilities() -&gt; Mapping[str, bool]</code></pre><dl class='facets'><div class='facet '><dt>上游依据</dt><dd><code>AIAgent(...)</code> 构造点 21 处：gateway 5、scripts 5、hermes_cli 4、tui_gateway 3、cron / acp / batch_runner / plugins 各 1</dd></div><div class='facet '><dt>Hosted</dt><dd><code>SpecMapper</code> 把 <code>RuntimeSpec</code> 摊平为 <code>AIAgent(**kwargs)</code>，以上游 <code>__init__</code> 签名为唯一真源校验</dd></div><div class='facet '><dt>Standalone</dt><dd>同上，额外按缺席的南向 Port 自动加入 <code>disabled_toolsets</code></dd></div><div class='facet '><dt>约束</dt><dd>未知参数直接报错；上游新增参数先走 <code>RuntimeSpec.passthrough</code></dd></div></dl></article><article class='card north' id='AgentSessionPort'><div class='card-head'><h4>AgentSessionPort</h4><span class='tag dir'>宿主 → 运行时</span><span class='tag cat'>宿主调用 · 运行时实现</span></div><p class='role'>一次会话：对话、中断、状态查询、资源释放。</p><p class='desc'>方法与 <code>AIAgent</code> 的 18 个公开方法一一对应，参数<strong>不宽于上游</strong>，因此 Hosted 模式下可以原样转交，行为逐字节一致。</p><div class='tscroll'><table class='mt'><thead><tr><th>Port 方法</th><th>对应上游</th><th class='num'>宿主调用次数</th></tr></thead><tbody><tr><td class='m'>run_turn(request) -&gt; TurnResult</td><td><code>run_conversation</code></td><td class='num'>22</td></tr><tr><td class='m'>chat(message) -&gt; str</td><td><code>chat</code></td><td class='num'>—</td></tr><tr><td class='m'>interrupt(message=None, *, hard=False, tool_reason=None) -&gt; bool</td><td><code>interrupt</code> / <code>hard_interrupt</code></td><td class='num'>10</td></tr><tr><td class='m'>steer(text) -&gt; bool</td><td><code>steer</code></td><td class='num'>7</td></tr><tr><td class='m'>redirect(text) -&gt; bool</td><td><code>redirect</code></td><td class='num'>3</td></tr><tr><td class='m'>clear_interrupt(*, preserve_redirect=False) -&gt; bool</td><td><code>clear_interrupt</code></td><td class='num'>2</td></tr><tr><td class='m'>is_interrupted() -&gt; bool</td><td><code>is_interrupted</code></td><td class='num'>—</td></tr><tr><td class='m'>activity() -&gt; Mapping</td><td><code>get_activity_summary</code></td><td class='num'>7</td></tr><tr><td class='m'>rate_limit_state()</td><td><code>get_rate_limit_state</code></td><td class='num'>2</td></tr><tr><td class='m'>credits_state()</td><td><code>get_credits_state</code></td><td class='num'>—</td></tr><tr><td class='m'>credits_spent_micros() -&gt; int | None</td><td><code>get_credits_spent_micros</code></td><td class='num'>1</td></tr><tr><td class='m'>reset(*, previous_messages=None, old_session_id=None, carry_over_context=False)</td><td><code>reset_session_state</code></td><td class='num'>2</td></tr><tr><td class='m'>commit_memory(messages=None)</td><td><code>commit_memory_session</code></td><td class='num'>2</td></tr><tr><td class='m'>release_clients()</td><td><code>release_clients</code></td><td class='num'>1</td></tr><tr><td class='m'>close()</td><td><code>shutdown_memory_provider</code> + <code>close</code></td><td class='num'>5 + 5</td></tr></tbody></table></div><dl class='facets'><div class='facet '><dt>约束</dt><dd><code>steer</code> / <code>redirect</code> 语义原样透传；不得注入合成 user 消息（上游严格角色交替不变量）</dd></div></dl></article><article class='card north' id='SessionMaintenancePort'><div class='card-head'><h4>SessionMaintenancePort</h4><span class='tag dir'>宿主 → 运行时</span><span class='tag cat'>宿主调用 · 运行时实现</span></div><p class='role'>特权维护面：只开放给 gateway / tui 这类长会话宿主。</p><p class='desc'>宿主目前直接访问 <code>AIAgent</code> 私有属性共 <strong>110 处</strong>（hermes_cli 42、gateway 37、tui_gateway 23、acp_adapter 5、其他 3）。把其中访问 ≥ 2 次的操作提升为正式契约，普通宿主看不到这个接口。</p><div class='tscroll'><table class='mt'><thead><tr><th>Port 方法</th><th>对应上游</th><th class='num'>宿主调用次数</th></tr></thead><tbody><tr><td class='m'>compress_context(**kwargs)</td><td><code>_compress_context</code></td><td class='num'>7</td></tr><tr><td class='m'>persist()</td><td><code>_persist_session</code></td><td class='num'>5</td></tr><tr><td class='m'>invalidate_system_prompt()</td><td><code>_invalidate_system_prompt</code></td><td class='num'>4</td></tr><tr><td class='m'>set_end_session_on_close(value: bool)</td><td><code>_end_session_on_close</code></td><td class='num'>4</td></tr><tr><td class='m'>flush_to_store()</td><td><code>_flush_messages_to_session_db</code></td><td class='num'>3</td></tr><tr><td class='m'>spawn_background_review(messages: list)</td><td><code>_spawn_background_review</code></td><td class='num'>2</td></tr></tbody></table></div><dl class='facets'><div class='facet '><dt>约束</dt><dd><code>invalidate_system_prompt</code> 只允许在上下文压缩或会话切换时调用，否则破坏提示缓存</dd></div><div class='facet '><dt>待补</dt><dd><code>_gateway_turn_process_*</code> 等网关专用字段保留在 Hosted 适配器内，不进入公共 Port</dd></div></dl></article></div><div class='cat' id='north-callback'><h3 class='sub'>宿主实现 · 运行时回调<span class='count'>2</span></h3><p class='cat-desc'>由宿主实现、运行时在需要时回调的接口。取代 <code>AIAgent</code> 的 21 个 <code>*_callback</code> 构造参数。</p><article class='card north' id='EventSinkPort'><div class='card-head'><h4>EventSinkPort</h4><span class='tag dir'>运行时 → 宿主</span><span class='tag cat'>宿主实现 · 运行时回调</span></div><p class='role'>接收运行时发出的单向事件。</p><p class='desc'>承接 <strong>14 个通知类回调</strong>，统一成带类型的 <code>RuntimeEvent</code>。宿主只需实现一个 <code>emit</code> 方法，按事件类型分发即可。</p><pre class="sig"><code>emit(event: RuntimeEvent) -&gt; None</code></pre><div class='tscroll'><table class='mt'><thead><tr><th>事件类型</th><th>来源回调</th></tr></thead><tbody><tr><td class='m'>StreamDelta / Interim</td><td><code>stream_delta_callback</code> / <code>interim_assistant_callback</code></td></tr><tr><td class='m'>Thinking / Reasoning</td><td><code>thinking_callback</code> / <code>reasoning_callback</code></td></tr><tr><td class='m'>ToolStarted / ToolProgress / ToolCompleted</td><td><code>tool_start_callback</code> / <code>tool_progress_callback</code> / <code>tool_complete_callback</code></td></tr><tr><td class='m'>ToolGenerating / Step</td><td><code>tool_gen_callback</code> / <code>step_callback</code></td></tr><tr><td class='m'>Status / Notice / NoticeCleared</td><td><code>status_callback</code> / <code>notice_callback</code> / <code>notice_clear_callback</code></td></tr><tr><td class='m'>Raw / Reaction</td><td><code>event_callback</code> / <code>reaction_callback</code></td></tr></tbody></table></div><dl class='facets'><div class='facet '><dt>约束</dt><dd><code>emit</code> 在对话线程内同步调用，宿主实现应尽快返回，耗时操作自行排队</dd></div></dl></article><article class='card north' id='InteractionPort'><div class='card-head'><h4>InteractionPort</h4><span class='tag dir'>运行时 → 宿主 → 运行时</span><span class='tag cat'>宿主实现 · 运行时回调</span></div><p class='role'>运行时需要人参与并拿回结果的交互。</p><p class='desc'>承接 <strong>7 个交互类回调</strong>，以及工具层的进程级回调注册函数。进程级回调由 <code>EventBridge</code> 统一注册一次，再按当前会话 ID（ContextVar）分发到各会话自己的 <code>InteractionPort</code>，避免同进程多会话串线。</p><pre class="sig"><code>clarify(question: str, choices: Sequence[str] | None) -&gt; str
+approve(request: Mapping[str, Any]) -&gt; bool
+read_terminal(request: Mapping[str, Any]) -&gt; str
+capture_secret(request: Mapping[str, Any]) -&gt; str | None</code></pre><div class='tscroll'><table class='mt'><thead><tr><th>Port 方法</th><th>来源</th></tr></thead><tbody><tr><td class='m'>clarify</td><td><code>clarify_callback</code></td></tr><tr><td class='m'>read_terminal 及同类</td><td><code>read_terminal_callback</code> / <code>read_preview_callback</code> / <code>drive_preview_callback</code> / <code>read_window_below_callback</code></td></tr><tr><td class='m'>可选实现（缺省返回不支持）</td><td><code>setup_mcp_callback</code> / <code>tour_callback</code></td></tr><tr><td class='m'>approve</td><td>进程级 <code>tools.terminal_tool.set_approval_callback</code>、<code>tools.computer_use.tool.set_approval_callback</code></td></tr><tr><td class='m'>capture_secret</td><td>进程级 <code>tools.skills_tool.set_secret_capture_callback</code>、<code>set_sudo_password_callback</code></td></tr></tbody></table></div><dl class='facets'><div class='facet '><dt>约束</dt><dd>宿主未实现的交互必须明确返回「拒绝 / 不支持」，不能挂起对话线程</dd></div></dl></article></div>
+</section>
+
+<section id="south">
+  <div class="sec-head"><h2>南向 Port</h2><span class="sec-tag">运行时对外需求 · 9 个</span></div>
+  <p class="lede">位于 <code>src/hermes_agent_runtime/ports/outbound.py</code>。输入是闭包对外层的 409 个符号 / 1,016 处引用；每个 Port 都有 Hosted 与 Standalone 两个适配器。</p>
+  <div class="subnav"><a href='#south-config'>配置与凭证</a><a href='#south-context'>宿主上下文</a><a href='#south-plugin'>扩展系统</a><a href='#south-business'>业务能力（可缺席）</a><a href='#south-none'>不设 Port</a></div>
+  <div class='cat' id='south-config'><h3 class='sub'>配置与凭证<span class='count'>3</span></h3><p class='cat-desc'>运行时读取配置、解析模型路由与凭证。引用量最大的一类，<code>hermes_cli</code> 对闭包的 797 处引用主要落在这里。</p><article class='card south' id='ConfigPort'><div class='card-head'><h4>ConfigPort</h4><span class='tag dir'>运行时 → 外部</span><span class='tag cat'>配置与凭证</span></div><p class='role'>读取与保存行为配置。</p><pre class="sig"><code>read() -&gt; Mapping[str, Any]          # 只读视图，调用方禁止修改
+read_mutable() -&gt; dict[str, Any]     # 深拷贝
+read_raw() -&gt; dict[str, Any]
+env(name: str, default: str = &quot;&quot;) -&gt; str
+path() -&gt; Path
+save(cfg: Mapping[str, Any], **kw) -&gt; None</code></pre><dl class='facets'><div class='facet '><dt>替代上游</dt><dd><code>hermes_cli.config</code> <strong>235 处</strong>：<code>load_config</code> 70、<code>load_config_readonly</code> 63、<code>read_raw_config</code> 16、<code>get_compatible_custom_providers</code> 9、<code>get_env_value</code> 6、<code>get_config_path</code> 3、<code>save_config</code> 2、<code>DEFAULT_CONFIG</code> 2、<code>load_env</code> 2；另有 <code>hermes_cli/timeouts.py</code> 间接依赖</dd></div><div class='facet '><dt>Hosted</dt><dd>调用上游 <code>load_config_readonly</code> / <code>load_config</code> 等原函数</dd></div><div class='facet '><dt>Standalone</dt><dd>内存 dict 或指定的 YAML 文件；<code>save</code> 可禁用</dd></div><div class='facet '><dt>缺席时</dt><dd>必需，不可缺席</dd></div><div class='facet '><dt>注意</dt><dd>配置读取是热路径（上游注释：<code>load_config</code> 缓存命中约 265µs，其中约一半是深拷贝），转发层必须零分配</dd></div></dl></article><article class='card south' id='CredentialPort'><div class='card-head'><h4>CredentialPort</h4><span class='tag dir'>运行时 → 外部</span><span class='tag cat'>配置与凭证</span></div><p class='role'>解析运行时 provider 路由、API Key 与凭证池。</p><pre class="sig"><code>resolve_runtime(requested: str | None, explicit_api_key: str | None) -&gt; RuntimeRoute
+provider_auth_state(provider_id: str) -&gt; Mapping | None
+pool_read(provider_id: str) -&gt; list
+pool_write(provider_id: str, entries: list) -&gt; None</code></pre><dl class='facets'><div class='facet '><dt>替代上游</dt><dd><code>hermes_cli.auth</code> <strong>85</strong>、<code>runtime_provider</code> <strong>24</strong>（<code>resolve_runtime_provider</code> 11）、<code>anon_auth</code> <strong>18</strong>、<code>copilot_auth</code> <strong>15</strong>、<code>nous_account</code> <strong>13</strong></dd></div><div class='facet '><dt>Hosted</dt><dd>调用上游各 provider 的凭证解析函数</dd></div><div class='facet '><dt>Standalone</dt><dd>显式密钥 + 环境变量；OAuth 类 provider（Nous、Codex、Copilot、xAI OAuth 等）不支持</dd></div><div class='facet '><dt>缺席时</dt><dd>必需，不可缺席</dd></div><div class='facet '><dt>注意</dt><dd><code>agent/credential_pool.py</code>、<code>agent/account_usage.py</code> 在模块顶层导入 <code>hermes_cli.auth</code> 的 21 个符号，多数为私有函数，上游可随时改名，是守卫 G2 的重点监控对象</dd></div></dl></article><article class='card south' id='ProviderCatalogPort'><div class='card-head'><h4>ProviderCatalogPort</h4><span class='tag dir'>运行时 → 外部</span><span class='tag cat'>配置与凭证</span></div><p class='role'>provider 档案、名称归一化与 API 模式判定。</p><pre class="sig"><code>profile(name: str) -&gt; ProviderProfile | None
+normalize(name: str) -&gt; str
+api_mode(route: RuntimeRoute) -&gt; str
+is_actual_route(url: str) -&gt; bool</code></pre><dl class='facets'><div class='facet '><dt>替代上游</dt><dd><code>hermes_cli.providers</code> <strong>30</strong>（<code>is_actual_route</code> 13、<code>nous_api_mode</code> 5）、<code>hermes_cli.models</code> <strong>31</strong>、<code>providers</code> <strong>21</strong>（<code>get_provider_profile</code> 19）</dd></div><div class='facet '><dt>Hosted</dt><dd>调用上游 provider 注册表（含 <code>plugins/model-providers</code> 插件发现）</dd></div><div class='facet '><dt>Standalone</dt><dd>随包携带一份 provider 档案快照</dd></div><div class='facet '><dt>缺席时</dt><dd>必需，不可缺席</dd></div></dl></article></div><div class='cat' id='south-context'><h3 class='sub'>宿主上下文<span class='count'>3</span></h3><p class='cat-desc'>运行时需要知道「当前是谁、在哪个 profile、宿主进程是否存活」。能力属于会话而不是进程环境变量。</p><article class='card south' id='SessionContextPort'><div class='card-head'><h4>SessionContextPort</h4><span class='tag dir'>运行时 → 外部</span><span class='tag cat'>宿主上下文</span></div><p class='role'>读取与绑定会话级上下文变量（平台、会话 ID、用户、聊天等）。</p><pre class="sig"><code>get(name: str, default: str = &quot;&quot;) -&gt; str
+bind(**vars: str) -&gt; ContextManager[None]
+current_session_id() -&gt; str | None</code></pre><dl class='facets'><div class='facet '><dt>替代上游</dt><dd><code>gateway.session_context</code> <strong>46 处</strong>：<code>get_session_env</code> 33、<code>async_delivery_supported</code> 4、<code>set_current_session_id</code> 3、<code>scoped_current_session_id</code> 1、<code>session_is_messaging_surface</code> 1 …</dd></div><div class='facet '><dt>Hosted</dt><dd>调用上游 <code>gateway.session_context</code> 原函数</dd></div><div class='facet '><dt>Standalone</dt><dd>自带 ContextVar 实现，语义同上游：ContextVar 设过（哪怕是空串）就用它，否则读 <code>os.environ</code>，再否则取默认值</dd></div><div class='facet '><dt>缺席时</dt><dd>必需，不可缺席</dd></div><div class='facet '><dt>注意</dt><dd>必须基于 ContextVar，才能在同进程并发会话之间隔离；不得退化为只读环境变量</dd></div></dl></article><article class='card south' id='ProfilePort'><div class='card-head'><h4>ProfilePort</h4><span class='tag dir'>运行时 → 外部</span><span class='tag cat'>宿主上下文</span></div><p class='role'>当前激活的 profile 及其目录。</p><pre class="sig"><code>active_profile() -&gt; str
+profile_dir(name: str) -&gt; Path
+exists(name: str) -&gt; bool</code></pre><dl class='facets'><div class='facet '><dt>替代上游</dt><dd><code>hermes_cli.profiles</code> <strong>20 处</strong>：<code>get_active_profile_name</code> 14、<code>profile_exists</code> 2、<code>get_profile_dir</code> 1、<code>list_profiles</code> 1 …</dd></div><div class='facet '><dt>Hosted</dt><dd>调用上游 profile 管理函数</dd></div><div class='facet '><dt>Standalone</dt><dd>固定单个 profile，目录即运行时实例的 <code>HERMES_HOME</code></dd></div><div class='facet '><dt>缺席时</dt><dd>可降级为固定单 profile</dd></div></dl></article><article class='card south' id='HostProcessPort'><div class='card-head'><h4>HostProcessPort</h4><span class='tag dir'>运行时 → 外部</span><span class='tag cat'>宿主上下文</span></div><p class='role'>宿主进程存活探测与进程元信息。</p><pre class="sig"><code>pid_exists(pid: int) -&gt; bool
+process_start_time(pid: int) -&gt; float | None
+running_pid() -&gt; int | None
+terminate(pid: int) -&gt; bool</code></pre><dl class='facets'><div class='facet '><dt>替代上游</dt><dd><code>gateway.status</code> <strong>17 处</strong>：<code>_pid_exists</code> 8、<code>get_process_start_time</code> 6、<code>get_running_pid</code> 1、<code>terminate_pid</code> 1、<code>read_runtime_status</code> 1；另有 <code>hermes_cli/_subprocess_compat.py</code> 间接依赖</dd></div><div class='facet '><dt>Hosted</dt><dd>调用上游 <code>gateway.status</code> 原函数</dd></div><div class='facet '><dt>Standalone</dt><dd>psutil 实现</dd></div><div class='facet '><dt>缺席时</dt><dd>可降级：无网关时 <code>running_pid()</code> 返回 <code>None</code></dd></div></dl></article></div><div class='cat' id='south-plugin'><h3 class='sub'>扩展系统<span class='count'>1</span></h3><p class='cat-desc'>hook、middleware 与插件发现。L2 执行装饰器正是挂在这一层上。</p><article class='card south' id='PluginPort'><div class='card-head'><h4>PluginPort</h4><span class='tag dir'>运行时 → 外部</span><span class='tag cat'>扩展系统</span></div><p class='role'>触发 hook、执行 middleware 链、访问插件管理器。</p><pre class="sig"><code>invoke_hook(name: str, **kw) -&gt; list
+has_hook(name: str) -&gt; bool
+apply_llm_request(request: dict, **ctx) -&gt; RequestMiddlewareResult
+run_llm_execution(terminal_call: Callable, **kw) -&gt; Any
+apply_tool_request(tool_name: str, args: dict, **ctx) -&gt; RequestMiddlewareResult
+run_tool_execution(terminal_call: Callable, **kw) -&gt; Any</code></pre><dl class='facets'><div class='facet '><dt>替代上游</dt><dd><code>hermes_cli.plugins</code> <strong>51</strong>（<code>get_plugin_manager</code> 9、<code>_ensure_plugins_discovered</code> 8、<code>discover_plugins</code> 8、<code>_dispatch_pre_tool_call_hooks</code> 3 …）、<code>hermes_cli.lifecycle</code> <strong>17</strong>（<code>invoke_hook</code> 11、<code>has_hook</code> 6）、<code>hermes_cli.middleware</code> <strong>9</strong></dd></div><div class='facet '><dt>Hosted</dt><dd>调用上游插件系统，第三方插件与本包 L2 中间件一起生效</dd></div><div class='facet '><dt>Standalone</dt><dd>只运行本包注册的中间件链，不加载第三方插件</dd></div><div class='facet '><dt>缺席时</dt><dd>可降级为空实现（hook 不触发、middleware 直通）</dd></div><div class='facet '><dt>注意</dt><dd>上游中间件失败放行（fail-open），安全策略不能只靠中间件兜底</dd></div></dl></article></div><div class='cat' id='south-business'><h3 class='sub'>业务能力（可缺席）<span class='count'>2</span></h3><p class='cat-desc'>只有部分工具需要的外层业务系统。缺席时不报错，而是在开会话时直接禁用相关工具集，模型根本看不到这些工具。</p><article class='card south' id='SchedulerPort'><div class='card-head'><h4>SchedulerPort</h4><span class='tag dir'>运行时 → 外部</span><span class='tag cat'>业务能力（可缺席）</span></div><p class='role'>定时任务的查询与管理。</p><pre class="sig"><code>list_jobs() -&gt; list[Job]
+get_job(ref: str) -&gt; Job | None
+update_job(ref: str, **changes) -&gt; Job
+pause_job(ref: str) / resume_job(ref: str) / remove_job(ref: str)
+running_job_ids() -&gt; set[str]</code></pre><dl class='facets'><div class='facet '><dt>替代上游</dt><dd><code>cron.jobs</code> <strong>26</strong>、<code>cron.scheduler</code> <strong>12</strong>、<code>cron.lifecycle_guard</code> 3、<code>cron.executions</code> 2 等，共 <strong>48 处</strong>；使用方为 <code>tools/cronjob_tools.py</code>、<code>tools/cronjob_job_args.py</code>、<code>agent/monitoring/cron_health.py</code></dd></div><div class='facet '><dt>Hosted</dt><dd>调用上游 <code>cron</code> 原函数</dd></div><div class='facet '><dt>Standalone</dt><dd>默认不提供</dd></div><div class='facet '><dt>缺席时</dt><dd>缺席 → <code>cronjob</code> 工具集自动禁用</dd></div><div class='facet '><dt>注意</dt><dd><code>cron.jobs</code> 的 18 个符号在上述文件模块顶层导入，绑定必须在导入前安装</dd></div></dl></article><article class='card south' id='PlatformPort'><div class='card-head'><h4>PlatformPort</h4><span class='tag dir'>运行时 → 外部</span><span class='tag cat'>业务能力（可缺席）</span></div><p class='role'>消息平台配置与代理解析。</p><pre class="sig"><code>platform_config(name: str) -&gt; PlatformConfig | None
+resolve_proxy_url(platform: str) -&gt; str | None</code></pre><dl class='facets'><div class='facet '><dt>替代上游</dt><dd><code>gateway.config</code> <strong>11</strong>（<code>Platform</code> 6、<code>PlatformConfig</code> 2、<code>load_gateway_config</code> 2）、<code>gateway.platforms.base</code> <strong>10</strong>（<code>BasePlatformAdapter</code> 5、<code>resolve_proxy_url</code> 2 …）</dd></div><div class='facet '><dt>Hosted</dt><dd>调用上游 <code>gateway</code> 原函数</dd></div><div class='facet '><dt>Standalone</dt><dd>默认不提供</dd></div><div class='facet '><dt>缺席时</dt><dd>缺席 → <code>send_message</code> 等消息投递类工具自动禁用</dd></div></dl></article></div><div class='cat' id='south-none'><h3 class='sub'>不设 Port 的外部依赖</h3><p class='cat-desc'>这些引用不值得抽象成 Port：要么是无副作用的工具函数，要么即将被上游移除。</p><div class='tscroll'><table><thead><tr><th>类别</th><th>对象</th><th>处理方式</th></tr></thead><tbody><tr><td><strong>工具类模块（原样随行）</strong></td><td><code>hermes_cli/timefmt.py</code>、<code>sizefmt.py</code>（无本地依赖）；<code>route_identity.py</code>（只依赖闭包内的 <code>agent.agent_init</code>）</td><td>构建时整模块复制，不设 Port</td></tr><tr><td><strong>工具类模块（随行 + 依赖转交）</strong></td><td><code>hermes_cli/_subprocess_compat.py</code>（39 处，依赖 <code>gateway.status</code>）、<code>hermes_cli/timeouts.py</code>（依赖 <code>hermes_cli.config</code>）</td><td>整模块复制；其外部依赖由影子模块转交 <code>HostProcessPort</code> / <code>ConfigPort</code></td></tr><tr><td><strong>单个纯函数</strong></td><td><code>hermes_cli.config.cfg_get</code>（24 处）</td><td>只在 config 影子模块中提供实现</td></tr><tr><td><strong>兼容层（可选）</strong></td><td><code>hermes_cli.plugin_compat.warn_once</code>（56 处）</td><td>2026-09-14 随兼容层移除；绑定标为可选，缺失时跳过</td></tr></tbody></table></div></div>
+</section>
+
+<section id="decorators">
+  <div class="sec-head"><h2>装饰器</h2><span class="sec-tag">三层 · 15 个</span></div>
+  <p class="lede">三层装饰器分别作用在会话对象、模型 / 工具执行、外层依赖上，彼此独立，可以单独启用或回滚。</p>
+  <div class="subnav"><a href='#deco-l1'>L1 会话装饰器</a><a href='#deco-l2'>L2 执行装饰器</a><a href='#deco-l3'>L3 依赖装饰器</a></div>
+  <div class='layer-block' id='deco-l1'><h3 class='sub'><span class='lbadge l1'>L1</span>会话装饰器<span class='count'>7</span></h3><p class='cat-desc'>包装 <code>AgentSessionPort</code>，自身也实现 <code>AgentSessionPort</code>，因此可以任意叠加、顺序可配。宿主拿到的会话对象就是装饰链最外层。</p><p class='where'>代码位置：<code>src/hermes_agent_runtime/decorators/session.py</code></p><div class='chain' aria-label='建议叠加顺序'><span class='node host'>宿主</span><span class='node'>CapabilityGate</span><span class='node'>ConcurrencyGuard</span><span class='node'>ErrorMapping</span><span class='node'>Tracing</span><span class='node'>Metrics</span><span class='node opt'>CacheInvariant</span><span class='node'>DefaultAgentSession</span><span class='node up'>AIAgent</span></div><p class='hint'>由外到内的建议叠加顺序；虚线框为仅在 CI / 调试时启用。</p><div class='cat'><h4 class='grp'>基础<span class='count'>1</span></h4><article class='card deco l1' id='SessionDecorator'><div class='card-head'><h4>SessionDecorator</h4><span class='tag lyr'>L1</span><span class='tag cat'>基础</span><span class='tag def'>默认：—</span></div><dl class='facets'><div class='facet '><dt>挂载点</dt><dd>所有方法（<code>__getattr__</code> 委托）</dd></div></dl><p class='desc'>基类。未覆写的方法原样委托给内层会话，子类只覆写自己关心的方法，新增 Port 方法时无需修改每个装饰器。</p></article></div><div class='cat'><h4 class='grp'>可靠性<span class='count'>2</span></h4><article class='card deco l1' id='ErrorMappingDecorator'><div class='card-head'><h4>ErrorMappingDecorator</h4><span class='tag lyr'>L1</span><span class='tag cat'>可靠性</span><span class='tag def'>默认：开</span></div><dl class='facets'><div class='facet '><dt>挂载点</dt><dd><code>run_turn</code>、<code>chat</code></dd></div></dl><p class='desc'>把上游异常转换为本包的领域异常（<code>ports/errors.py</code>），通过 <code>raise ... from exc</code> 保留原始异常链。宿主因此无需 import 任何上游异常类型。</p></article><article class='card deco l1' id='ConcurrencyGuardDecorator'><div class='card-head'><h4>ConcurrencyGuardDecorator</h4><span class='tag lyr'>L1</span><span class='tag cat'>可靠性</span><span class='tag def'>默认：开</span></div><dl class='facets'><div class='facet '><dt>挂载点</dt><dd><code>run_turn</code>、<code>chat</code></dd></div></dl><p class='desc'>同一会话的轮次串行执行，并发请求排队或拒绝。与上游 <code>turn_facade_lease</code> 的轮次锁互补：上游锁防重入，本装饰器给宿主明确的排队 / 忙碌语义。</p></article></div><div class='cat'><h4 class='grp'>可观测<span class='count'>2</span></h4><article class='card deco l1' id='TracingDecorator'><div class='card-head'><h4>TracingDecorator</h4><span class='tag lyr'>L1</span><span class='tag cat'>可观测</span><span class='tag def'>默认：开</span></div><dl class='facets'><div class='facet '><dt>挂载点</dt><dd><code>run_turn</code>、<code>interrupt</code>、<code>close</code></dd></div></dl><p class='desc'>每轮对话开一个追踪 span（<code>agent.turn</code>），带会话 ID；与 L2 的 <code>llm.call</code> / <code>tool.call</code> span 形成父子关系。</p></article><article class='card deco l1' id='MetricsDecorator'><div class='card-head'><h4>MetricsDecorator</h4><span class='tag lyr'>L1</span><span class='tag cat'>可观测</span><span class='tag def'>默认：开</span></div><dl class='facets'><div class='facet '><dt>挂载点</dt><dd><code>run_turn</code></dd></div></dl><p class='desc'>统计每轮耗时、token 与费用（读取 <code>TurnResult</code> 的用量字段与 <code>credits_spent_micros()</code>），输出到宿主指定的指标后端。</p></article></div><div class='cat'><h4 class='grp'>不变量与策略<span class='count'>2</span></h4><article class='card deco l1' id='CacheInvariantDecorator'><div class='card-head'><h4>CacheInvariantDecorator</h4><span class='tag lyr'>L1</span><span class='tag cat'>不变量与策略</span><span class='tag def'>默认：CI / 调试</span></div><dl class='facets'><div class='facet '><dt>挂载点</dt><dd><code>run_turn</code></dd></div></dl><p class='desc'>在轮次前后比对系统提示与工具集指纹：除上下文压缩外，同一会话内二者不得变化。用于在测试中尽早发现破坏提示缓存的改动。</p></article><article class='card deco l1' id='CapabilityGateDecorator'><div class='card-head'><h4>CapabilityGateDecorator</h4><span class='tag lyr'>L1</span><span class='tag cat'>不变量与策略</span><span class='tag def'>默认：Standalone</span></div><dl class='facets'><div class='facet '><dt>挂载点</dt><dd><code>run_turn</code>、<code>open_session</code> 前置检查</dd></div></dl><p class='desc'>Standalone 模式下，请求了当前不可用的工具集（如缺少 <code>SchedulerPort</code> 时的 <code>cronjob</code>）时提前抛出明确错误，而不是运行到某个分支才失败。</p></article></div></div><div class='layer-block' id='deco-l2'><h3 class='sub'><span class='lbadge l2'>L2</span>执行装饰器<span class='count'>6</span></h3><p class='cat-desc'>复用上游官方 middleware 契约（<code>hermes.middleware.v1</code>），通过 <code>hermes_agent.plugins</code> entry point 注册为插件，不改任何上游文件。执行类中间件收到 <code>next_call</code>，调用它即继续下游；多个插件按注册顺序嵌套。</p><p class='where'>代码位置：<code>src/hermes_agent_runtime/decorators/middleware_plugin.py</code> 中的 <code>register(ctx)</code></p><div class='cat'><h4 class='grp'>LLM 调用<span class='count'>2</span></h4><article class='card deco l2' id='_route_policy'><div class='card-head'><h4>_route_policy</h4><span class='tag lyr'>L2</span><span class='tag cat'>LLM 调用</span><span class='tag def'>默认：开</span></div><dl class='facets'><div class='facet '><dt>挂载点</dt><dd><code>llm_request</code></dd></div></dl><p class='desc'>调用模型前调整路由参数（<code>model</code>、<code>extra_headers</code>、超时）。返回 <code>{&quot;request&quot;: {...}}</code>。只允许改路由键，改动由 <code>guarded_request_middleware</code> 校验。</p></article><article class='card deco l2' id='_llm_span'><div class='card-head'><h4>_llm_span</h4><span class='tag lyr'>L2</span><span class='tag cat'>LLM 调用</span><span class='tag def'>默认：开</span></div><dl class='facets'><div class='facet '><dt>挂载点</dt><dd><code>llm_execution</code></dd></div></dl><p class='desc'>包住真实的 provider 调用：<code>with tracer.span(&quot;llm.call&quot;): return next_call(request)</code>，记录模型、provider、耗时。不改请求也不改响应。</p></article></div><div class='cat'><h4 class='grp'>工具调用<span class='count'>2</span></h4><article class='card deco l2' id='_tool_arg_policy'><div class='card-head'><h4>_tool_arg_policy</h4><span class='tag lyr'>L2</span><span class='tag cat'>工具调用</span><span class='tag def'>默认：按需</span></div><dl class='facets'><div class='facet '><dt>挂载点</dt><dd><code>tool_request</code></dd></div></dl><p class='desc'>在审批与安全护栏<strong>之前</strong>改写工具参数，返回 <code>{&quot;args&quot;: {...}}</code>。改写后的值就是审批看到的值，只用于规范化（如路径归一），不得用来绕过策略。</p></article><article class='card deco l2' id='_tool_span'><div class='card-head'><h4>_tool_span</h4><span class='tag lyr'>L2</span><span class='tag cat'>工具调用</span><span class='tag def'>默认：开</span></div><dl class='facets'><div class='facet '><dt>挂载点</dt><dd><code>tool_execution</code></dd></div></dl><p class='desc'>包住真实的工具执行：<code>with tracer.span(&quot;tool.call&quot;): return next_call(args)</code>，记录工具名与耗时，保留上游护栏、审批与 post hook 行为。</p></article></div><div class='cat'><h4 class='grp'>事件<span class='count'>1</span></h4><article class='card deco l2' id='_emit_tool_event'><div class='card-head'><h4>_emit_tool_event</h4><span class='tag lyr'>L2</span><span class='tag cat'>事件</span><span class='tag def'>默认：开</span></div><dl class='facets'><div class='facet '><dt>挂载点</dt><dd>observer hook <code>post_tool_call</code></dd></div></dl><p class='desc'>工具执行完成后，通过当前会话的 <code>EventSinkPort</code> 发出 <code>ToolCompleted</code> 事件（补充回调未覆盖的字段，如中间件追踪 <code>middleware_trace</code>）。</p></article></div><div class='cat'><h4 class='grp'>守卫<span class='count'>1</span></h4><article class='card deco l2' id='guarded_request_middleware'><div class='card-head'><h4>guarded_request_middleware</h4><span class='tag lyr'>L2</span><span class='tag cat'>守卫</span><span class='tag def'>默认：开</span></div><dl class='facets'><div class='facet '><dt>挂载点</dt><dd>包在请求类中间件外层（函数装饰器）</dd></div></dl><p class='desc'>检查请求类中间件的返回值：修改 <code>messages</code>、<code>input</code>、<code>tools</code>、<code>system</code> 一律拒绝并记录告警，守住「对话中途不改历史与工具集」的提示缓存不变量。</p></article></div><div class='kicker warn'>上游 middleware 只对<strong>已启用插件</strong>生效：Hosted 模式需 <code>hermes plugins enable agent-runtime</code>；Standalone 模式由 <code>PluginPort</code> 直接注入。</div><div class='kicker warn'>上游约定失败放行（fail-open）：中间件抛异常时记录警告并继续。本层只做路由与观测，安全策略仍由上游审批与护栏执行。</div></div><div class='layer-block' id='deco-l3'><h3 class='sub'><span class='lbadge l3'>L3</span>依赖装饰器<span class='count'>2</span></h3><p class='cat-desc'>把闭包对外层模块的调用重定向到南向 Port。上游多数外部调用是函数体内的 <code>from hermes_cli.config import load_config_readonly</code>，执行时才读取模块属性，因此替换模块属性即可生效。</p><p class='where'>代码位置：<code>src/hermes_agent_runtime/bindings/</code>（<code>binder.py</code>、<code>manifest.py</code>、<code>launcher.py</code>）</p><div class='cat'><h4 class='grp'>机制<span class='count'>1</span></h4><article class='card deco l3' id='SymbolBinder'><div class='card-head'><h4>SymbolBinder 转发函数</h4><span class='tag lyr'>L3</span><span class='tag cat'>机制</span><span class='tag def'>默认：开</span></div><dl class='facets'><div class='facet '><dt>挂载点</dt><dd>外层模块属性（按「生产代码读取处」建立的绑定清单）</dd></div></dl><p class='desc'>绑定清单中每个符号生成一个转发函数，例如把 <code>hermes_cli.config.load_config_readonly</code> 换成调用 <code>ConfigPort.read</code> 的函数，并用 <code>functools.wraps</code> 保留签名与文档。原函数保存在注册表中，Hosted 适配器通过 <code>original_of()</code> 取回，避免递归。模块顶层导入的 <strong>78 个符号 / 129 处</strong>必须在导入上游代码前安装。</p></article></div><div class='cat'><h4 class='grp'>可选<span class='count'>1</span></h4><article class='card deco l3' id='DecoratedAIAgent'><div class='card-head'><h4>DecoratedAIAgent</h4><span class='tag lyr'>L3</span><span class='tag cat'>可选</span><span class='tag def'>默认：关</span></div><dl class='facets'><div class='facet '><dt>挂载点</dt><dd><code>run_agent.AIAgent</code>（由 launcher <code>hermes-rt</code> 启用）</dd></div></dl><p class='desc'><code>AIAgent</code> 的子类，启动时替换 <code>run_agent.AIAgent</code>，让上游自己的 gateway / tui / cron 也经过 L1 装饰器。用子类而不是包装对象，是为了保留 <code>isinstance</code> 判断和宿主的 110 处私有属性访问；带重入保护，避免后台复盘、<code>/btw</code> 等 fork 出的子代理重复叠加。</p></article></div></div>
+</section>
+
+<section id="quick">
+  <div class="sec-head"><h2>速查表</h2><span class="sec-tag">全部 29 项</span></div>
+  <p class="lede">点击名称跳转到对应说明。</p>
+  <div class="tscroll"><table><thead><tr><th>名称</th><th>类型</th><th>分类</th><th>方向 / 挂载点</th><th>一句话说明</th></tr></thead>
+  <tbody><tr><td class='m'><a href='#AgentRuntimePort'>AgentRuntimePort</a></td><td>北向 Port</td><td>宿主调用 · 运行时实现</td><td>宿主 → 运行时</td><td>运行时入口：宿主唯一需要持有的对象。</td></tr><tr><td class='m'><a href='#AgentSessionPort'>AgentSessionPort</a></td><td>北向 Port</td><td>宿主调用 · 运行时实现</td><td>宿主 → 运行时</td><td>一次会话：对话、中断、状态查询、资源释放。</td></tr><tr><td class='m'><a href='#SessionMaintenancePort'>SessionMaintenancePort</a></td><td>北向 Port</td><td>宿主调用 · 运行时实现</td><td>宿主 → 运行时</td><td>特权维护面：只开放给 gateway / tui 这类长会话宿主。</td></tr><tr><td class='m'><a href='#EventSinkPort'>EventSinkPort</a></td><td>北向 Port</td><td>宿主实现 · 运行时回调</td><td>运行时 → 宿主</td><td>接收运行时发出的单向事件。</td></tr><tr><td class='m'><a href='#InteractionPort'>InteractionPort</a></td><td>北向 Port</td><td>宿主实现 · 运行时回调</td><td>运行时 → 宿主 → 运行时</td><td>运行时需要人参与并拿回结果的交互。</td></tr><tr><td class='m'><a href='#ConfigPort'>ConfigPort</a></td><td>南向 Port</td><td>配置与凭证</td><td>运行时 → 外部</td><td>读取与保存行为配置。</td></tr><tr><td class='m'><a href='#CredentialPort'>CredentialPort</a></td><td>南向 Port</td><td>配置与凭证</td><td>运行时 → 外部</td><td>解析运行时 provider 路由、API Key 与凭证池。</td></tr><tr><td class='m'><a href='#ProviderCatalogPort'>ProviderCatalogPort</a></td><td>南向 Port</td><td>配置与凭证</td><td>运行时 → 外部</td><td>provider 档案、名称归一化与 API 模式判定。</td></tr><tr><td class='m'><a href='#SessionContextPort'>SessionContextPort</a></td><td>南向 Port</td><td>宿主上下文</td><td>运行时 → 外部</td><td>读取与绑定会话级上下文变量（平台、会话 ID、用户、聊天等）。</td></tr><tr><td class='m'><a href='#ProfilePort'>ProfilePort</a></td><td>南向 Port</td><td>宿主上下文</td><td>运行时 → 外部</td><td>当前激活的 profile 及其目录。</td></tr><tr><td class='m'><a href='#HostProcessPort'>HostProcessPort</a></td><td>南向 Port</td><td>宿主上下文</td><td>运行时 → 外部</td><td>宿主进程存活探测与进程元信息。</td></tr><tr><td class='m'><a href='#PluginPort'>PluginPort</a></td><td>南向 Port</td><td>扩展系统</td><td>运行时 → 外部</td><td>触发 hook、执行 middleware 链、访问插件管理器。</td></tr><tr><td class='m'><a href='#SchedulerPort'>SchedulerPort</a></td><td>南向 Port</td><td>业务能力（可缺席）</td><td>运行时 → 外部</td><td>定时任务的查询与管理。</td></tr><tr><td class='m'><a href='#PlatformPort'>PlatformPort</a></td><td>南向 Port</td><td>业务能力（可缺席）</td><td>运行时 → 外部</td><td>消息平台配置与代理解析。</td></tr><tr><td class='m'><a href='#SessionDecorator'>SessionDecorator</a></td><td>L1 会话装饰器</td><td>基础</td><td>所有方法（<code>__getattr__</code> 委托）</td><td>基类。</td></tr><tr><td class='m'><a href='#ErrorMappingDecorator'>ErrorMappingDecorator</a></td><td>L1 会话装饰器</td><td>可靠性</td><td><code>run_turn</code>、<code>chat</code></td><td>把上游异常转换为本包的领域异常（<code>ports/errors.py</code>），通过 <code>raise ... from exc</code> 保留原始异常链。</td></tr><tr><td class='m'><a href='#ConcurrencyGuardDecorator'>ConcurrencyGuardDecorator</a></td><td>L1 会话装饰器</td><td>可靠性</td><td><code>run_turn</code>、<code>chat</code></td><td>同一会话的轮次串行执行，并发请求排队或拒绝。</td></tr><tr><td class='m'><a href='#TracingDecorator'>TracingDecorator</a></td><td>L1 会话装饰器</td><td>可观测</td><td><code>run_turn</code>、<code>interrupt</code>、<code>close</code></td><td>每轮对话开一个追踪 span（<code>agent.turn</code>），带会话 ID；与 L2 的 <code>llm.call</code> / <code>tool.call</code> span 形成父子关系。</td></tr><tr><td class='m'><a href='#MetricsDecorator'>MetricsDecorator</a></td><td>L1 会话装饰器</td><td>可观测</td><td><code>run_turn</code></td><td>统计每轮耗时、token 与费用（读取 <code>TurnResult</code> 的用量字段与 <code>credits_spent_micros()</code>），输出到宿主指定的指标后端。</td></tr><tr><td class='m'><a href='#CacheInvariantDecorator'>CacheInvariantDecorator</a></td><td>L1 会话装饰器</td><td>不变量与策略</td><td><code>run_turn</code></td><td>在轮次前后比对系统提示与工具集指纹：除上下文压缩外，同一会话内二者不得变化。</td></tr><tr><td class='m'><a href='#CapabilityGateDecorator'>CapabilityGateDecorator</a></td><td>L1 会话装饰器</td><td>不变量与策略</td><td><code>run_turn</code>、<code>open_session</code> 前置检查</td><td>Standalone 模式下，请求了当前不可用的工具集（如缺少 <code>SchedulerPort</code> 时的 <code>cronjob</code>）时提前抛出明确错误，而不是运行到某个分支才失败。</td></tr><tr><td class='m'><a href='#_route_policy'>_route_policy</a></td><td>L2 执行装饰器</td><td>LLM 调用</td><td><code>llm_request</code></td><td>调用模型前调整路由参数（<code>model</code>、<code>extra_headers</code>、超时）。</td></tr><tr><td class='m'><a href='#_llm_span'>_llm_span</a></td><td>L2 执行装饰器</td><td>LLM 调用</td><td><code>llm_execution</code></td><td>包住真实的 provider 调用：<code>with tracer.span(&quot;llm.call&quot;): return next_call(request)</code>，记录模型、provider、耗时。</td></tr><tr><td class='m'><a href='#_tool_arg_policy'>_tool_arg_policy</a></td><td>L2 执行装饰器</td><td>工具调用</td><td><code>tool_request</code></td><td>在审批与安全护栏<strong>之前</strong>改写工具参数，返回 <code>{&quot;args&quot;: {...}}</code>。</td></tr><tr><td class='m'><a href='#_tool_span'>_tool_span</a></td><td>L2 执行装饰器</td><td>工具调用</td><td><code>tool_execution</code></td><td>包住真实的工具执行：<code>with tracer.span(&quot;tool.call&quot;): return next_call(args)</code>，记录工具名与耗时，保留上游护栏、审批与 post hook 行为。</td></tr><tr><td class='m'><a href='#_emit_tool_event'>_emit_tool_event</a></td><td>L2 执行装饰器</td><td>事件</td><td>observer hook <code>post_tool_call</code></td><td>工具执行完成后，通过当前会话的 <code>EventSinkPort</code> 发出 <code>ToolCompleted</code> 事件（补充回调未覆盖的字段，如中间件追踪 <code>middleware_trace</code>）。</td></tr><tr><td class='m'><a href='#guarded_request_middleware'>guarded_request_middleware</a></td><td>L2 执行装饰器</td><td>守卫</td><td>包在请求类中间件外层（函数装饰器）</td><td>检查请求类中间件的返回值：修改 <code>messages</code>、<code>input</code>、<code>tools</code>、<code>system</code> 一律拒绝并记录告警，守住「对话中途不改历史与工具集」的提示缓存不变量。</td></tr><tr><td class='m'><a href='#SymbolBinder'>SymbolBinder 转发函数</a></td><td>L3 依赖装饰器</td><td>机制</td><td>外层模块属性（按「生产代码读取处」建立的绑定清单）</td><td>绑定清单中每个符号生成一个转发函数，例如把 <code>hermes_cli.config.load_config_readonly</code> 换成调用 <code>ConfigPort.read</code> 的函数，并用 <code>functools.wraps</code> 保留签名与文档。</td></tr><tr><td class='m'><a href='#DecoratedAIAgent'>DecoratedAIAgent</a></td><td>L3 依赖装饰器</td><td>可选</td><td><code>run_agent.AIAgent</code>（由 launcher <code>hermes-rt</code> 启用）</td><td><code>AIAgent</code> 的子类，启动时替换 <code>run_agent.AIAgent</code>，让上游自己的 gateway / tui / cron 也经过 L1 装饰器。</td></tr></tbody></table></div>
+</section>
+
+<footer>
+  由 AST 扫描基线 fc71fb63e5 的结果整理，与 contract/agent-runtime-extraction-plan.md 保持一致；方法签名为设计稿，实现时以上游签名为准。<br>
+  配色沿用 contract/ 下各文档：蓝＝北向 / 宿主 · 黄＝南向 / 外部依赖 · 紫＝装饰器 · 绿＝上游内核。
+</footer>
+</div>
+<a class="to-top" href="#top">↑ 顶部</a>
+</body>
+</html>

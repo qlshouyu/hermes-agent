@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentRuntime 集成指南</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+
+:root{
+  --ink:#151b23; --ink-2:#46525f; --ink-3:#6d7987;
+  --paper:#f5f7f9; --surface:#ffffff; --sunk:#eef1f5;
+  --rule:#dce2ea; --rule-soft:#e9edf2;
+  --host:#2f6fd0;  /* 宿主进程 · 蓝 */
+  --core:#26765a;  /* Agent 内核 · 绿 = 采纳 */
+  --tool:#a86d12;  /* 工具运行时 · 黄 = 需留意 */
+  --edge:#b3302a;  /* 边界 · 红 = 弃用 */
+  --proto:#63499d; /* 协议 · 紫 */
+  --core-wash:#e7f2ec; --tool-wash:#f8efdd; --edge-wash:#fbe9e7;
+  --host-wash:#e8f0fb; --proto-wash:#efeaf8;
+  --sans:"IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --cond:"IBM Plex Sans Condensed","Noto Sans SC","PingFang SC",system-ui,sans-serif;
+  --mono:"IBM Plex Mono","SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#e4eaf1; --ink-2:#a3b1c0; --ink-3:#7a8795;
+    --paper:#10151b; --surface:#171e26; --sunk:#1c242d;
+    --rule:#2a343f; --rule-soft:#212a33;
+    --host:#76a8f2; --core:#4fbb8b; --tool:#dba045; --edge:#f07065; --proto:#a98ee0;
+    --core-wash:#142b22; --tool-wash:#2e2415; --edge-wash:#34191a;
+    --host-wash:#152436; --proto-wash:#231d33;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf1; --ink-2:#a3b1c0; --ink-3:#7a8795;
+  --paper:#10151b; --surface:#171e26; --sunk:#1c242d;
+  --rule:#2a343f; --rule-soft:#212a33;
+  --host:#76a8f2; --core:#4fbb8b; --tool:#dba045; --edge:#f07065; --proto:#a98ee0;
+  --core-wash:#142b22; --tool-wash:#2e2415; --edge-wash:#34191a;
+  --host-wash:#152436; --proto-wash:#231d33;
+}
+
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans);
+  font-size:16px; line-height:1.75; -webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px; margin:0 auto; padding-inline:24px; padding-block:0 88px}
+h1,h2,h3,h4{font-family:var(--cond); font-weight:600; text-wrap:balance; line-height:1.25; margin:0}
+p{margin:0 0 16px}
+code,.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+code{font-size:.87em; background:var(--sunk); padding:.1em .38em; border-radius:3px; color:var(--ink-2)}
+a{color:var(--host)}
+:focus-visible{outline:2px solid var(--host); outline-offset:2px}
+
+header{border-bottom:1px solid var(--rule); background:var(--surface)}
+.head-inner{max-width:1080px; margin:0 auto; padding-inline:24px; padding-block:44px 30px}
+.eyebrow{font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--host); margin:0 0 14px}
+h1{font-size:clamp(30px,5.2vw,46px); letter-spacing:-.015em}
+.thesis{max-width:66ch; margin:16px 0 0; font-size:17.5px; color:var(--ink-2)}
+.meta{display:flex; flex-wrap:wrap; gap:6px 22px; margin-top:26px;
+  font-family:var(--mono); font-size:12.5px; color:var(--ink-3)}
+.meta b{color:var(--ink-2); font-weight:600}
+
+section{margin-top:62px}
+.sec-head{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:8px}
+.sec-head h2{font-size:25px; letter-spacing:-.01em}
+.sec-tag{font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); border:1px solid var(--rule); border-radius:99px; padding:2px 9px}
+.lede{margin:0 0 26px; color:var(--ink-2); max-width:70ch}
+h3.sub{font-size:18px; margin:34px 0 12px}
+
+/* 决策横幅 */
+.verdict{margin-top:38px; background:var(--surface); border:1px solid var(--rule);
+  border-left:4px solid var(--core); border-radius:4px; padding:26px 28px}
+.verdict h2{font-size:21px; margin-bottom:10px}
+.verdict p{color:var(--ink-2); max-width:72ch}
+.verdict strong{color:var(--ink); font-weight:600}
+.decided{display:flex; flex-wrap:wrap; gap:10px; margin-top:18px}
+.chip{font-family:var(--mono); font-size:12px; font-weight:600; padding:5px 12px; border-radius:4px}
+.chip.keep{background:var(--core-wash); color:var(--core)}
+.chip.drop{background:var(--edge-wash); color:var(--edge); text-decoration:line-through}
+
+/* 表格 */
+.tscroll{overflow-x:auto}
+table{border-collapse:collapse; width:100%; font-size:14.5px; min-width:560px}
+th,td{text-align:left; padding:10px 16px 10px 0; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+thead th{font-family:var(--mono); font-weight:600; font-size:11.5px; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule)}
+tbody tr:last-child td{border-bottom:none}
+td.n{font-family:var(--mono); white-space:nowrap; color:var(--ink)}
+td.m,th.m{font-family:var(--mono); font-size:13px}
+td.note{color:var(--ink-3); font-size:13.5px}
+caption{text-align:left; font-family:var(--mono); font-size:11.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink-3); padding-bottom:9px}
+
+.tag{font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:.05em;
+  padding:2px 7px; border-radius:3px; white-space:nowrap; display:inline-block}
+.tag.ok{background:var(--core-wash); color:var(--core)}
+.tag.no{background:var(--edge-wash); color:var(--edge)}
+.tag.mid{background:var(--tool-wash); color:var(--tool)}
+
+/* 三层结构 */
+.layers{display:grid; gap:14px; margin-top:10px}
+.layer{display:grid; grid-template-columns:150px 1fr; gap:22px; align-items:start;
+  border:1px solid var(--rule); border-radius:4px; padding:18px 22px; background:var(--surface)}
+.layer.own{border-left:4px solid var(--core)}
+.layer.guard{border-left:4px solid var(--proto)}
+.layer.up{border-left:4px solid var(--host)}
+.layer .lname{font-family:var(--cond); font-weight:600; font-size:17px}
+.layer .lwho{font-family:var(--mono); font-size:11px; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--ink-3); display:block; margin-top:4px}
+.layer .lbody{color:var(--ink-2); font-size:15px}
+.layer .lbody b{color:var(--ink)}
+.layer .lrepo{font-family:var(--mono); font-size:12px; color:var(--ink-3); display:block; margin-top:8px}
+
+/* 规则 */
+.rules{display:grid; gap:0; border-top:1px solid var(--rule); margin-top:8px}
+.rule{display:grid; grid-template-columns:58px 1fr; gap:20px; padding:20px 0;
+  border-bottom:1px solid var(--rule-soft)}
+.rn{font-family:var(--mono); font-size:12px; font-weight:600; color:var(--host); padding-top:4px}
+.rule h4{font-size:17.5px; margin-bottom:7px}
+.rule p{color:var(--ink-2); font-size:15px; margin:0 0 10px}
+.rule p:last-child{margin-bottom:0}
+.why{font-size:13.5px; color:var(--ink-3); border-left:2px solid var(--rule); padding-left:14px}
+
+pre{margin:10px 0 0; background:var(--sunk); border-radius:4px; padding:14px 17px;
+  overflow-x:auto; font-family:var(--mono); font-size:12.5px; line-height:1.65; color:var(--ink-2)}
+pre code{background:none; padding:0; font-size:inherit}
+pre .c{color:var(--ink-3)}
+pre .k{color:var(--host)}
+pre .g{color:var(--core)}
+
+.kicker{margin-top:22px; background:var(--sunk); border-radius:4px; padding:16px 20px;
+  font-size:15px; color:var(--ink-2)}
+.kicker b{font-family:var(--cond); font-size:15.5px; color:var(--ink); display:block; margin-bottom:4px}
+.kicker.warn{background:var(--tool-wash)}
+.kicker.warn b{color:var(--tool)}
+.kicker.good{background:var(--core-wash)}
+.kicker.good b{color:var(--core)}
+
+/* 保留方案块 */
+.opt{margin-top:40px; border-top:3px solid var(--core); padding-top:22px}
+.opt-head{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
+.opt-no{font-family:var(--mono); font-size:12px; font-weight:600; letter-spacing:.08em; color:var(--ink-3)}
+.opt-head h3{font-size:23px; letter-spacing:-.01em}
+.pill{font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.06em;
+  padding:3px 10px; border-radius:99px; background:var(--core-wash); color:var(--core)}
+.opt-sub{margin:10px 0 22px; color:var(--ink-2); max-width:72ch}
+.facets{display:grid; gap:0; border-top:1px solid var(--rule-soft)}
+.facet{display:grid; grid-template-columns:132px 1fr; gap:4px 26px;
+  padding:14px 0; border-bottom:1px solid var(--rule-soft)}
+.facet dt{font-family:var(--mono); font-size:11.5px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink-3); padding-top:4px}
+.facet dd{margin:0; color:var(--ink-2)}
+.facet dd strong{color:var(--ink); font-weight:600}
+.facet.win dd strong{color:var(--core)}
+.facet.cost dd strong{color:var(--edge)}
+
+/* 弃用留档 */
+.dropped{border-left:3px solid var(--rule); padding:4px 0 4px 20px; margin-top:26px; max-width:72ch}
+.dropped h4{font-size:17px; margin-bottom:7px; color:var(--ink-2)}
+.dropped p{color:var(--ink-3); margin:0; font-size:14.5px}
+.dropped b{color:var(--ink-2)}
+
+footer{margin-top:70px; padding-top:22px; border-top:1px solid var(--rule);
+  font-family:var(--mono); font-size:12px; color:var(--ink-3); line-height:1.8}
+
+@media (max-width:640px){
+  .layer,.rule,.facet{grid-template-columns:1fr; gap:8px}
+  .facet dt{padding-top:0}
+  .head-inner{padding-block:34px 24px}
+}
+
+
+:root{--side-w:292px}
+html{scroll-behavior:smooth}
+body{background:var(--paper)}
+.layout{display:grid; grid-template-columns:var(--side-w) minmax(0,1fr); min-height:100vh}
+
+/* ---------- 侧边栏 ---------- */
+.sidebar{position:sticky; top:0; height:100vh; overflow-y:auto; background:var(--surface);
+  border-right:1px solid var(--rule); padding-block:22px 40px; padding-inline:0}
+.side-brand{padding-inline:22px; margin-bottom:14px}
+.side-brand .eyebrow{margin:0 0 6px; font-size:10.5px}
+.side-brand .t{font-family:var(--cond); font-weight:700; font-size:17px; line-height:1.3; color:var(--ink)}
+.side-search{margin:0 16px 12px; position:relative}
+.side-search input{width:100%; font:inherit; font-size:13.5px; padding:7px 10px 7px 30px; border:1px solid var(--rule);
+  border-radius:4px; background:var(--paper); color:var(--ink)}
+.side-search input:focus{outline:2px solid var(--host); outline-offset:0; border-color:transparent}
+.side-search::before{content:"⌕"; position:absolute; left:10px; top:5px; color:var(--ink-3); font-size:16px}
+.toc{list-style:none; margin:0; padding:0 8px}
+.toc a{display:flex; gap:8px; align-items:baseline; text-decoration:none; color:var(--ink-2); font-size:14px;
+  padding:5px 12px; border-radius:4px; line-height:1.45}
+.toc a:hover{background:var(--sunk); color:var(--ink)}
+.toc .n{font-family:var(--mono); font-size:11.5px; color:var(--ink-3); min-width:26px; flex:none}
+.toc li.chap>a{font-weight:600; color:var(--ink); margin-top:4px}
+.toc ul{list-style:none; margin:0 0 4px; padding:0 0 0 14px; display:none}
+.toc li.chap.open>ul, .toc.searching ul{display:block}
+.toc ul a{font-size:13.2px; padding:4px 12px}
+.toc a.active{background:var(--host-wash); color:var(--host)}
+.toc a.active .n{color:var(--host)}
+.toc li.hidden{display:none}
+.side-foot{padding:16px 22px 0; font-family:var(--mono); font-size:11.5px; color:var(--ink-3); line-height:1.7}
+.side-foot a{color:var(--ink-2)}
+
+/* ---------- 正文 ---------- */
+.main{min-width:0}
+.doc-head{background:var(--surface); border-bottom:1px solid var(--rule)}
+.doc-head .inner{max-width:920px; margin:0 auto; padding-inline:40px; padding-block:40px 28px}
+.doc-head h1{font-size:clamp(28px,4vw,40px)}
+.content{max-width:920px; margin:0 auto; padding-inline:40px; padding-block:8px 100px}
+.chapter{margin-top:54px; scroll-margin-top:18px}
+.chapter h2{font-size:26px; padding-bottom:10px; border-bottom:1px solid var(--rule); margin-bottom:18px;
+  display:flex; align-items:baseline; gap:12px}
+.h-num{font-family:var(--mono); font-size:.62em; font-weight:600; color:var(--host); letter-spacing:.02em}
+.content h3{font-size:19px; margin:36px 0 12px; scroll-margin-top:18px; display:flex; align-items:baseline; gap:10px}
+.content h3 .h-num{font-size:.7em; color:var(--ink-3)}
+.content p{color:var(--ink-2); max-width:78ch}
+.content p strong, .content li strong, .content td strong{color:var(--ink)}
+.content ul, .content ol{padding-left:22px; margin:0 0 16px; color:var(--ink-2)}
+.content li{margin:5px 0}
+.tscroll{margin:8px 0 22px}
+.content table{font-size:14px}
+.content td{color:var(--ink-2)}
+.content td code, .content th code{white-space:normal; overflow-wrap:anywhere}
+.content td:first-child{min-width:150px}
+
+/* 代码块 */
+.code{margin:12px 0 22px; border:1px solid var(--rule); border-radius:6px; overflow:hidden; background:var(--sunk)}
+.code-bar{display:flex; justify-content:space-between; align-items:center; padding:5px 10px 5px 14px;
+  border-bottom:1px solid var(--rule); font-family:var(--mono); font-size:11px; letter-spacing:.06em; color:var(--ink-3);
+  text-transform:uppercase; background:var(--surface)}
+.copy{font:inherit; font-size:11px; text-transform:none; letter-spacing:0; border:1px solid var(--rule); background:var(--paper);
+  color:var(--ink-2); border-radius:4px; padding:2px 9px; cursor:pointer}
+.copy:hover{color:var(--host); border-color:var(--host)}
+.code pre{margin:0; border-radius:0; background:transparent; padding:14px 16px; font-size:13px; line-height:1.62}
+.tc{color:var(--ink-3); font-style:italic}
+.ts{color:var(--core)}
+.tk{color:var(--proto); font-weight:600}
+.td{color:var(--tool)}
+.tn{color:var(--tool)}
+.tf{color:var(--host); font-weight:600}
+.th{color:var(--host); font-weight:600}
+
+/* 提示框 */
+.callout{margin:16px 0 22px; border-radius:6px; padding:12px 16px; border-left:4px solid var(--rule); background:var(--surface);
+  font-size:14.5px; color:var(--ink-2)}
+.callout-title{font-family:var(--cond); font-weight:700; color:var(--ink); margin-bottom:3px}
+.callout.warn{border-left-color:var(--tool); background:var(--tool-wash)} .callout.warn .callout-title{color:var(--tool)}
+.callout.tip{border-left-color:var(--host); background:var(--host-wash)} .callout.tip .callout-title{color:var(--host)}
+.callout.note{border-left-color:var(--proto); background:var(--proto-wash)} .callout.note .callout-title{color:var(--proto)}
+.callout.good{border-left-color:var(--core); background:var(--core-wash)} .callout.good .callout-title{color:var(--core)}
+
+figure.diagram{margin:12px 0 24px; background:var(--surface); border:1px solid var(--rule); border-radius:6px; padding:18px; overflow-x:auto}
+pre.mermaid{background:none; margin:0; padding:0; text-align:center; white-space:pre; color:var(--ink-2); font-size:12.5px}
+pre.mermaid[data-processed="true"]{white-space:normal}
+
+.doc-foot{margin-top:70px; padding-top:18px; border-top:1px solid var(--rule); font-family:var(--mono); font-size:12px; color:var(--ink-3); line-height:1.8}
+
+/* 移动端 */
+.menu-btn{display:none}
+@media (max-width:980px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:fixed; inset:0 auto 0 0; width:min(86vw,320px); z-index:30; transform:translateX(-102%);
+    transition:transform .2s ease; box-shadow:0 0 40px rgba(0,0,0,.18)}
+  body.menu-open .sidebar{transform:none}
+  .menu-btn{display:inline-flex; position:fixed; left:14px; bottom:14px; z-index:31; font-family:var(--mono); font-size:13px;
+    background:var(--ink); color:var(--paper); border:none; border-radius:99px; padding:9px 16px; cursor:pointer}
+  .doc-head .inner, .content{padding-inline:18px}
+}
+@media print{ .sidebar,.menu-btn,.copy{display:none} .layout{display:block} .code,.callout,table{break-inside:avoid} }
+
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" aria-label="章节菜单">
+    <div class="side-brand"><p class="eyebrow">Hermes-Agent · AgentRuntime</p><div class="t">集成指南与接口参考</div></div>
+    <div class="side-search"><input type="search" placeholder="搜索章节…" aria-label="搜索章节"></div>
+    <nav><ul class="toc"><li class="chap"><a href="#s0" data-target="s0"><span class="n">0</span>阅读须知</a></li><li class="chap"><a href="#s1" data-target="s1"><span class="n">1</span>概述</a><ul><li><a href="#s1-1" data-target="s1-1"><span class="n">1.1</span>AgentRuntime 是什么</a></li><li><a href="#s1-2" data-target="s1-2"><span class="n">1.2</span>两种运行模式</a></li><li><a href="#s1-3" data-target="s1-3"><span class="n">1.3</span>集成架构</a></li><li><a href="#s1-4" data-target="s1-4"><span class="n">1.4</span>环境要求</a></li></ul></li><li class="chap"><a href="#s2" data-target="s2"><span class="n">2</span>安装与集成方式</a><ul><li><a href="#s2-1" data-target="s2-1"><span class="n">2.1</span>Hosted 模式：在 hermes-agent 环境中使用</a></li><li><a href="#s2-2" data-target="s2-2"><span class="n">2.2</span>Standalone 模式：安装独立 wheel</a></li><li><a href="#s2-3" data-target="s2-3"><span class="n">2.3</span>初始化：bootstrap 的调用时机</a></li><li><a href="#s2-4" data-target="s2-4"><span class="n">2.4</span>通过 launcher 接管上游宿主（可选）</a></li><li><a href="#s2-5" data-target="s2-5"><span class="n">2.5</span>如何选择集成方式</a></li></ul></li><li class="chap"><a href="#s3" data-target="s3"><span class="n">3</span>快速开始</a><ul><li><a href="#s3-1" data-target="s3-1"><span class="n">3.1</span>最小示例：一问一答</a></li><li><a href="#s3-2" data-target="s3-2"><span class="n">3.2</span>流式输出</a></li><li><a href="#s3-3" data-target="s3-3"><span class="n">3.3</span>读懂运行结果</a></li></ul></li><li class="chap"><a href="#s4" data-target="s4"><span class="n">4</span>核心概念</a><ul><li><a href="#s4-1" data-target="s4-1"><span class="n">4.1</span>会话生命周期</a></li><li><a href="#s4-2" data-target="s4-2"><span class="n">4.2</span>RuntimeSpec：开会话时一次性声明配置</a></li><li><a href="#s4-3" data-target="s4-3"><span class="n">4.3</span>事件与交互</a></li><li><a href="#s4-4" data-target="s4-4"><span class="n">4.4</span>能力声明与降级</a></li><li><a href="#s4-5" data-target="s4-5"><span class="n">4.5</span>线程与并发模型</a></li><li><a href="#s4-6" data-target="s4-6"><span class="n">4.6</span>必须遵守的上游不变量</a></li></ul></li><li class="chap"><a href="#s5" data-target="s5"><span class="n">5</span>接口参考</a><ul><li><a href="#s5-1" data-target="s5-1"><span class="n">5.1</span>bootstrap</a></li><li><a href="#s5-2" data-target="s5-2"><span class="n">5.2</span>AgentRuntimePort</a></li><li><a href="#s5-3" data-target="s5-3"><span class="n">5.3</span>AgentSessionPort</a></li><li><a href="#s5-4" data-target="s5-4"><span class="n">5.4</span>SessionMaintenancePort</a></li><li><a href="#s5-5" data-target="s5-5"><span class="n">5.5</span>EventSinkPort 与 RuntimeEvent</a></li><li><a href="#s5-6" data-target="s5-6"><span class="n">5.6</span>InteractionPort</a></li><li><a href="#s5-7" data-target="s5-7"><span class="n">5.7</span>RuntimeSpec 与值对象</a></li><li><a href="#s5-8" data-target="s5-8"><span class="n">5.8</span>RunRequest 与 TurnResult</a></li><li><a href="#s5-9" data-target="s5-9"><span class="n">5.9</span>南向 Port 与自定义适配器</a></li><li><a href="#s5-10" data-target="s5-10"><span class="n">5.10</span>装饰器扩展接口</a></li><li><a href="#s5-11" data-target="s5-11"><span class="n">5.11</span>异常类型</a></li></ul></li><li class="chap"><a href="#s6" data-target="s6"><span class="n">6</span>使用案例</a><ul><li><a href="#s6-1" data-target="s6-1"><span class="n">6.1</span>案例 1：命令行问答工具（Hosted）</a></li><li><a href="#s6-2" data-target="s6-2"><span class="n">6.2</span>案例 2：FastAPI + WebSocket 流式聊天服务</a></li><li><a href="#s6-3" data-target="s6-3"><span class="n">6.3</span>案例 3：长任务的中断与插话</a></li><li><a href="#s6-4" data-target="s6-4"><span class="n">6.4</span>案例 4：工具调用的人工审批</a></li><li><a href="#s6-5" data-target="s6-5"><span class="n">6.5</span>案例 5：Standalone 嵌入业务服务</a></li><li><a href="#s6-6" data-target="s6-6"><span class="n">6.6</span>案例 6：自定义 L1 装饰器——审计日志</a></li><li><a href="#s6-7" data-target="s6-7"><span class="n">6.7</span>案例 7：自定义 L2 中间件——模型路由与工具耗时</a></li><li><a href="#s6-8" data-target="s6-8"><span class="n">6.8</span>案例 8：长会话宿主的上下文维护</a></li><li><a href="#s6-9" data-target="s6-9"><span class="n">6.9</span>案例 9：用本地假模型做端到端测试</a></li></ul></li><li class="chap"><a href="#s7" data-target="s7"><span class="n">7</span>错误处理与排障</a></li><li class="chap"><a href="#s8" data-target="s8"><span class="n">8</span>版本兼容与升级</a><ul><li><a href="#s8-1" data-target="s8-1"><span class="n">8.1</span>接口稳定性等级</a></li><li><a href="#s8-2" data-target="s8-2"><span class="n">8.2</span>跟随上游升级</a></li><li><a href="#s8-3" data-target="s8-3"><span class="n">8.3</span>版本号约定</a></li></ul></li><li class="chap"><a href="#appendix-A接" data-target="appendix-A接"><span class="n">附</span>附录 A 接口速查</a></li></ul></nav>
+    <div class="side-foot">配套文档<br><a href="agent-runtime-extraction-plan.html">抽取方案</a> · <a href="agent-runtime-ports-decorators.html">Port 与装饰器</a></div>
+  </aside>
+  <div class="main">
+    <header class="doc-head" id="top"><div class="inner">
+      <p class="eyebrow">AgentRuntime · 集成与接口文档</p>
+      <h1>AgentRuntime 集成指南与接口参考</h1>
+      <p class="thesis">把 Hermes Agent 内核（③ Agent 核心 + ④ 工具能力）当作可嵌入的运行时来使用：如何安装与接入、每个接口怎么调用，以及 9 个可以直接改写的使用案例。</p>
+      <div class="meta"><span><b>发行包</b> <code>hermes-agent-runtime</code>（导入名 <code>hermes_agent_runtime</code>）</span><span><b>上游基线</b> <code>fc71fb63e5</code>（NousResearch/hermes-agent v0.21.2）</span><span><b>配套文档</b> <code>agent-runtime-extraction-plan.html</code>（抽取方案）、<code>agent-runtime-ports-decorators.html</code>（Port 与装饰器清单）</span><span><b>状态</b> 设计稿：接口尚未实现</span></div>
+    </div></header>
+    <main class="content">
+      <section id="s0" class="chapter"><h2><span class="h-num">0</span>阅读须知</h2><div class="callout warn"><div class="callout-title">设计阶段文档</div><div>本文描述的是抽取方案中约定的接口，代码尚未实现。签名以本文为准；实现时如与上游签名冲突，以上游为准，并同步回写本文。</div></div><p><strong>按角色阅读</strong></p><div class="tscroll"><table><thead><tr><th>角色</th><th>建议阅读</th></tr></thead><tbody><tr><td>宿主开发者（在自己的服务里使用 Agent）</td><td>第 1–4 章、第 6 章案例 1–5</td></tr><tr><td>适配器与扩展作者（接入自有配置、凭证、中间件）</td><td>5.9–5.10、案例 5–7</td></tr><tr><td>维护者（跟随上游升级）</td><td>第 7–8 章</td></tr></tbody></table></div><p><strong>约定</strong></p><ul><li><strong>Port</strong> 指 <code>typing.Protocol</code> 定义的接口；宿主只依赖 Port，不 import <code>run_agent</code>、<code>agent.*</code>、<code>tools.*</code>。</li><li><strong>Hosted</strong> 指在完整 hermes-agent 环境中运行（适配器调用上游原实现）；<strong>Standalone</strong> 指只安装本运行时的独立 wheel。</li><li>所有接口均为<strong>同步</strong>接口；asyncio 宿主请用 <code>asyncio.to_thread</code> 调用（见 4.5）。</li></ul></section><section id="s1" class="chapter"><h2><span class="h-num">1</span>概述</h2><h3 id="s1-1"><span class="h-num">1.1</span>AgentRuntime 是什么</h3><p>AgentRuntime 在上游 hermes-agent 的 Agent 内核外面包了一层稳定接口，上游代码一行不改：</p><ul><li><strong>北向 Port</strong>：宿主调用运行时的接口，如开会话、发消息、中断、查状态。</li><li><strong>装饰器</strong>：在不改上游代码的前提下叠加行为，分三层：会话装饰器、执行中间件、依赖转发。</li><li><strong>南向 Port</strong>：运行时向外索取的能力，如配置、凭证、会话上下文、插件。Hosted 模式由上游提供，Standalone 模式由本包或宿主提供。</li></ul><p>宿主因此获得三点保证：只面对一组稳定接口；上游升级不影响宿主代码；同一份宿主代码可以在两种模式之间切换。</p><h3 id="s1-2"><span class="h-num">1.2</span>两种运行模式</h3><div class="tscroll"><table><thead><tr><th></th><th>Hosted</th><th>Standalone</th></tr></thead><tbody><tr><td>安装内容</td><td>完整 hermes-agent + 本运行时</td><td>仅本运行时 wheel</td></tr><tr><td>南向能力来源</td><td>调用上游原函数，行为与上游一致</td><td>本包内置实现或宿主自定义</td></tr><tr><td>可用工具集</td><td>与上游一致</td><td>能力子集，由 <code>capabilities()</code> 声明</td></tr><tr><td>插件</td><td>上游插件系统全部可用</td><td>只运行本运行时注册的中间件</td></tr><tr><td>典型场景</td><td>自建前端 / 服务，复用现有 <code>~/.hermes</code> 配置与技能</td><td>嵌入业务系统、独立部署、容器化</td></tr></tbody></table></div><h3 id="s1-3"><span class="h-num">1.3</span>集成架构</h3><figure class="diagram"><pre class="mermaid">flowchart LR
+    subgraph Host[&quot;你的宿主应用&quot;]
+        APP[&quot;业务代码&quot;]
+        SINK[&quot;EventSink 实现&quot;]
+        INTER[&quot;Interaction 实现&quot;]
+    end
+    subgraph RT[&quot;hermes_agent_runtime&quot;]
+        BOOT[&quot;bootstrap()&quot;]
+        RTP[&quot;AgentRuntimePort&quot;]
+        SESS[&quot;AgentSessionPort&lt;br/&gt;（装饰器链）&quot;]
+        SOUTH[&quot;南向 Port&quot;]
+    end
+    subgraph UP[&quot;上游内核（不修改）&quot;]
+        AG[&quot;AIAgent · agent/ · tools/&quot;]
+    end
+    APP --&gt;|&quot;① 初始化&quot;| BOOT --&gt; RTP
+    APP --&gt;|&quot;② open_session(spec)&quot;| RTP --&gt; SESS
+    APP --&gt;|&quot;③ run_turn / interrupt / steer&quot;| SESS --&gt; AG
+    AG --&gt;|&quot;流式与工具事件&quot;| SINK
+    AG --&gt;|&quot;审批 / 澄清&quot;| INTER
+    AG --&gt;|&quot;配置 · 凭证 · 上下文&quot;| SOUTH</pre></figure><h3 id="s1-4"><span class="h-num">1.4</span>环境要求</h3><ul><li><strong>Python</strong>：3.11–3.13，与上游 <code>requires-python = &quot;&gt;=3.11,&lt;3.14&quot;</code> 一致。</li><li><strong>Hosted</strong>：与 hermes-agent 安装在同一个虚拟环境中。</li><li><strong>Standalone</strong>：wheel 自带运行依赖声明（如 <code>httpx</code>、<code>openai</code>、<code>pyyaml</code>），无需安装 hermes-agent。</li><li><strong>操作系统</strong>：与上游一致，支持 macOS、Linux、Windows。</li></ul></section><section id="s2" class="chapter"><h2><span class="h-num">2</span>安装与集成方式</h2><h3 id="s2-1"><span class="h-num">2.1</span>Hosted 模式：在 hermes-agent 环境中使用</h3><div class="code"><div class="code-bar"><span>Shell</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tc"># 1. 进入 hermes-agent 所在的虚拟环境（标准安装位置）</span>
+<span class="tk">source</span> ~/.hermes/hermes-agent/venv/bin/activate
+
+<span class="tc"># 2. 以可编辑方式安装运行时（位于仓库自有目录 agent_runtime/）</span>
+<span class="tk">uv</span> pip install -e ./agent_runtime
+
+<span class="tc"># 3. 可选：启用 L2 执行中间件插件（使用自定义中间件或内置追踪时需要）</span>
+<span class="tk">hermes</span> plugins enable agent-runtime</code></pre></div><p>Hosted 模式会直接复用 <code>~/.hermes/config.yaml</code>、<code>.env</code>、技能与记忆。<code>RuntimeSpec</code> 中未指定的项（如模型）按 <code>config.yaml</code> 解析。</p><h3 id="s2-2"><span class="h-num">2.2</span>Standalone 模式：安装独立 wheel</h3><div class="code"><div class="code-bar"><span>Shell</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tc"># 维护者：在同步好上游的仓库中构建（原样复制闭包文件 + 生成影子模块）</span>
+<span class="tk">python</span> agent_runtime/build/extract.py --out dist/
+
+<span class="tc"># 使用者：在业务项目的虚拟环境中安装</span>
+<span class="tk">pip</span> install dist/hermes_agent_runtime-*.whl</code></pre></div><p>Standalone 模式不读取 <code>~/.hermes</code>。每个运行时实例都应通过 <code>bootstrap(hermes_home=...)</code> 指定独立的状态目录。</p><h3 id="s2-3"><span class="h-num">2.3</span>初始化：bootstrap 的调用时机</h3><p><code>bootstrap()</code> 会在上游模块导入前安装依赖转发，因此<strong>必须是进程中第一个触及上游代码的调用</strong>。<code>hermes_agent_runtime</code> 自身的公开模块在导入时不会导入上游代码，所以可以放心地一起 import。</p><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tc"># ✅ 正确：入口文件最前面完成初始化</span>
+<span class="tk">from</span> hermes_agent_runtime <span class="tk">import</span> bootstrap
+
+runtime = bootstrap(mode=<span class="ts">&quot;hosted&quot;</span>)
+
+<span class="tk">import</span> my_app.routes   <span class="tc"># 之后再导入可能间接 import run_agent 的业务模块</span></code></pre></div><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tc"># ❌ 错误：先导入了上游模块</span>
+<span class="tk">import</span> run_agent                      <span class="tc"># 或 from tools import ... / from agent import ...</span>
+<span class="tk">from</span> hermes_agent_runtime <span class="tk">import</span> bootstrap
+
+runtime = bootstrap(mode=<span class="ts">&quot;hosted&quot;</span>)    <span class="tc"># 抛出 BootstrapOrderError</span></code></pre></div><div class="callout tip"><div class="callout-title">同一进程只初始化一次</div><div>重复调用 <code>bootstrap()</code> 且参数相同时，返回同一个运行时实例；参数不同则抛出 <code>BootstrapConflict</code>。</div></div><h3 id="s2-4"><span class="h-num">2.4</span>通过 launcher 接管上游宿主（可选）</h3><p>如果希望上游自带的 gateway、TUI、cron 也经过运行时的装饰器（例如统一追踪），用 <code>hermes-rt</code> 代替 <code>hermes</code> 启动。参数完全相同：</p><div class="code"><div class="code-bar"><span>Shell</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">hermes-rt</span> gateway run     <span class="tc"># 等价于 hermes gateway run，但先安装转发并启用装饰器</span>
+<span class="tk">hermes-rt</span> --tui</code></pre></div><p>launcher 会把 <code>run_agent.AIAgent</code> 替换为子类 <code>DecoratedAIAgent</code>。上游宿主代码无需修改，行为保持一致。</p><h3 id="s2-5"><span class="h-num">2.5</span>如何选择集成方式</h3><div class="tscroll"><table><thead><tr><th>场景</th><th>推荐方式</th></tr></thead><tbody><tr><td>自建 Web / 桌面前端，复用本机 Hermes 配置与技能</td><td>Hosted + 北向 Port（案例 2、3）</td></tr><tr><td>嵌入业务后端，独立部署、配置由业务系统下发</td><td>Standalone + 自定义南向 Port（案例 5）</td></tr><tr><td>给现有 Hermes 网关加统一追踪 / 审计</td><td>launcher <code>hermes-rt</code> + 自定义装饰器（案例 6）</td></tr><tr><td>只想调整模型路由或观测工具耗时</td><td>L2 中间件插件（案例 7）</td></tr><tr><td>前端与后端分离部署、只走 HTTP</td><td>不使用本运行时，直接对接 <code>hermes serve</code>（见 b-line 决策文档）</td></tr></tbody></table></div></section><section id="s3" class="chapter"><h2><span class="h-num">3</span>快速开始</h2><h3 id="s3-1"><span class="h-num">3.1</span>最小示例：一问一答</h3><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">from</span> hermes_agent_runtime <span class="tk">import</span> bootstrap, RuntimeSpec, ToolPolicy, RunRequest
+
+runtime = bootstrap(mode=<span class="ts">&quot;hosted&quot;</span>)
+
+spec = RuntimeSpec(tools=ToolPolicy(enabled_toolsets=[<span class="ts">&quot;file&quot;</span>, <span class="ts">&quot;web&quot;</span>]))  <span class="tc"># 模型按 config.yaml 默认值</span>
+session = runtime.open_session(spec)
+<span class="tk">try</span>:
+    result = session.run_turn(RunRequest(message=<span class="ts">&quot;读取当前目录的 README.md，用三句话总结&quot;</span>))
+    print(result.final_response)
+<span class="tk">finally</span>:
+    session.close()</code></pre></div><h3 id="s3-2"><span class="h-num">3.2</span>流式输出</h3><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">from</span> hermes_agent_runtime <span class="tk">import</span> bootstrap, RuntimeSpec, RunRequest, EventType
+
+<span class="tk">class</span> <span class="tf">PrintSink</span>:
+    <span class="ts">&quot;&quot;&quot;EventSinkPort 的最小实现：只需要一个 emit 方法。&quot;&quot;&quot;</span>
+
+    <span class="tk">def</span> <span class="tf">emit</span>(self, event):
+        <span class="tk">if</span> event.type <span class="tk">is</span> EventType.STREAM_DELTA:
+            print(event.payload[<span class="ts">&quot;text&quot;</span>], end=<span class="ts">&quot;&quot;</span>, flush=<span class="tk">True</span>)
+        <span class="tk">elif</span> event.type <span class="tk">is</span> EventType.TOOL_STARTED:
+            print(<span class="ts">f&quot;\n[工具] {event.payload[&#x27;tool_name&#x27;]} 开始执行&quot;</span>)
+        <span class="tk">elif</span> event.type <span class="tk">is</span> EventType.TOOL_COMPLETED:
+            print(<span class="ts">f&quot;[工具] {event.payload[&#x27;tool_name&#x27;]} 完成&quot;</span>)
+
+runtime = bootstrap(mode=<span class="ts">&quot;hosted&quot;</span>)
+session = runtime.open_session(RuntimeSpec(), events=PrintSink())
+<span class="tk">try</span>:
+    session.run_turn(RunRequest(message=<span class="ts">&quot;列出 3 个 Python 并发模型并比较&quot;</span>))
+<span class="tk">finally</span>:
+    session.close()</code></pre></div><h3 id="s3-3"><span class="h-num">3.3</span>读懂运行结果</h3><p><code>run_turn</code> 返回 <code>TurnResult</code>。模型侧的失败（额度不足、内容策略拦截、上下文溢出等）<strong>不会抛异常</strong>，而是体现在结果字段中：</p><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code>result = session.run_turn(RunRequest(message=<span class="ts">&quot;...&quot;</span>))
+<span class="tk">if</span> result.completed:
+    render(result.final_response)
+<span class="tk">elif</span> result.failed:
+    show_error(result.error, retry_button=result.retryable)   <span class="tc"># retryable 表示重试可能得到不同结果</span>
+<span class="tk">elif</span> result.partial:
+    render(result.final_response, hint=<span class="ts">&quot;本轮未完整结束，可继续对话&quot;</span>)</code></pre></div><p>字段完整说明见 5.8。</p></section><section id="s4" class="chapter"><h2><span class="h-num">4</span>核心概念</h2><h3 id="s4-1"><span class="h-num">4.1</span>会话生命周期</h3><figure class="diagram"><pre class="mermaid">sequenceDiagram
+    participant H as 宿主
+    participant R as AgentRuntimePort
+    participant S as AgentSessionPort
+    participant A as 上游 AIAgent
+    participant E as EventSink / Interaction
+    H-&gt;&gt;R: bootstrap() → runtime
+    H-&gt;&gt;R: open_session(spec, events, interaction)
+    R-&gt;&gt;A: AIAgent(**SpecMapper(spec))
+    R--&gt;&gt;H: session（已套好装饰器链）
+    loop 每一轮
+        H-&gt;&gt;S: run_turn(RunRequest)
+        S-&gt;&gt;A: run_conversation(...)
+        A--&gt;&gt;E: 流式增量 / 工具事件
+        A--&gt;&gt;E: 审批请求（需要返回值）
+        E--&gt;&gt;A: approve → True / False
+        A--&gt;&gt;S: 上游结果 dict
+        S--&gt;&gt;H: TurnResult
+    end
+    H-&gt;&gt;S: interrupt / steer（可从其他线程调用）
+    H-&gt;&gt;S: close()
+    S-&gt;&gt;A: shutdown_memory_provider() + close()</pre></figure><ul><li><strong>会话自动维护历史</strong>：每一轮结束后，运行时保存本轮 <code>TurnResult.messages</code>，下一轮自动作为对话历史传入。显式提供 <code>RunRequest.history</code> 时以它为准，用于从外部存储恢复会话。</li><li><strong>关闭是必需的</strong>：<code>close()</code> 会刷写记忆、释放模型客户端与子进程。请始终放在 <code>finally</code> 中调用。</li></ul><h3 id="s4-2"><span class="h-num">4.2</span>RuntimeSpec：开会话时一次性声明配置</h3><p><code>RuntimeSpec</code> 是不可变对象，在 <code>open_session</code> 时生效，<strong>整个会话期间不变</strong>。这是上游提示缓存机制的要求：对话中途更换工具集、系统提示或记忆，会让缓存前缀失效，成本成倍上升。</p><p>需要改变这些配置时，请结束当前会话，用新的 <code>RuntimeSpec</code> 开一个新会话。需要保留上下文时，把旧会话的历史通过 <code>RunRequest.history</code> 传入。</p><h3 id="s4-3"><span class="h-num">4.3</span>事件与交互</h3><div class="tscroll"><table><thead><tr><th></th><th>EventSinkPort</th><th>InteractionPort</th></tr></thead><tbody><tr><td>方向</td><td>运行时 → 宿主，单向</td><td>运行时 → 宿主 → 运行时，需要返回值</td></tr><tr><td>用途</td><td>流式文本、思考过程、工具进度、状态提示</td><td>命令审批、向用户澄清、读取终端 / 预览、采集密钥</td></tr><tr><td>未提供时</td><td>事件被丢弃</td><td>使用 <code>DenyAllInteraction</code>：审批一律拒绝，其余返回「不支持」</td></tr><tr><td>调用线程</td><td>对话线程内同步调用，实现应尽快返回</td><td>对话线程内同步调用，会阻塞当前轮次，建议设置超时</td></tr></tbody></table></div><h3 id="s4-4"><span class="h-num">4.4</span>能力声明与降级</h3><p><code>runtime.capabilities()</code> 返回当前模式下各项能力是否可用。Standalone 模式缺少某个南向 Port 时，相关工具集会在开会话时自动禁用，模型看不到这些工具，也就不会调用。</p><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code>caps = runtime.capabilities()
+<span class="tc"># 例：{&#x27;toolset.cronjob&#x27;: False, &#x27;toolset.messaging&#x27;: False,</span>
+<span class="tc">#      &#x27;provider.oauth&#x27;: False, &#x27;plugins.third_party&#x27;: False, &#x27;maintenance&#x27;: False}</span></code></pre></div><p>如果在 <code>ToolPolicy.enabled_toolsets</code> 中显式请求了不可用的工具集，<code>open_session</code> 会抛出 <code>CapabilityUnavailable</code>，不会等到运行中途才失败。</p><h3 id="s4-5"><span class="h-num">4.5</span>线程与并发模型</h3><ul><li><code>run_turn</code> <strong>同步阻塞</strong>，直到本轮结束。请在工作线程中调用；asyncio 宿主使用 <code>await asyncio.to_thread(session.run_turn, request)</code>。</li><li><code>interrupt</code>、<code>steer</code>、<code>redirect</code>、<code>is_interrupted</code>、<code>activity</code> <strong>可以从其他线程调用</strong>，用于在轮次进行中控制它。</li><li>同一会话的 <code>run_turn</code> <strong>串行执行</strong>：默认排队，可配置为直接抛出 <code>SessionBusy</code>（见 5.10）。</li><li>不同会话可以并发。但 Standalone 模式下，部分上游配置通过进程环境变量与进程级全局状态生效，<strong>同一进程内的多会话无法在这些方面隔离</strong>。多租户部署建议一个进程一个活跃会话，或按租户分进程。</li></ul><h3 id="s4-6"><span class="h-num">4.6</span>必须遵守的上游不变量</h3><ol><li><strong>提示缓存</strong>：会话内不改系统提示、工具集、记忆。自定义中间件不得改写历史消息与工具定义。</li><li><strong>角色严格交替</strong>：不要自行拼接两条相同角色的消息。插话请用 <code>steer()</code>，由运行时在合适位置送达。</li><li><strong>能力属于会话</strong>：判断「是否在某个前端里」要看 <code>SessionBinding</code>，不要读进程环境变量。</li><li><strong>状态目录隔离</strong>：Standalone 实例之间不要共享 <code>hermes_home</code>。</li></ol></section><section id="s5" class="chapter"><h2><span class="h-num">5</span>接口参考</h2><h3 id="s5-1"><span class="h-num">5.1</span>bootstrap</h3><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">def</span> <span class="tf">bootstrap</span>(
+    mode: Literal[<span class="ts">&quot;hosted&quot;</span>, <span class="ts">&quot;standalone&quot;</span>] = <span class="ts">&quot;hosted&quot;</span>,
+    *,
+    hermes_home: str | os.PathLike | <span class="tk">None</span> = <span class="tk">None</span>,
+    ports: Mapping[str, object] | <span class="tk">None</span> = <span class="tk">None</span>,
+    decorators: Sequence[DecoratorFactory] | <span class="tk">None</span> = <span class="tk">None</span>,
+    middleware: Sequence[tuple[str, Callable[..., Any]]] = (),
+    allow_maintenance: bool = <span class="tk">False</span>,
+    invariant_checks: bool = <span class="tk">False</span>,
+    adopt_upstream_hosts: bool = <span class="tk">False</span>,
+    strict_bindings: bool = <span class="tk">True</span>,
+    tracer: Tracer | <span class="tk">None</span> = <span class="tk">None</span>,
+    metrics: MetricsSink | <span class="tk">None</span> = <span class="tk">None</span>,
+) -&gt; AgentRuntimePort: ...</code></pre></div><div class="tscroll"><table><thead><tr><th>参数</th><th>默认</th><th>说明</th></tr></thead><tbody><tr><td><code>mode</code></td><td><code>&quot;hosted&quot;</code></td><td>运行模式</td></tr><tr><td><code>hermes_home</code></td><td><code>None</code></td><td>状态目录。Hosted 默认沿用上游解析结果；Standalone 强烈建议显式指定</td></tr><tr><td><code>ports</code></td><td><code>None</code></td><td>覆盖南向 Port 实现，键见 5.9；Hosted 下通常不需要</td></tr><tr><td><code>decorators</code></td><td><code>None</code></td><td>L1 装饰器链，由外到内；<code>None</code> 表示 <code>DEFAULT_DECORATORS</code></td></tr><tr><td><code>middleware</code></td><td><code>()</code></td><td>Standalone 下直接注册的 L2 中间件 <code>(kind, fn)</code>；Hosted 下请使用插件方式（案例 7）</td></tr><tr><td><code>allow_maintenance</code></td><td><code>False</code></td><td>是否允许 <code>runtime.maintenance()</code>，只给长会话宿主开启</td></tr><tr><td><code>invariant_checks</code></td><td><code>False</code></td><td>启用 <code>CacheInvariantDecorator</code>，建议在测试与 CI 中开启</td></tr><tr><td><code>adopt_upstream_hosts</code></td><td><code>False</code></td><td>用 <code>DecoratedAIAgent</code> 替换 <code>run_agent.AIAgent</code>；<code>hermes-rt</code> 会自动开启</td></tr><tr><td><code>strict_bindings</code></td><td><code>True</code></td><td>依赖转发与上游不匹配时立即失败；关闭后跳过不匹配项并记录告警</td></tr><tr><td><code>tracer</code> / <code>metrics</code></td><td><code>None</code></td><td>追踪与指标后端；<code>None</code> 表示不输出</td></tr></tbody></table></div><p><strong>异常</strong>：<code>BootstrapOrderError</code>、<code>BootstrapConflict</code>、<code>BindingDrift</code>。</p><h3 id="s5-2"><span class="h-num">5.2</span>AgentRuntimePort</h3><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">class</span> <span class="tf">AgentRuntimePort</span>(Protocol):
+    <span class="tk">def</span> <span class="tf">open_session</span>(self, spec: RuntimeSpec, *, events: EventSinkPort | <span class="tk">None</span> = <span class="tk">None</span>,
+                     interaction: InteractionPort | <span class="tk">None</span> = <span class="tk">None</span>) -&gt; AgentSessionPort: ...
+    <span class="tk">def</span> <span class="tf">maintenance</span>(self, session: AgentSessionPort) -&gt; SessionMaintenancePort: ...
+    <span class="tk">def</span> <span class="tf">capabilities</span>(self) -&gt; Mapping[str, bool]: ...</code></pre></div><div class="tscroll"><table><thead><tr><th>方法</th><th>说明</th><th>异常</th></tr></thead><tbody><tr><td><code>open_session(spec, *, events, interaction)</code></td><td>按 <code>RuntimeSpec</code> 创建会话，返回已套好装饰器链的会话对象</td><td><code>CapabilityUnavailable</code>、<code>CredentialError</code></td></tr><tr><td><code>maintenance(session)</code></td><td>返回该会话的特权维护接口</td><td><code>CapabilityUnavailable</code>（未开启 <code>allow_maintenance</code>）</td></tr><tr><td><code>capabilities()</code></td><td>当前模式下的能力表</td><td>—</td></tr></tbody></table></div><h3 id="s5-3"><span class="h-num">5.3</span>AgentSessionPort</h3><div class="tscroll"><table><thead><tr><th>方法</th><th>返回</th><th>说明</th><th>对应上游</th></tr></thead><tbody><tr><td><code>session_id</code></td><td><code>str</code></td><td>会话 ID（属性）</td><td><code>AIAgent.session_id</code></td></tr><tr><td><code>run_turn(request)</code></td><td><code>TurnResult</code></td><td>执行一轮对话，阻塞到本轮结束</td><td><code>run_conversation</code></td></tr><tr><td><code>chat(message)</code></td><td><code>str</code></td><td>简化接口，只返回最终文本</td><td><code>chat</code></td></tr><tr><td><code>interrupt(message=None, *, hard=False, tool_reason=None)</code></td><td><code>bool</code></td><td>请求中断当前轮次；<code>hard=True</code> 为强制停止</td><td><code>interrupt</code> / <code>hard_interrupt</code></td></tr><tr><td><code>steer(text)</code></td><td><code>bool</code></td><td>插话：当前这批工具调用结束后，作为独立 user 消息送达，不中断任务</td><td><code>steer</code></td></tr><tr><td><code>redirect(text)</code></td><td><code>bool</code></td><td>改道：在当前轮次内调整方向，不开启新任务</td><td><code>redirect</code></td></tr><tr><td><code>clear_interrupt(*, preserve_redirect=False)</code></td><td><code>bool</code></td><td>清除中断标记</td><td><code>clear_interrupt</code></td></tr><tr><td><code>is_interrupted()</code></td><td><code>bool</code></td><td>是否处于中断请求中</td><td><code>is_interrupted</code></td></tr><tr><td><code>activity()</code></td><td><code>Mapping</code></td><td>最近活动快照，用于判断是否卡住</td><td><code>get_activity_summary</code></td></tr><tr><td><code>rate_limit_state()</code></td><td>对象或 <code>None</code></td><td>最近一次捕获的限流状态</td><td><code>get_rate_limit_state</code></td></tr><tr><td><code>credits_state()</code></td><td>对象或 <code>None</code></td><td>最近一次捕获的额度状态</td><td><code>get_credits_state</code></td></tr><tr><td><code>credits_spent_micros()</code></td><td><code>int</code> 或 <code>None</code></td><td>本会话累计消耗（百万分之一单位）</td><td><code>get_credits_spent_micros</code></td></tr><tr><td><code>reset(*, previous_messages=None, old_session_id=None, carry_over_context=False)</code></td><td><code>None</code></td><td>重置会话级计数与压缩状态，用于 <code>/new</code> 类操作</td><td><code>reset_session_state</code></td></tr><tr><td><code>commit_memory(messages=None)</code></td><td><code>None</code></td><td>在会话 ID 轮换时刷写记忆，不关闭记忆提供方</td><td><code>commit_memory_session</code></td></tr><tr><td><code>release_clients()</code></td><td><code>None</code></td><td>释放模型客户端与子代理，保留会话工具状态（适合空闲回收）</td><td><code>release_clients</code></td></tr><tr><td><code>close()</code></td><td><code>None</code></td><td>关闭会话并释放全部资源，可重复调用</td><td><code>shutdown_memory_provider</code> + <code>close</code></td></tr></tbody></table></div><p><strong>steer 与 redirect 的区别</strong>：<code>steer</code> 追加一条用户消息，Agent 在处理完当前工具批次后读到它，适合补充要求。<code>redirect</code> 在当前轮次内改变方向，适合纠正正在进行的方向。两者都不会开启新任务。</p><p><strong>异常</strong>：<code>SessionClosed</code>（会话已关闭）、<code>SessionBusy</code>（并发策略为 reject 时）、<code>UpstreamError</code>（运行时无法继续的上游异常）。</p><h3 id="s5-4"><span class="h-num">5.4</span>SessionMaintenancePort</h3><p>需要 <code>bootstrap(allow_maintenance=True)</code>。面向网关、TUI 这类维护长会话的宿主，普通宿主不需要。</p><div class="tscroll"><table><thead><tr><th>方法</th><th>说明</th><th>对应上游</th></tr></thead><tbody><tr><td><code>compress_context(**kwargs)</code></td><td>立即压缩上下文（上游允许的唯一一种缓存失效操作）</td><td><code>_compress_context</code></td></tr><tr><td><code>persist()</code></td><td>立即持久化会话</td><td><code>_persist_session</code></td></tr><tr><td><code>flush_to_store()</code></td><td>把未写入的消息刷到会话数据库</td><td><code>_flush_messages_to_session_db</code></td></tr><tr><td><code>invalidate_system_prompt()</code></td><td>让系统提示在下次构建时重建，只能在压缩或会话切换时使用</td><td><code>_invalidate_system_prompt</code></td></tr><tr><td><code>set_end_session_on_close(value)</code></td><td>关闭时是否结束会话记录</td><td><code>_end_session_on_close</code></td></tr><tr><td><code>spawn_background_review(messages)</code></td><td>触发后台复盘（技能 / 记忆沉淀）</td><td><code>_spawn_background_review</code></td></tr></tbody></table></div><h3 id="s5-5"><span class="h-num">5.5</span>EventSinkPort 与 RuntimeEvent</h3><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">class</span> <span class="tf">EventSinkPort</span>(Protocol):
+    <span class="tk">def</span> <span class="tf">emit</span>(self, event: RuntimeEvent) -&gt; <span class="tk">None</span>: ...
+
+<span class="td">@dataclass</span>(frozen=<span class="tk">True</span>)
+<span class="tk">class</span> <span class="tf">RuntimeEvent</span>:
+    type: EventType
+    session_id: str
+    ts: float                      <span class="tc"># time.time()</span>
+    payload: Mapping[str, Any]     <span class="tc"># 标准化字段 + 上游回调的原始参数</span></code></pre></div><div class="tscroll"><table><thead><tr><th><code>EventType</code></th><th>值</th><th>来源回调</th><th>保证提供的字段</th></tr></thead><tbody><tr><td><code>STREAM_DELTA</code></td><td><code>stream.delta</code></td><td><code>stream_delta_callback</code></td><td><code>text</code></td></tr><tr><td><code>INTERIM</code></td><td><code>stream.interim</code></td><td><code>interim_assistant_callback</code></td><td><code>text</code></td></tr><tr><td><code>THINKING</code></td><td><code>thinking</code></td><td><code>thinking_callback</code></td><td><code>text</code></td></tr><tr><td><code>REASONING</code></td><td><code>reasoning</code></td><td><code>reasoning_callback</code></td><td><code>text</code></td></tr><tr><td><code>TOOL_STARTED</code></td><td><code>tool.started</code></td><td><code>tool_start_callback</code></td><td><code>tool_name</code></td></tr><tr><td><code>TOOL_PROGRESS</code></td><td><code>tool.progress</code></td><td><code>tool_progress_callback</code></td><td><code>tool_name</code></td></tr><tr><td><code>TOOL_COMPLETED</code></td><td><code>tool.completed</code></td><td><code>tool_complete_callback</code></td><td><code>tool_name</code></td></tr><tr><td><code>TOOL_GENERATING</code></td><td><code>tool.generating</code></td><td><code>tool_gen_callback</code></td><td><code>tool_name</code></td></tr><tr><td><code>STEP</code></td><td><code>step</code></td><td><code>step_callback</code></td><td>—</td></tr><tr><td><code>STATUS</code></td><td><code>status</code></td><td><code>status_callback</code></td><td><code>message</code></td></tr><tr><td><code>NOTICE</code></td><td><code>notice</code></td><td><code>notice_callback</code></td><td><code>message</code></td></tr><tr><td><code>NOTICE_CLEARED</code></td><td><code>notice.cleared</code></td><td><code>notice_clear_callback</code></td><td>—</td></tr><tr><td><code>REACTION</code></td><td><code>reaction</code></td><td><code>reaction_callback</code></td><td><code>emoji</code></td></tr><tr><td><code>RAW</code></td><td><code>raw</code></td><td><code>event_callback</code></td><td><code>name</code></td></tr></tbody></table></div><div class="callout note"><div class="callout-title">payload 约定</div><div>「保证提供的字段」由运行时标准化，跨上游版本保持稳定。其余字段是上游回调的原始参数（以参数名为键），会随上游变化，依赖它们时请做好缺省处理。</div></div><p><strong>实现要求</strong>：<code>emit</code> 抛出的异常会被记录并吞掉，不会中断对话；耗时操作（网络发送、写库）请自行放入队列异步处理。</p><h3 id="s5-6"><span class="h-num">5.6</span>InteractionPort</h3><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">class</span> <span class="tf">InteractionPort</span>(Protocol):
+    <span class="tk">def</span> <span class="tf">clarify</span>(self, question: str, choices: Sequence[str] | <span class="tk">None</span>) -&gt; str: ...
+    <span class="tk">def</span> <span class="tf">approve</span>(self, request: Mapping[str, Any]) -&gt; bool: ...
+    <span class="tk">def</span> <span class="tf">read_terminal</span>(self, request: Mapping[str, Any]) -&gt; str: ...
+    <span class="tk">def</span> <span class="tf">capture_secret</span>(self, request: Mapping[str, Any]) -&gt; str | <span class="tk">None</span>: ...</code></pre></div><div class="tscroll"><table><thead><tr><th>方法</th><th>触发场景</th><th>返回约定</th></tr></thead><tbody><tr><td><code>clarify</code></td><td>Agent 需要用户在几个选项中做决定</td><td>用户的回答文本；不支持时抛 <code>InteractionUnsupported</code></td></tr><tr><td><code>approve</code></td><td>命令或文件写入触发审批（是否触发由上游审批策略决定）</td><td><code>True</code> 允许 / <code>False</code> 拒绝</td></tr><tr><td><code>read_terminal</code></td><td>读取终端、预览窗口等宿主侧内容；<code>request[&quot;kind&quot;]</code> 取值为 <code>terminal</code>、<code>preview</code>、<code>drive_preview</code>、<code>window_below</code></td><td>读取到的文本；不支持时抛 <code>InteractionUnsupported</code></td></tr><tr><td><code>capture_secret</code></td><td>需要用户输入密钥或 sudo 密码</td><td>密钥文本；<code>None</code> 表示用户拒绝提供</td></tr></tbody></table></div><p><code>from hermes_agent_runtime import DenyAllInteraction</code> 是默认实现：审批一律拒绝，其余方法表示不支持。自定义实现建议继承它，只覆写需要的方法。</p><div class="callout warn"><div class="callout-title">注意</div><div><strong>不要自行调用上游的进程级回调注册函数</strong>（如 <code>tools.terminal_tool.set_approval_callback</code>）。运行时已统一注册，并按会话分发到各自的 <code>InteractionPort</code>；自行注册会导致多会话之间审批串线。</div></div><h3 id="s5-7"><span class="h-num">5.7</span>RuntimeSpec 与值对象</h3><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="td">@dataclass</span>(frozen=<span class="tk">True</span>)
+<span class="tk">class</span> <span class="tf">RuntimeSpec</span>:
+    route: ModelRoute = ModelRoute()
+    tools: ToolPolicy = ToolPolicy()
+    session: SessionBinding = SessionBinding()
+    prompt: PromptOptions = PromptOptions()
+    output: Mapping[str, Any] = field(default_factory=dict)
+    capabilities: Mapping[str, bool] | <span class="tk">None</span> = <span class="tk">None</span>
+    passthrough: Mapping[str, Any] = field(default_factory=dict)</code></pre></div><p><strong>ModelRoute（模型路由）</strong></p><div class="tscroll"><table><thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead><tbody><tr><td><code>model</code></td><td><code>str</code></td><td>模型名；空字符串表示按配置解析</td></tr><tr><td><code>provider</code></td><td><code>str</code> 或 <code>None</code></td><td>provider 名，如 <code>openrouter</code>、<code>anthropic</code>、<code>custom</code></td></tr><tr><td><code>base_url</code></td><td><code>str</code> 或 <code>None</code></td><td>自定义端点地址</td></tr><tr><td><code>api_key</code></td><td><code>str</code> 或 <code>None</code></td><td>显式密钥；建议留空，交给 <code>CredentialPort</code></td></tr><tr><td><code>api_mode</code></td><td><code>str</code> 或 <code>None</code></td><td><code>chat_completions</code>、<code>codex_responses</code>、<code>anthropic_messages</code>、<code>bedrock_converse</code></td></tr><tr><td><code>fallback_model</code></td><td><code>Mapping</code> 或 <code>None</code></td><td>主模型失败时的备用模型</td></tr><tr><td><code>reasoning_config</code></td><td><code>Mapping</code> 或 <code>None</code></td><td>推理强度等参数</td></tr><tr><td><code>max_tokens</code>、<code>service_tier</code>、<code>request_overrides</code></td><td>—</td><td>透传给模型请求</td></tr><tr><td><code>routing</code></td><td><code>Mapping</code></td><td>OpenRouter 类路由偏好：<code>providers_allowed</code>、<code>providers_ignored</code>、<code>providers_order</code>、<code>provider_sort</code> 等</td></tr></tbody></table></div><p><strong>ToolPolicy（工具策略）</strong></p><div class="tscroll"><table><thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead><tbody><tr><td><code>enabled_toolsets</code></td><td>字符串列表或 <code>None</code></td><td>启用的工具集，如 <code>terminal</code>、<code>file</code>、<code>web</code>、<code>browser</code>、<code>memory</code>、<code>skills</code>、<code>todo</code>、<code>code_execution</code>、<code>delegation</code>、<code>cronjob</code></td></tr><tr><td><code>disabled_toolsets</code></td><td>字符串列表或 <code>None</code></td><td>禁用的工具集，优先于启用列表</td></tr><tr><td><code>max_iterations</code></td><td><code>int</code> 或 <code>None</code></td><td>单轮最多的模型调用次数，子代理共享</td></tr><tr><td><code>run_budget_seconds</code></td><td><code>float</code> 或 <code>None</code></td><td>单轮时间预算</td></tr><tr><td><code>checkpoints</code></td><td><code>Mapping</code></td><td>文件检查点：<code>enabled</code>、<code>max_snapshots</code>、<code>max_total_size_mb</code>、<code>max_file_size_mb</code></td></tr></tbody></table></div><p><strong>SessionBinding（会话绑定）</strong></p><div class="tscroll"><table><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody><tr><td><code>session_id</code></td><td>会话 ID；为空时自动生成。相同 ID 会接续会话数据库中的记录</td></tr><tr><td><code>parent_session_id</code></td><td>父会话 ID（压缩轮换、子会话）</td></tr><tr><td><code>platform</code></td><td>平台名，需与上游平台名一致（如 <code>cli</code>、<code>telegram</code>），影响平台提示与默认工具集</td></tr><tr><td><code>user</code></td><td><code>user_id</code>、<code>user_id_alt</code>、<code>user_name</code></td></tr><tr><td><code>chat</code></td><td><code>chat_id</code>、<code>chat_name</code>、<code>chat_type</code>、<code>thread_id</code></td></tr><tr><td><code>gateway_session_key</code>、<code>pass_session_id</code></td><td>网关路由相关</td></tr></tbody></table></div><p><strong>PromptOptions（提示选项）</strong></p><div class="tscroll"><table><thead><tr><th>字段</th><th>默认</th><th>说明</th></tr></thead><tbody><tr><td><code>ephemeral_system_prompt</code></td><td><code>None</code></td><td>附加的系统提示，会话内固定</td></tr><tr><td><code>prefill_messages</code></td><td><code>None</code></td><td>预置消息</td></tr><tr><td><code>skip_context_files</code></td><td><code>False</code></td><td>不加载工作目录中的上下文文件（如 <code>AGENTS.md</code>）</td></tr><tr><td><code>load_soul_identity</code></td><td><code>False</code></td><td>加载 <code>SOUL.md</code> 人格</td></tr><tr><td><code>skip_memory</code></td><td><code>False</code></td><td>不启用记忆</td></tr><tr><td><code>skip_background_review</code></td><td><code>False</code></td><td>不做后台复盘</td></tr></tbody></table></div><p><code>passthrough</code> 用于上游新增、而本运行时尚未收录的构造参数。它会原样传给上游，并在启动时按上游签名校验。</p><h3 id="s5-8"><span class="h-num">5.8</span>RunRequest 与 TurnResult</h3><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="td">@dataclass</span>(frozen=<span class="tk">True</span>)
+<span class="tk">class</span> <span class="tf">RunRequest</span>:
+    message: str | list[Mapping[str, Any]]            <span class="tc"># 文本或多模态内容块</span>
+    system_message: str | <span class="tk">None</span> = <span class="tk">None</span>
+    history: Sequence[Mapping[str, Any]] | <span class="tk">None</span> = <span class="tk">None</span>  <span class="tc"># OpenAI 消息格式；为空时使用会话自动维护的历史</span>
+    task_id: str | <span class="tk">None</span> = <span class="tk">None</span>
+    extras: Mapping[str, Any] = field(default_factory=dict)  <span class="tc"># 透传 run_conversation 其余参数，如 moa_config</span>
+
+<span class="td">@dataclass</span>(frozen=<span class="tk">True</span>)
+<span class="tk">class</span> <span class="tf">TurnResult</span>:
+    final_response: str | <span class="tk">None</span>
+    messages: list[dict[str, Any]]
+    completed: bool
+    failed: bool
+    partial: bool
+    error: str | <span class="tk">None</span>
+    failure_reason: str | <span class="tk">None</span>
+    retryable: bool
+    api_calls: int
+    compression_deferred: bool
+    compressed: bool
+    usage: Usage | <span class="tk">None</span>
+    raw: Mapping[str, Any]</code></pre></div><div class="tscroll"><table><thead><tr><th>字段</th><th>来源</th><th>说明</th></tr></thead><tbody><tr><td><code>final_response</code></td><td>上游 <code>final_response</code></td><td>最终回复文本</td></tr><tr><td><code>messages</code></td><td>上游 <code>messages</code></td><td>本轮结束后的完整消息列表</td></tr><tr><td><code>completed</code></td><td>上游 <code>completed</code></td><td>本轮正常结束</td></tr><tr><td><code>failed</code></td><td>上游 <code>failed</code></td><td>本轮失败（额度、策略拦截、不可恢复错误等）</td></tr><tr><td><code>partial</code></td><td>上游 <code>partial</code></td><td>本轮未完整结束，但对话可以继续</td></tr><tr><td><code>error</code>、<code>failure_reason</code></td><td>上游 <code>error</code>、<code>failure_reason</code></td><td>错误描述与分类</td></tr><tr><td><code>retryable</code></td><td>上游 <code>failure_retryable</code></td><td>重试是否可能得到不同结果，用于决定是否显示「重试」</td></tr><tr><td><code>api_calls</code></td><td>上游 <code>api_calls</code></td><td>本轮模型调用次数</td></tr><tr><td><code>compression_deferred</code></td><td>上游 <code>compression_deferred</code></td><td>上下文压缩被暂缓，稍后重试即可</td></tr><tr><td><code>compressed</code></td><td>运行时判定</td><td>本轮是否发生了上下文压缩</td></tr><tr><td><code>usage</code></td><td>运行时汇总</td><td><code>input_tokens</code>、<code>output_tokens</code>、<code>cost_micros</code>，可能为 <code>None</code></td></tr><tr><td><code>raw</code></td><td>上游完整返回值</td><td>需要上游其他字段时使用，不保证跨版本稳定</td></tr></tbody></table></div><h3 id="s5-9"><span class="h-num">5.9</span>南向 Port 与自定义适配器</h3><p>通过 <code>bootstrap(ports={...})</code> 覆盖。未覆盖的 Port 在 Hosted 下调用上游原实现，在 Standalone 下使用内置默认实现。</p><div class="tscroll"><table><thead><tr><th>键</th><th>Port</th><th>Standalone 默认实现</th><th>缺席时</th></tr></thead><tbody><tr><td><code>config</code></td><td><code>ConfigPort</code></td><td><code>YamlConfig(&lt;hermes_home&gt;/config.yaml)</code>，文件不存在时为空配置</td><td>必需</td></tr><tr><td><code>credential</code></td><td><code>CredentialPort</code></td><td><code>EnvCredentials()</code>：显式密钥 + 环境变量</td><td>必需</td></tr><tr><td><code>provider_catalog</code></td><td><code>ProviderCatalogPort</code></td><td>随包 provider 档案快照</td><td>必需</td></tr><tr><td><code>session_context</code></td><td><code>SessionContextPort</code></td><td>内置 ContextVar 实现</td><td>必需</td></tr><tr><td><code>profile</code></td><td><code>ProfilePort</code></td><td>固定单 profile</td><td>可降级</td></tr><tr><td><code>host_process</code></td><td><code>HostProcessPort</code></td><td>psutil 实现</td><td>可降级</td></tr><tr><td><code>plugin</code></td><td><code>PluginPort</code></td><td>只运行 <code>bootstrap(middleware=...)</code> 注册的中间件</td><td>可降级</td></tr><tr><td><code>scheduler</code></td><td><code>SchedulerPort</code></td><td>不提供</td><td><code>cronjob</code> 工具集禁用</td></tr><tr><td><code>platform</code></td><td><code>PlatformPort</code></td><td>不提供</td><td>消息投递类工具禁用</td></tr></tbody></table></div><p>内置实现位于 <code>hermes_agent_runtime.adapters.standalone</code>：<code>DictConfig</code>、<code>YamlConfig</code>、<code>EnvCredentials</code>。</p><p><strong>ConfigPort 示例：从业务配置中心读取</strong></p><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">import</span> copy
+<span class="tk">from</span> pathlib <span class="tk">import</span> Path
+<span class="tk">from</span> hermes_agent_runtime.errors <span class="tk">import</span> CapabilityUnavailable
+
+<span class="tk">class</span> <span class="tf">RemoteConfig</span>:
+    <span class="ts">&quot;&quot;&quot;实现 ConfigPort：配置由业务配置中心下发，结构与上游 config.yaml 相同。&quot;&quot;&quot;</span>
+
+    <span class="tk">def</span> <span class="tf">__init__</span>(self, client):
+        self._client = client
+        self._cache = client.fetch(<span class="ts">&quot;agent-runtime&quot;</span>)      <span class="tc"># 启动时拉取一次</span>
+
+    <span class="tk">def</span> <span class="tf">read</span>(self):
+        <span class="tk">return</span> self._cache                               <span class="tc"># 只读视图：热路径，调用方不得修改</span>
+
+    <span class="tk">def</span> <span class="tf">read_mutable</span>(self):
+        <span class="tk">return</span> copy.deepcopy(self._cache)
+
+    <span class="tk">def</span> <span class="tf">read_raw</span>(self):
+        <span class="tk">return</span> copy.deepcopy(self._cache)
+
+    <span class="tk">def</span> <span class="tf">env</span>(self, name, default=<span class="ts">&quot;&quot;</span>):
+        <span class="tk">return</span> self._client.secret(name) <span class="tk">or</span> default
+
+    <span class="tk">def</span> <span class="tf">path</span>(self):
+        <span class="tk">return</span> Path(<span class="ts">&quot;/dev/null&quot;</span>)
+
+    <span class="tk">def</span> <span class="tf">save</span>(self, cfg, **kw):
+        <span class="tk">raise</span> CapabilityUnavailable(<span class="ts">&quot;config.save 在托管配置下不可用&quot;</span>)</code></pre></div><div class="callout warn"><div class="callout-title"><code>read()</code> 位于热路径</div><div>上游每轮会多次读取配置。实现中不要做网络请求或深拷贝，请在内存中缓存。</div></div><h3 id="s5-10"><span class="h-num">5.10</span>装饰器扩展接口</h3><p><strong>L1 会话装饰器</strong>：继承 <code>SessionDecorator</code>，只覆写关心的方法，未覆写的方法自动委托给内层。</p><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">from</span> hermes_agent_runtime.decorators <span class="tk">import</span> (
+    SessionDecorator, DEFAULT_DECORATORS,
+    CapabilityGateDecorator, ConcurrencyGuardDecorator, ErrorMappingDecorator,
+    TracingDecorator, MetricsDecorator, CacheInvariantDecorator,
+)
+
+<span class="tc"># 默认链（由外到内）</span>
+DEFAULT_DECORATORS = (
+    CapabilityGateDecorator, ConcurrencyGuardDecorator, ErrorMappingDecorator,
+    TracingDecorator, MetricsDecorator,
+)</code></pre></div><p><code>decorators</code> 参数接受「以内层会话为参数、返回会话对象」的工厂。需要额外参数时用 <code>functools.partial</code>：</p><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">from</span> functools <span class="tk">import</span> partial
+
+runtime = bootstrap(
+    decorators=[partial(ConcurrencyGuardDecorator, policy=<span class="ts">&quot;reject&quot;</span>),   <span class="tc"># 并发时直接抛 SessionBusy</span>
+                *DEFAULT_DECORATORS[<span class="tn">2</span>:]],
+)</code></pre></div><p><strong>L2 执行中间件</strong>：遵循上游 <code>hermes.middleware.v1</code> 契约。</p><div class="tscroll"><table><thead><tr><th>kind</th><th>回调收到的主要参数</th><th>返回</th></tr></thead><tbody><tr><td><code>llm_request</code></td><td><code>request</code>、<code>original_request</code>、<code>session_id</code>、<code>provider</code>、<code>model</code>、<code>api_mode</code></td><td><code>{&quot;request&quot;: {...}}</code></td></tr><tr><td><code>llm_execution</code></td><td><code>request</code>、<code>original_request</code>、<code>next_call</code></td><td>模型响应（通常是 <code>next_call(request)</code> 的结果）</td></tr><tr><td><code>tool_request</code></td><td><code>tool_name</code>、<code>args</code>、<code>original_args</code>、<code>tool_call_id</code></td><td><code>{&quot;args&quot;: {...}}</code></td></tr><tr><td><code>tool_execution</code></td><td><code>tool_name</code>、<code>args</code>、<code>original_args</code>、<code>next_call</code></td><td>工具结果（通常是 <code>next_call(args)</code> 的结果）</td></tr></tbody></table></div><ul><li>请求类中间件请用 <code>@guarded_request_middleware</code> 装饰，自动拒绝改写 <code>messages</code>、<code>input</code>、<code>tools</code>、<code>system</code> 的返回值。</li><li>上游约定失败放行：中间件抛异常时记录警告并跳过，不能作为唯一的安全防线。</li></ul><h3 id="s5-11"><span class="h-num">5.11</span>异常类型</h3><p>全部位于 <code>hermes_agent_runtime.errors</code>，继承自 <code>AgentRuntimeError</code>。</p><div class="tscroll"><table><thead><tr><th>异常</th><th>何时抛出</th><th>处理建议</th></tr></thead><tbody><tr><td><code>BootstrapOrderError</code></td><td><code>bootstrap</code> 之前已导入上游模块</td><td>把 <code>bootstrap</code> 移到入口最前面，或改用 <code>hermes-rt</code></td></tr><tr><td><code>BootstrapConflict</code></td><td>以不同参数重复调用 <code>bootstrap</code></td><td>进程内统一初始化一次</td></tr><tr><td><code>BindingDrift</code></td><td>上游符号不存在或签名不兼容（同步上游后常见）</td><td>运行契约守卫，更新绑定清单</td></tr><tr><td><code>CapabilityUnavailable</code></td><td>请求了当前模式不提供的能力或工具集</td><td>调整 <code>ToolPolicy</code>，或提供对应南向 Port</td></tr><tr><td><code>CredentialError</code></td><td>开会话时无法解析模型凭证</td><td>检查 <code>ModelRoute</code> 与 <code>CredentialPort</code></td></tr><tr><td><code>SessionBusy</code></td><td>同一会话已有轮次在执行（并发策略为 reject）</td><td>排队或提示用户稍后</td></tr><tr><td><code>SessionClosed</code></td><td>对已关闭的会话调用方法</td><td>重新 <code>open_session</code></td></tr><tr><td><code>InteractionUnsupported</code></td><td>宿主未实现某种交互</td><td>由运行时转换为「宿主不支持」反馈给模型，一般无需处理</td></tr><tr><td><code>InvariantViolation</code></td><td>会话内系统提示或工具集发生变化（仅 <code>invariant_checks=True</code>）</td><td>排查自定义中间件或配置变更</td></tr><tr><td><code>UpstreamError</code></td><td>其他导致运行时无法继续的上游异常</td><td>查看 <code>__cause__</code> 中的原始异常</td></tr></tbody></table></div><div class="callout note"><div class="callout-title">失败优先走结果而非异常</div><div>额度不足、内容策略拦截、上下文溢出等模型侧失败，由 <code>TurnResult.failed</code> 与 <code>failure_reason</code> 表示，不抛异常。</div></div></section><section id="s6" class="chapter"><h2><span class="h-num">6</span>使用案例</h2><h3 id="s6-1"><span class="h-num">6.1</span>案例 1：命令行问答工具（Hosted）</h3><p>复用本机 Hermes 配置，做一个带流式输出的多轮命令行助手。</p><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tc">#!/usr/bin/env python3</span>
+<span class="ts">&quot;&quot;&quot;ask.py —— 基于 AgentRuntime 的多轮命令行助手。&quot;&quot;&quot;</span>
+<span class="tk">from</span> hermes_agent_runtime <span class="tk">import</span> bootstrap, RuntimeSpec, ToolPolicy, PromptOptions, RunRequest, EventType
+
+runtime = bootstrap(mode=<span class="ts">&quot;hosted&quot;</span>)
+
+
+<span class="tk">class</span> <span class="tf">ConsoleSink</span>:
+    <span class="tk">def</span> <span class="tf">emit</span>(self, event):
+        <span class="tk">if</span> event.type <span class="tk">is</span> EventType.STREAM_DELTA:
+            print(event.payload[<span class="ts">&quot;text&quot;</span>], end=<span class="ts">&quot;&quot;</span>, flush=<span class="tk">True</span>)
+        <span class="tk">elif</span> event.type <span class="tk">is</span> EventType.TOOL_STARTED:
+            print(<span class="ts">f&quot;\n  ⚙ {event.payload[&#x27;tool_name&#x27;]}&quot;</span>, flush=<span class="tk">True</span>)
+
+
+<span class="tk">def</span> <span class="tf">main</span>():
+    spec = RuntimeSpec(
+        tools=ToolPolicy(enabled_toolsets=[<span class="ts">&quot;file&quot;</span>, <span class="ts">&quot;web&quot;</span>, <span class="ts">&quot;todo&quot;</span>], max_iterations=<span class="tn">30</span>),
+        prompt=PromptOptions(skip_background_review=<span class="tk">True</span>),
+    )
+    session = runtime.open_session(spec, events=ConsoleSink())
+    <span class="tk">try</span>:
+        <span class="tk">while</span> <span class="tk">True</span>:
+            <span class="tk">try</span>:
+                text = input(<span class="ts">&quot;\n\n你&gt; &quot;</span>).strip()
+            <span class="tk">except</span> EOFError:
+                <span class="tk">break</span>
+            <span class="tk">if</span> text <span class="tk">in</span> {<span class="ts">&quot;exit&quot;</span>, <span class="ts">&quot;quit&quot;</span>}:
+                <span class="tk">break</span>
+            <span class="tk">if</span> <span class="tk">not</span> text:
+                <span class="tk">continue</span>
+            result = session.run_turn(RunRequest(message=text))   <span class="tc"># 历史由会话自动维护</span>
+            <span class="tk">if</span> result.failed:
+                print(<span class="ts">f&quot;\n[失败] {result.error}&quot;</span> + (<span class="ts">&quot;（可重试）&quot;</span> <span class="tk">if</span> result.retryable <span class="tk">else</span> <span class="ts">&quot;&quot;</span>))
+    <span class="tk">except</span> KeyboardInterrupt:
+        session.interrupt(<span class="ts">&quot;用户按下 Ctrl+C&quot;</span>)
+    <span class="tk">finally</span>:
+        session.close()
+
+
+<span class="tk">if</span> __name__ == <span class="ts">&quot;__main__&quot;</span>:
+    main()</code></pre></div><h3 id="s6-2"><span class="h-num">6.2</span>案例 2：FastAPI + WebSocket 流式聊天服务</h3><p>一个连接对应一个会话：前端发送文本、停止、插话三种消息，服务端推送流式事件与轮次结果。</p><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="ts">&quot;&quot;&quot;server.py —— uvicorn server:app --port 8080&quot;&quot;&quot;</span>
+<span class="tk">import</span> asyncio
+
+<span class="tk">from</span> fastapi <span class="tk">import</span> FastAPI, WebSocket, WebSocketDisconnect
+<span class="tk">from</span> hermes_agent_runtime <span class="tk">import</span> bootstrap, RuntimeSpec, ToolPolicy, SessionBinding, RunRequest
+
+runtime = bootstrap(mode=<span class="ts">&quot;hosted&quot;</span>)   <span class="tc"># 在导入其他业务模块之前完成</span>
+app = FastAPI()
+
+JSON_SCALARS = (str, int, float, bool, type(<span class="tk">None</span>))
+
+
+<span class="tk">class</span> <span class="tf">QueueSink</span>:
+    <span class="ts">&quot;&quot;&quot;在对话线程中被调用：只做线程安全的入队，立即返回。&quot;&quot;&quot;</span>
+
+    <span class="tk">def</span> <span class="tf">__init__</span>(self, loop, queue):
+        self.loop, self.queue = loop, queue
+
+    <span class="tk">def</span> <span class="tf">emit</span>(self, event):
+        payload = {k: v <span class="tk">for</span> k, v <span class="tk">in</span> event.payload.items() <span class="tk">if</span> isinstance(v, JSON_SCALARS)}
+        self.loop.call_soon_threadsafe(self.queue.put_nowait, {<span class="ts">&quot;type&quot;</span>: event.type.value, <span class="ts">&quot;payload&quot;</span>: payload})
+
+
+<span class="td">@app.websocket</span>(<span class="ts">&quot;/chat/{session_id}&quot;</span>)
+<span class="tk">async</span> <span class="tk">def</span> <span class="tf">chat</span>(ws: WebSocket, session_id: str):
+    <span class="tk">await</span> ws.accept()
+    loop, queue = asyncio.get_running_loop(), asyncio.Queue()
+    spec = RuntimeSpec(
+        session=SessionBinding(session_id=session_id),
+        tools=ToolPolicy(enabled_toolsets=[<span class="ts">&quot;web&quot;</span>, <span class="ts">&quot;file&quot;</span>, <span class="ts">&quot;todo&quot;</span>]),
+    )
+    session = <span class="tk">await</span> asyncio.to_thread(runtime.open_session, spec, events=QueueSink(loop, queue))
+
+    <span class="tk">async</span> <span class="tk">def</span> <span class="tf">pump_events</span>():
+        <span class="tk">while</span> <span class="tk">True</span>:
+            <span class="tk">await</span> ws.send_json(<span class="tk">await</span> queue.get())
+
+    <span class="tk">async</span> <span class="tk">def</span> <span class="tf">run_one</span>(text):
+        result = <span class="tk">await</span> asyncio.to_thread(session.run_turn, RunRequest(message=text))
+        <span class="tk">await</span> ws.send_json({<span class="ts">&quot;type&quot;</span>: <span class="ts">&quot;turn.done&quot;</span>, <span class="ts">&quot;final&quot;</span>: result.final_response,
+                            <span class="ts">&quot;failed&quot;</span>: result.failed, <span class="ts">&quot;retryable&quot;</span>: result.retryable})
+
+    pump = asyncio.create_task(pump_events())
+    turn = <span class="tk">None</span>
+    <span class="tk">try</span>:
+        <span class="tk">while</span> <span class="tk">True</span>:
+            msg = <span class="tk">await</span> ws.receive_json()
+            action = msg.get(<span class="ts">&quot;action&quot;</span>, <span class="ts">&quot;send&quot;</span>)
+            <span class="tk">if</span> action == <span class="ts">&quot;stop&quot;</span>:
+                session.interrupt(<span class="ts">&quot;用户点击了停止&quot;</span>)
+            <span class="tk">elif</span> action == <span class="ts">&quot;steer&quot;</span>:
+                session.steer(msg[<span class="ts">&quot;text&quot;</span>])                       <span class="tc"># 进行中的任务补充要求</span>
+            <span class="tk">elif</span> turn <span class="tk">is</span> <span class="tk">None</span> <span class="tk">or</span> turn.done():
+                turn = asyncio.create_task(run_one(msg[<span class="ts">&quot;text&quot;</span>]))
+            <span class="tk">else</span>:
+                <span class="tk">await</span> ws.send_json({<span class="ts">&quot;type&quot;</span>: <span class="ts">&quot;busy&quot;</span>})
+    <span class="tk">except</span> WebSocketDisconnect:
+        session.interrupt(<span class="ts">&quot;连接断开&quot;</span>)
+    <span class="tk">finally</span>:
+        pump.cancel()
+        <span class="tk">if</span> turn:
+            <span class="tk">await</span> asyncio.gather(turn, return_exceptions=<span class="tk">True</span>)
+        <span class="tk">await</span> asyncio.to_thread(session.close)</code></pre></div><div class="callout tip"><div class="callout-title">为什么用 <code>asyncio.to_thread</code></div><div><code>run_turn</code> 是同步阻塞调用，直接在事件循环中调用会卡住整个服务。<code>interrupt</code>、<code>steer</code> 耗时极短，可以直接调用。</div></div><h3 id="s6-3"><span class="h-num">6.3</span>案例 3：长任务的中断与插话</h3><p>在工作线程中执行长任务，主线程根据用户输入插话或取消。</p><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">import</span> threading
+
+<span class="tk">from</span> hermes_agent_runtime <span class="tk">import</span> bootstrap, RuntimeSpec, ToolPolicy, RunRequest
+
+runtime = bootstrap(mode=<span class="ts">&quot;hosted&quot;</span>)
+session = runtime.open_session(RuntimeSpec(tools=ToolPolicy(enabled_toolsets=[<span class="ts">&quot;file&quot;</span>, <span class="ts">&quot;terminal&quot;</span>, <span class="ts">&quot;todo&quot;</span>])))
+
+outcome = {}
+worker = threading.Thread(
+    target=<span class="tk">lambda</span>: outcome.update(result=session.run_turn(
+        RunRequest(message=<span class="ts">&quot;扫描 src/ 目录，把所有 TODO 注释整理成按模块分组的表格&quot;</span>))),
+    daemon=<span class="tk">True</span>,
+)
+worker.start()
+
+<span class="tk">try</span>:
+    <span class="tk">while</span> worker.is_alive():
+        cmd = input(<span class="ts">&quot;（输入补充要求，/stop 取消，回车跳过）&gt; &quot;</span>).strip()
+        <span class="tk">if</span> cmd == <span class="ts">&quot;/stop&quot;</span>:
+            session.interrupt(<span class="ts">&quot;用户取消&quot;</span>)
+        <span class="tk">elif</span> cmd:
+            session.steer(cmd)            <span class="tc"># 例如「只统计 .py 文件」</span>
+        worker.join(timeout=<span class="tn">0.5</span>)
+<span class="tk">finally</span>:
+    worker.join()
+    session.close()
+
+result = outcome[<span class="ts">&quot;result&quot;</span>]
+print(result.final_response <span class="tk">if</span> result.completed <span class="tk">else</span> <span class="ts">f&quot;未完成：{result.error}&quot;</span>)</code></pre></div><h3 id="s6-4"><span class="h-num">6.4</span>案例 4：工具调用的人工审批</h3><p>危险命令需要人工确认。继承 <code>DenyAllInteraction</code>，只实现审批与澄清。</p><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">from</span> hermes_agent_runtime <span class="tk">import</span> bootstrap, RuntimeSpec, ToolPolicy, RunRequest, DenyAllInteraction
+
+
+<span class="tk">class</span> <span class="tf">ConsoleApproval</span>(DenyAllInteraction):
+    <span class="tk">def</span> <span class="tf">approve</span>(self, request):
+        print(<span class="ts">&quot;\n⚠️  Agent 请求执行以下操作：&quot;</span>)
+        <span class="tk">for</span> key, value <span class="tk">in</span> request.items():
+            print(<span class="ts">f&quot;    {key}: {value}&quot;</span>)
+        <span class="tk">return</span> input(<span class="ts">&quot;允许执行？[y/N] &quot;</span>).strip().lower() == <span class="ts">&quot;y&quot;</span>
+
+    <span class="tk">def</span> <span class="tf">clarify</span>(self, question, choices):
+        print(<span class="ts">f&quot;\n❓ {question}&quot;</span>)
+        <span class="tk">for</span> i, choice <span class="tk">in</span> enumerate(choices <span class="tk">or</span> [], <span class="tn">1</span>):
+            print(<span class="ts">f&quot;    {i}. {choice}&quot;</span>)
+        answer = input(<span class="ts">&quot;请选择或直接输入：&quot;</span>).strip()
+        <span class="tk">return</span> choices[int(answer) - <span class="tn">1</span>] <span class="tk">if</span> answer.isdigit() <span class="tk">and</span> choices <span class="tk">else</span> answer
+
+
+runtime = bootstrap(mode=<span class="ts">&quot;hosted&quot;</span>)
+session = runtime.open_session(
+    RuntimeSpec(tools=ToolPolicy(enabled_toolsets=[<span class="ts">&quot;terminal&quot;</span>, <span class="ts">&quot;file&quot;</span>])),
+    interaction=ConsoleApproval(),
+)
+<span class="tk">try</span>:
+    session.run_turn(RunRequest(message=<span class="ts">&quot;清理当前目录下超过 30 天的 *.log 文件&quot;</span>))
+<span class="tk">finally</span>:
+    session.close()</code></pre></div><div class="callout note"><div class="callout-title">说明</div><div><strong>哪些操作会触发审批</strong>由上游审批策略决定（<code>hermes_cli</code> 的审批模式配置），<code>InteractionPort</code> 只负责呈现并返回决定。Web 服务中请把审批请求推给前端，并设置超时，超时按拒绝处理，避免对话线程无限等待。</div></div><h3 id="s6-5"><span class="h-num">6.5</span>案例 5：Standalone 嵌入业务服务</h3><p>订单客服后端：不依赖本机 Hermes 安装，配置来自业务配置文件，模型走内部网关，工具只开放文件与待办。</p><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">from</span> hermes_agent_runtime <span class="tk">import</span> (
+    bootstrap, RuntimeSpec, ModelRoute, ToolPolicy, PromptOptions, SessionBinding, RunRequest,
+)
+<span class="tk">from</span> hermes_agent_runtime.adapters.standalone <span class="tk">import</span> YamlConfig, EnvCredentials
+
+runtime = bootstrap(
+    mode=<span class="ts">&quot;standalone&quot;</span>,
+    hermes_home=<span class="ts">&quot;/var/lib/order-bot/agent&quot;</span>,                 <span class="tc"># 每个实例独立的状态目录</span>
+    ports={
+        <span class="ts">&quot;config&quot;</span>: YamlConfig(<span class="ts">&quot;/etc/order-bot/agent-config.yaml&quot;</span>),   <span class="tc"># 结构与上游 config.yaml 相同</span>
+        <span class="ts">&quot;credential&quot;</span>: EnvCredentials(api_key_env=<span class="ts">&quot;ORDER_BOT_LLM_KEY&quot;</span>),
+    },
+)
+
+caps = runtime.capabilities()
+<span class="tk">assert</span> <span class="tk">not</span> caps[<span class="ts">&quot;toolset.cronjob&quot;</span>]                          <span class="tc"># 未提供 SchedulerPort，定时任务不可用</span>
+
+SPEC = RuntimeSpec(
+    route=ModelRoute(
+        provider=<span class="ts">&quot;custom&quot;</span>,
+        base_url=<span class="ts">&quot;https://llm-gateway.internal.example.com/v1&quot;</span>,
+        api_mode=<span class="ts">&quot;chat_completions&quot;</span>,
+        model=<span class="ts">&quot;qwen3-72b-instruct&quot;</span>,
+    ),
+    tools=ToolPolicy(enabled_toolsets=[<span class="ts">&quot;file&quot;</span>, <span class="ts">&quot;todo&quot;</span>], max_iterations=<span class="tn">15</span>, run_budget_seconds=<span class="tn">120</span>),
+    prompt=PromptOptions(
+        ephemeral_system_prompt=<span class="ts">&quot;你是订单客服助手。只回答与订单、物流、退款相关的问题。&quot;</span>,
+        skip_context_files=<span class="tk">True</span>,
+        skip_memory=<span class="tk">True</span>,
+        skip_background_review=<span class="tk">True</span>,
+    ),
+)
+
+
+<span class="tk">def</span> <span class="tf">answer</span>(customer_id: str, conversation_id: str, text: str, history=<span class="tk">None</span>) -&gt; str:
+    spec = RuntimeSpec(
+        route=SPEC.route, tools=SPEC.tools, prompt=SPEC.prompt,
+        session=SessionBinding(session_id=conversation_id, user={<span class="ts">&quot;user_id&quot;</span>: customer_id}),
+    )
+    session = runtime.open_session(spec)
+    <span class="tk">try</span>:
+        result = session.run_turn(RunRequest(message=text, history=history))   <span class="tc"># 历史从业务库恢复</span>
+        <span class="tk">return</span> result.final_response <span class="tk">if</span> result.completed <span class="tk">else</span> <span class="ts">&quot;抱歉，暂时无法处理，请稍后再试。&quot;</span>
+    <span class="tk">finally</span>:
+        session.close()</code></pre></div><div class="callout warn"><div class="callout-title">多租户部署</div><div>Standalone 模式下，同一进程内的多会话无法隔离环境变量级别的配置（见 4.5）。按租户分进程部署，或保证一个进程同一时刻只有一个活跃会话。</div></div><h3 id="s6-6"><span class="h-num">6.6</span>案例 6：自定义 L1 装饰器——审计日志</h3><p>记录每一轮的输入摘要、结果状态与耗时，写入 JSON Lines 审计文件。也可以配合 <code>hermes-rt</code> 给上游网关加审计。</p><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">import</span> json
+<span class="tk">import</span> threading
+<span class="tk">import</span> time
+<span class="tk">from</span> functools <span class="tk">import</span> partial
+
+<span class="tk">from</span> hermes_agent_runtime <span class="tk">import</span> bootstrap
+<span class="tk">from</span> hermes_agent_runtime.decorators <span class="tk">import</span> SessionDecorator, DEFAULT_DECORATORS
+
+
+<span class="tk">class</span> <span class="tf">AuditDecorator</span>(SessionDecorator):
+    <span class="ts">&quot;&quot;&quot;只覆写 run_turn 与 interrupt，其余方法自动委托给内层会话。&quot;&quot;&quot;</span>
+
+    <span class="tk">def</span> <span class="tf">__init__</span>(self, inner, *, path):
+        super().__init__(inner)
+        self._path = path
+        self._lock = threading.Lock()
+
+    <span class="tk">def</span> <span class="tf">_write</span>(self, record):
+        <span class="tk">with</span> self._lock, open(self._path, <span class="ts">&quot;a&quot;</span>, encoding=<span class="ts">&quot;utf-8&quot;</span>) <span class="tk">as</span> f:
+            f.write(json.dumps(record, ensure_ascii=<span class="tk">False</span>) + <span class="ts">&quot;\n&quot;</span>)
+
+    <span class="tk">def</span> <span class="tf">run_turn</span>(self, request):
+        started = time.monotonic()
+        result = self._inner.run_turn(request)
+        self._write({
+            <span class="ts">&quot;event&quot;</span>: <span class="ts">&quot;turn&quot;</span>,
+            <span class="ts">&quot;session_id&quot;</span>: self._inner.session_id,
+            <span class="ts">&quot;input&quot;</span>: str(request.message)[:<span class="tn">200</span>],
+            <span class="ts">&quot;completed&quot;</span>: result.completed,
+            <span class="ts">&quot;failed&quot;</span>: result.failed,
+            <span class="ts">&quot;failure_reason&quot;</span>: result.failure_reason,
+            <span class="ts">&quot;api_calls&quot;</span>: result.api_calls,
+            <span class="ts">&quot;elapsed_ms&quot;</span>: int((time.monotonic() - started) * <span class="tn">1000</span>),
+        })
+        <span class="tk">return</span> result
+
+    <span class="tk">def</span> <span class="tf">interrupt</span>(self, message=<span class="tk">None</span>, **kw):
+        self._write({<span class="ts">&quot;event&quot;</span>: <span class="ts">&quot;interrupt&quot;</span>, <span class="ts">&quot;session_id&quot;</span>: self._inner.session_id, <span class="ts">&quot;message&quot;</span>: message})
+        <span class="tk">return</span> self._inner.interrupt(message, **kw)
+
+
+runtime = bootstrap(
+    mode=<span class="ts">&quot;hosted&quot;</span>,
+    <span class="tc"># 默认链之后追加：审计装饰器位于最内层，记录的是真实执行结果</span>
+    decorators=[*DEFAULT_DECORATORS, partial(AuditDecorator, path=<span class="ts">&quot;/var/log/agent/audit.jsonl&quot;</span>)],
+)</code></pre></div><h3 id="s6-7"><span class="h-num">6.7</span>案例 7：自定义 L2 中间件——模型路由与工具耗时</h3><p><strong>第一步：编写中间件</strong></p><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tc"># my_agent_policy/plugin.py</span>
+<span class="tk">import</span> logging
+<span class="tk">import</span> time
+
+<span class="tk">from</span> hermes_agent_runtime.decorators <span class="tk">import</span> guarded_request_middleware
+
+log = logging.getLogger(<span class="ts">&quot;my_agent_policy&quot;</span>)
+
+
+<span class="td">@guarded_request_middleware</span>
+<span class="tk">def</span> <span class="tf">route_batch_sessions</span>(**kw):
+    <span class="ts">&quot;&quot;&quot;批处理会话固定走低成本模型。同一会话内始终一致，不破坏提示缓存。&quot;&quot;&quot;</span>
+    request = kw[<span class="ts">&quot;request&quot;</span>]
+    <span class="tk">if</span> str(kw.get(<span class="ts">&quot;session_id&quot;</span>, <span class="ts">&quot;&quot;</span>)).startswith(<span class="ts">&quot;batch-&quot;</span>):
+        <span class="tk">return</span> {<span class="ts">&quot;request&quot;</span>: {**request, <span class="ts">&quot;model&quot;</span>: <span class="ts">&quot;cheap-fast-model&quot;</span>},
+                <span class="ts">&quot;source&quot;</span>: <span class="ts">&quot;my_agent_policy&quot;</span>, <span class="ts">&quot;reason&quot;</span>: <span class="ts">&quot;batch session&quot;</span>}
+    <span class="tk">return</span> {<span class="ts">&quot;request&quot;</span>: request}
+
+
+<span class="tk">def</span> <span class="tf">time_tools</span>(**kw):
+    <span class="ts">&quot;&quot;&quot;包住真实的工具执行，记录耗时；必须调用 next_call 才会继续执行。&quot;&quot;&quot;</span>
+    started = time.perf_counter()
+    <span class="tk">try</span>:
+        <span class="tk">return</span> kw[<span class="ts">&quot;next_call&quot;</span>](kw[<span class="ts">&quot;args&quot;</span>])
+    <span class="tk">finally</span>:
+        log.info(<span class="ts">&quot;tool=%s elapsed_ms=%.1f&quot;</span>, kw.get(<span class="ts">&quot;tool_name&quot;</span>), (time.perf_counter() - started) * <span class="tn">1000</span>)
+
+
+<span class="tk">def</span> <span class="tf">register</span>(ctx):
+    ctx.register_middleware(<span class="ts">&quot;llm_request&quot;</span>, route_batch_sessions)
+    ctx.register_middleware(<span class="ts">&quot;tool_execution&quot;</span>, time_tools)</code></pre></div><p><strong>第二步 A：Hosted 模式以插件形式发布</strong></p><div class="code"><div class="code-bar"><span>TOML</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tc"># my_agent_policy/pyproject.toml</span>
+<span class="th">[project]</span>
+<span class="tk">name</span> = <span class="ts">&quot;my-agent-policy&quot;</span>
+<span class="tk">version</span> = <span class="ts">&quot;0.1.0&quot;</span>
+
+<span class="th">[project.entry-points.&quot;hermes_agent.plugins&quot;]</span>
+<span class="tk">my-agent-policy</span> = <span class="ts">&quot;my_agent_policy.plugin&quot;</span></code></pre></div><div class="code"><div class="code-bar"><span>Shell</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">uv</span> pip install -e ./my_agent_policy
+<span class="tk">hermes</span> plugins enable my-agent-policy</code></pre></div><p><strong>第二步 B：Standalone 模式直接注册</strong></p><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">from</span> hermes_agent_runtime <span class="tk">import</span> bootstrap
+<span class="tk">from</span> my_agent_policy.plugin <span class="tk">import</span> route_batch_sessions, time_tools
+
+runtime = bootstrap(
+    mode=<span class="ts">&quot;standalone&quot;</span>,
+    hermes_home=<span class="ts">&quot;/var/lib/my-app/agent&quot;</span>,
+    middleware=[(<span class="ts">&quot;llm_request&quot;</span>, route_batch_sessions), (<span class="ts">&quot;tool_execution&quot;</span>, time_tools)],
+)</code></pre></div><h3 id="s6-8"><span class="h-num">6.8</span>案例 8：长会话宿主的上下文维护</h3><p>适用于常驻会话的网关类宿主：定期压缩上下文、空闲时释放资源、处理「开启新话题」。</p><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">from</span> hermes_agent_runtime <span class="tk">import</span> bootstrap, RuntimeSpec, SessionBinding, RunRequest
+
+runtime = bootstrap(mode=<span class="ts">&quot;hosted&quot;</span>, allow_maintenance=<span class="tk">True</span>)
+sessions = {}   <span class="tc"># chat_id -&gt; (session, maintenance)</span>
+
+
+<span class="tk">def</span> <span class="tf">get_session</span>(chat_id):
+    <span class="tk">if</span> chat_id <span class="tk">not</span> <span class="tk">in</span> sessions:
+        session = runtime.open_session(RuntimeSpec(session=SessionBinding(session_id=<span class="ts">f&quot;chat-{chat_id}&quot;</span>)))
+        sessions[chat_id] = (session, runtime.maintenance(session))
+    <span class="tk">return</span> sessions[chat_id]
+
+
+<span class="tk">def</span> <span class="tf">on_message</span>(chat_id, text):
+    session, maint = get_session(chat_id)
+    result = session.run_turn(RunRequest(message=text))
+    <span class="tk">if</span> result.compression_deferred:
+        log.info(<span class="ts">&quot;压缩被暂缓，下一轮会自动重试&quot;</span>)
+    <span class="tk">elif</span> result.usage <span class="tk">and</span> result.usage.input_tokens &gt; <span class="tn">150_000</span>:
+        maint.compress_context()                 <span class="tc"># 主动压缩：上游允许的唯一缓存失效操作</span>
+    <span class="tk">return</span> result.final_response
+
+
+<span class="tk">def</span> <span class="tf">on_idle</span>(chat_id):
+    session, maint = sessions[chat_id]
+    maint.flush_to_store()                       <span class="tc"># 确保消息已落库</span>
+    session.release_clients()                    <span class="tc"># 释放模型客户端，保留会话状态</span>
+
+
+<span class="tk">def</span> <span class="tf">on_new_topic</span>(chat_id):
+    session, _ = sessions.pop(chat_id)
+    session.commit_memory()                      <span class="tc"># 刷写记忆</span>
+    session.close()                              <span class="tc"># 新话题开新会话，而不是在旧会话里改配置</span></code></pre></div><h3 id="s6-9"><span class="h-num">6.9</span>案例 9：用本地假模型做端到端测试</h3><p>不访问真实模型：用一个兼容 OpenAI 协议的本地桩服务，验证运行时与上游的真实调用链。所有模块都真实导入，状态写入临时 <code>HERMES_HOME</code>。</p><div class="code"><div class="code-bar"><span>Python</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tc"># tests/test_runtime_e2e.py</span>
+<span class="tk">import</span> json
+<span class="tk">import</span> threading
+<span class="tk">from</span> http.server <span class="tk">import</span> BaseHTTPRequestHandler, HTTPServer
+
+<span class="tk">import</span> pytest
+<span class="tk">from</span> hermes_agent_runtime <span class="tk">import</span> (
+    bootstrap, RuntimeSpec, ModelRoute, ToolPolicy, PromptOptions, RunRequest,
+)
+
+
+<span class="tk">class</span> <span class="tf">FakeOpenAI</span>(BaseHTTPRequestHandler):
+    <span class="ts">&quot;&quot;&quot;固定回复 &quot;pong&quot;；同时支持普通响应与 SSE 流式响应。&quot;&quot;&quot;</span>
+
+    <span class="tk">def</span> <span class="tf">do_POST</span>(self):
+        body = json.loads(self.rfile.read(int(self.headers[<span class="ts">&quot;Content-Length&quot;</span>])))
+        <span class="tk">if</span> body.get(<span class="ts">&quot;stream&quot;</span>):
+            self.send_response(<span class="tn">200</span>)
+            self.send_header(<span class="ts">&quot;Content-Type&quot;</span>, <span class="ts">&quot;text/event-stream&quot;</span>)
+            self.end_headers()
+            <span class="tk">for</span> delta <span class="tk">in</span> ({<span class="ts">&quot;role&quot;</span>: <span class="ts">&quot;assistant&quot;</span>, <span class="ts">&quot;content&quot;</span>: <span class="ts">&quot;po&quot;</span>}, {<span class="ts">&quot;content&quot;</span>: <span class="ts">&quot;ng&quot;</span>}):
+                chunk = {<span class="ts">&quot;id&quot;</span>: <span class="ts">&quot;c1&quot;</span>, <span class="ts">&quot;object&quot;</span>: <span class="ts">&quot;chat.completion.chunk&quot;</span>, <span class="ts">&quot;model&quot;</span>: body[<span class="ts">&quot;model&quot;</span>],
+                         <span class="ts">&quot;choices&quot;</span>: [{<span class="ts">&quot;index&quot;</span>: <span class="tn">0</span>, <span class="ts">&quot;delta&quot;</span>: delta, <span class="ts">&quot;finish_reason&quot;</span>: <span class="tk">None</span>}]}
+                self.wfile.write(<span class="ts">f&quot;data: {json.dumps(chunk)}\n\n&quot;</span>.encode())
+            done = {<span class="ts">&quot;id&quot;</span>: <span class="ts">&quot;c1&quot;</span>, <span class="ts">&quot;object&quot;</span>: <span class="ts">&quot;chat.completion.chunk&quot;</span>, <span class="ts">&quot;model&quot;</span>: body[<span class="ts">&quot;model&quot;</span>],
+                    <span class="ts">&quot;choices&quot;</span>: [{<span class="ts">&quot;index&quot;</span>: <span class="tn">0</span>, <span class="ts">&quot;delta&quot;</span>: {}, <span class="ts">&quot;finish_reason&quot;</span>: <span class="ts">&quot;stop&quot;</span>}],
+                    <span class="ts">&quot;usage&quot;</span>: {<span class="ts">&quot;prompt_tokens&quot;</span>: <span class="tn">12</span>, <span class="ts">&quot;completion_tokens&quot;</span>: <span class="tn">2</span>, <span class="ts">&quot;total_tokens&quot;</span>: <span class="tn">14</span>}}
+            self.wfile.write(<span class="ts">f&quot;data: {json.dumps(done)}\n\ndata: [DONE]\n\n&quot;</span>.encode())
+            <span class="tk">return</span>
+        reply = {<span class="ts">&quot;id&quot;</span>: <span class="ts">&quot;c1&quot;</span>, <span class="ts">&quot;object&quot;</span>: <span class="ts">&quot;chat.completion&quot;</span>, <span class="ts">&quot;created&quot;</span>: <span class="tn">0</span>, <span class="ts">&quot;model&quot;</span>: body[<span class="ts">&quot;model&quot;</span>],
+                 <span class="ts">&quot;choices&quot;</span>: [{<span class="ts">&quot;index&quot;</span>: <span class="tn">0</span>, <span class="ts">&quot;finish_reason&quot;</span>: <span class="ts">&quot;stop&quot;</span>,
+                              <span class="ts">&quot;message&quot;</span>: {<span class="ts">&quot;role&quot;</span>: <span class="ts">&quot;assistant&quot;</span>, <span class="ts">&quot;content&quot;</span>: <span class="ts">&quot;pong&quot;</span>}}],
+                 <span class="ts">&quot;usage&quot;</span>: {<span class="ts">&quot;prompt_tokens&quot;</span>: <span class="tn">12</span>, <span class="ts">&quot;completion_tokens&quot;</span>: <span class="tn">2</span>, <span class="ts">&quot;total_tokens&quot;</span>: <span class="tn">14</span>}}
+        data = json.dumps(reply).encode()
+        self.send_response(<span class="tn">200</span>)
+        self.send_header(<span class="ts">&quot;Content-Type&quot;</span>, <span class="ts">&quot;application/json&quot;</span>)
+        self.send_header(<span class="ts">&quot;Content-Length&quot;</span>, str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    <span class="tk">def</span> <span class="tf">log_message</span>(self, *args):
+        <span class="tk">pass</span>
+
+
+<span class="td">@pytest.fixture</span>(scope=<span class="ts">&quot;session&quot;</span>)
+<span class="tk">def</span> <span class="tf">fake_llm</span>():
+    server = HTTPServer((<span class="ts">&quot;127.0.0.1&quot;</span>, <span class="tn">0</span>), FakeOpenAI)
+    threading.Thread(target=server.serve_forever, daemon=<span class="tk">True</span>).start()
+    <span class="tk">yield</span> <span class="ts">f&quot;http://127.0.0.1:{server.server_port}/v1&quot;</span>
+    server.shutdown()
+
+
+<span class="td">@pytest.fixture</span>(scope=<span class="ts">&quot;session&quot;</span>)
+<span class="tk">def</span> <span class="tf">runtime</span>(tmp_path_factory):
+    <span class="tc"># 进程内只初始化一次；打开不变量校验</span>
+    <span class="tk">return</span> bootstrap(mode=<span class="ts">&quot;standalone&quot;</span>, hermes_home=tmp_path_factory.mktemp(<span class="ts">&quot;hermes_home&quot;</span>),
+                     invariant_checks=<span class="tk">True</span>)
+
+
+<span class="tk">def</span> <span class="tf">test_single_turn_roundtrip</span>(runtime, fake_llm):
+    spec = RuntimeSpec(
+        route=ModelRoute(provider=<span class="ts">&quot;custom&quot;</span>, base_url=fake_llm, api_key=<span class="ts">&quot;test&quot;</span>,
+                         api_mode=<span class="ts">&quot;chat_completions&quot;</span>, model=<span class="ts">&quot;fake-model&quot;</span>),
+        tools=ToolPolicy(enabled_toolsets=[]),
+        prompt=PromptOptions(skip_context_files=<span class="tk">True</span>, skip_memory=<span class="tk">True</span>, skip_background_review=<span class="tk">True</span>),
+    )
+    session = runtime.open_session(spec)
+    <span class="tk">try</span>:
+        result = session.run_turn(RunRequest(message=<span class="ts">&quot;ping&quot;</span>))
+    <span class="tk">finally</span>:
+        session.close()
+
+    <span class="tk">assert</span> result.completed <span class="tk">and</span> <span class="tk">not</span> result.failed
+    <span class="tk">assert</span> result.final_response == <span class="ts">&quot;pong&quot;</span>
+    roles = [m[<span class="ts">&quot;role&quot;</span>] <span class="tk">for</span> m <span class="tk">in</span> result.messages <span class="tk">if</span> m[<span class="ts">&quot;role&quot;</span>] != <span class="ts">&quot;system&quot;</span>]
+    <span class="tk">assert</span> all(a != b <span class="tk">for</span> a, b <span class="tk">in</span> zip(roles, roles[<span class="tn">1</span>:])), <span class="ts">&quot;角色必须严格交替&quot;</span></code></pre></div></section><section id="s7" class="chapter"><h2><span class="h-num">7</span>错误处理与排障</h2><div class="tscroll"><table><thead><tr><th>现象</th><th>可能原因</th><th>解决办法</th></tr></thead><tbody><tr><td>启动时抛 <code>BootstrapOrderError</code></td><td>某个模块在 <code>bootstrap</code> 之前导入了 <code>run_agent</code>、<code>agent</code> 或 <code>tools</code></td><td>把 <code>bootstrap</code> 放到入口文件最前面；无法控制导入顺序时使用 <code>hermes-rt</code></td></tr><tr><td>同步上游后启动抛 <code>BindingDrift</code></td><td>上游改名或移动了被转发的符号</td><td>运行契约守卫定位变化，更新绑定清单；临时可用 <code>strict_bindings=False</code> 降级</td></tr><tr><td><code>open_session</code> 抛 <code>CapabilityUnavailable: toolset.cronjob</code></td><td>Standalone 未提供 <code>SchedulerPort</code>，却启用了 <code>cronjob</code> 工具集</td><td>从 <code>enabled_toolsets</code> 移除，或通过 <code>ports={&quot;scheduler&quot;: ...}</code> 提供实现</td></tr><tr><td><code>open_session</code> 抛 <code>CredentialError</code></td><td>未配置对应 provider 的密钥</td><td>Hosted 检查 <code>~/.hermes/.env</code>；Standalone 检查 <code>EnvCredentials</code> 的环境变量</td></tr><tr><td>收不到流式事件</td><td>未传 <code>events</code>，或 <code>emit</code> 内部抛异常（异常会被记录并吞掉）</td><td>检查日志中的 EventSink 告警，确认 <code>emit</code> 不抛异常</td></tr><tr><td>自定义中间件不生效（Hosted）</td><td>插件未启用</td><td>执行 <code>hermes plugins enable &lt;插件名&gt;</code>，并确认安装在同一虚拟环境</td></tr><tr><td>同一会话的调用费用突然升高</td><td>会话中途改变了系统提示、工具集或记忆，提示缓存失效</td><td>用 <code>invariant_checks=True</code> 复现；需要变更配置时开新会话</td></tr><tr><td>审批弹到了别的会话</td><td>宿主自行调用了上游进程级回调注册函数</td><td>删除这些调用，统一通过 <code>InteractionPort</code> 处理</td></tr><tr><td><code>run_turn</code> 长时间不返回</td><td><code>InteractionPort</code> 在等待人工输入且没有超时；或模型长时间无响应</td><td>为交互设置超时；用 <code>session.activity()</code> 判断卡在哪一步；必要时 <code>interrupt(hard=True)</code></td></tr><tr><td><code>run_turn</code> 抛 <code>SessionBusy</code></td><td>同一会话并发调用，且并发策略为 reject</td><td>宿主侧排队，或改回默认的排队策略</td></tr><tr><td>结果 <code>failed=True</code> 且 <code>retryable=False</code></td><td>额度不足、内容策略拦截等确定性失败</td><td>展示 <code>error</code> 给用户，不要自动重试</td></tr></tbody></table></div></section><section id="s8" class="chapter"><h2><span class="h-num">8</span>版本兼容与升级</h2><h3 id="s8-1"><span class="h-num">8.1</span>接口稳定性等级</h3><div class="tscroll"><table><thead><tr><th>等级</th><th>接口</th><th>承诺</th></tr></thead><tbody><tr><td><strong>稳定</strong></td><td><code>bootstrap</code>、<code>AgentRuntimePort</code>、<code>AgentSessionPort</code>、<code>EventSinkPort</code>（含标准化字段）、<code>InteractionPort</code>、<code>RuntimeSpec</code> 值对象、<code>RunRequest</code>、<code>TurnResult</code>（<code>raw</code> 除外）、异常类型</td><td>次版本内只增不删；删除前至少保留一个次版本并给出弃用警告</td></tr><tr><td><strong>受控</strong></td><td>南向 Port、<code>SessionDecorator</code>、中间件契约</td><td>跟随上游演进；变化在发行说明中列出迁移方法</td></tr><tr><td><strong>实验</strong></td><td><code>SessionMaintenancePort</code>、<code>DecoratedAIAgent</code> / <code>hermes-rt</code></td><td>可能随上游内部实现调整</td></tr><tr><td><strong>不保证</strong></td><td><code>RuntimeSpec.passthrough</code>、<code>TurnResult.raw</code>、<code>RuntimeEvent.payload</code> 中的非标准化字段</td><td>原样反映上游，随上游变化</td></tr></tbody></table></div><h3 id="s8-2"><span class="h-num">8.2</span>跟随上游升级</h3><div class="code"><div class="code-bar"><span>Shell</span><button type="button" class="copy" aria-label="复制代码">复制</button></div><pre><code><span class="tk">git</span> checkout main &amp;&amp; git pull                 <span class="tc"># main 是上游纯镜像，永远快进</span>
+<span class="tk">git</span> checkout local/agent-runtime
+<span class="tk">git</span> rebase main                               <span class="tc"># 自有文件只在 agent_runtime/ 与 contract/，不会冲突</span>
+<span class="tk">python</span> -m agent_runtime.guard --all           <span class="tc"># 契约守卫：构造参数、绑定符号、顶层导入、中间件版本、闭包漂移</span>
+<span class="tk">python</span> agent_runtime/build/extract.py --check <span class="tc"># 闭包文件变化检查</span></code></pre></div><p>守卫失败时，修复只发生在 <code>agent_runtime/</code> 内：更新绑定清单、<code>SpecMapper</code> 或适配器，<strong>不修改上游文件</strong>。</p><h3 id="s8-3"><span class="h-num">8.3</span>版本号约定</h3><ul><li>运行时版本格式：<code>&lt;运行时主.次.修&gt;+hermes.&lt;上游版本&gt;</code>，例如 <code>0.3.1+hermes.0.21.2</code>。</li><li>上游升级只引起「受控」或「不保证」级别的变化时，提升修订号；稳定级接口新增能力时，提升次版本号。</li></ul></section><section id="appendix-A接" class="chapter"><h2>附录 A 接口速查</h2><div class="tscroll"><table><thead><tr><th>名称</th><th>类型</th><th>位置</th><th>章节</th></tr></thead><tbody><tr><td><code>bootstrap</code></td><td>函数</td><td><code>hermes_agent_runtime</code></td><td>5.1</td></tr><tr><td><code>AgentRuntimePort</code></td><td>北向 Port</td><td><code>hermes_agent_runtime.ports</code></td><td>5.2</td></tr><tr><td><code>AgentSessionPort</code></td><td>北向 Port</td><td><code>hermes_agent_runtime.ports</code></td><td>5.3</td></tr><tr><td><code>SessionMaintenancePort</code></td><td>北向 Port</td><td><code>hermes_agent_runtime.ports</code></td><td>5.4</td></tr><tr><td><code>EventSinkPort</code> / <code>RuntimeEvent</code> / <code>EventType</code></td><td>北向 Port / 数据类</td><td><code>hermes_agent_runtime</code></td><td>5.5</td></tr><tr><td><code>InteractionPort</code> / <code>DenyAllInteraction</code></td><td>北向 Port / 默认实现</td><td><code>hermes_agent_runtime</code></td><td>5.6</td></tr><tr><td><code>RuntimeSpec</code> / <code>ModelRoute</code> / <code>ToolPolicy</code> / <code>SessionBinding</code> / <code>PromptOptions</code></td><td>值对象</td><td><code>hermes_agent_runtime</code></td><td>5.7</td></tr><tr><td><code>RunRequest</code> / <code>TurnResult</code> / <code>Usage</code></td><td>数据类</td><td><code>hermes_agent_runtime</code></td><td>5.8</td></tr><tr><td><code>ConfigPort</code> 等 9 个南向 Port</td><td>南向 Port</td><td><code>hermes_agent_runtime.ports</code></td><td>5.9</td></tr><tr><td><code>DictConfig</code> / <code>YamlConfig</code> / <code>EnvCredentials</code></td><td>Standalone 默认实现</td><td><code>hermes_agent_runtime.adapters.standalone</code></td><td>5.9</td></tr><tr><td><code>SessionDecorator</code> / <code>DEFAULT_DECORATORS</code> / 各 L1 装饰器</td><td>装饰器</td><td><code>hermes_agent_runtime.decorators</code></td><td>5.10</td></tr><tr><td><code>guarded_request_middleware</code></td><td>中间件装饰器</td><td><code>hermes_agent_runtime.decorators</code></td><td>5.10</td></tr><tr><td><code>AgentRuntimeError</code> 及子类</td><td>异常</td><td><code>hermes_agent_runtime.errors</code></td><td>5.11</td></tr><tr><td><code>hermes-rt</code></td><td>命令行 launcher</td><td>安装后提供</td><td>2.4</td></tr></tbody></table></div></section>
+      <footer class="doc-foot">由 contract/agent-runtime-integration-guide.md 生成（Markdown 为源文件）。接口为设计稿，基于上游 fc71fb63e5 的实测结构编写。</footer>
+    </main>
+  </div>
+</div>
+<button class="menu-btn" type="button" aria-label="打开章节菜单">☰ 目录</button>
+<script>
+// 章节高亮 + 自动展开当前章
+const links = [...document.querySelectorAll('.toc a[data-target]')];
+const byId = new Map(links.map(a => [a.dataset.target, a]));
+const heads = [...document.querySelectorAll('.chapter, .content h3[id]')];
+let current = null;
+function activate(id){
+  if (current === id) return; current = id;
+  links.forEach(a => a.classList.remove('active'));
+  document.querySelectorAll('.toc li.chap').forEach(li => li.classList.remove('open'));
+  const a = byId.get(id); if (!a) return;
+  a.classList.add('active');
+  const chap = a.closest('li.chap'); if (chap) chap.classList.add('open');
+  const side = document.querySelector('.sidebar');
+  const r = a.getBoundingClientRect(), sr = side.getBoundingClientRect();
+  if (r.top < sr.top + 80 || r.bottom > sr.bottom - 40) a.scrollIntoView({block:'center'});
+}
+function onScroll(){
+  let best = heads[0];
+  for (const h of heads){ if (h.getBoundingClientRect().top <= 90) best = h; else break; }
+  if (best) activate(best.id);
+}
+document.addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+// 搜索过滤菜单
+const input = document.querySelector('.side-search input');
+const toc = document.querySelector('.toc');
+input.addEventListener('input', () => {
+  const q = input.value.trim().toLowerCase();
+  toc.classList.toggle('searching', !!q);
+  document.querySelectorAll('.toc li').forEach(li => li.classList.remove('hidden'));
+  if (!q) return;
+  document.querySelectorAll('.toc li.chap').forEach(chap => {
+    const subs = [...chap.querySelectorAll('ul li')];
+    let any = chap.firstElementChild.textContent.toLowerCase().includes(q);
+    subs.forEach(li => { const hit = li.textContent.toLowerCase().includes(q); li.classList.toggle('hidden', !hit && !any); any = any || hit; });
+    chap.classList.toggle('hidden', !any);
+  });
+});
+
+// 移动端菜单
+const btn = document.querySelector('.menu-btn');
+btn.addEventListener('click', () => document.body.classList.toggle('menu-open'));
+links.forEach(a => a.addEventListener('click', () => document.body.classList.remove('menu-open')));
+
+// 复制代码
+document.querySelectorAll('.copy').forEach(b => b.addEventListener('click', async () => {
+  const code = b.closest('.code').querySelector('code').innerText;
+  try { await navigator.clipboard.writeText(code); b.textContent = '已复制'; }
+  catch { b.textContent = '复制失败'; }
+  setTimeout(() => b.textContent = '复制', 1400);
+}));
+</script>
+<script type="module">
+  try {
+    const { default: mermaid } = await import("https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs");
+    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+    mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "neutral", securityLevel: "strict",
+      fontFamily: '"IBM Plex Sans","Noto Sans SC","PingFang SC",sans-serif' });
+    await mermaid.run({ querySelector: "pre.mermaid" });
+  } catch (e) { console.warn("mermaid unavailable, showing source", e); }
+</script>
+</body>
+</html>
