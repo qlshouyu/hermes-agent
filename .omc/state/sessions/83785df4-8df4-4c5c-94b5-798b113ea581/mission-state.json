@@ -1,0 +1,309 @@
+{
+  "updatedAt": "2026-09-12T09:29:38.811Z",
+  "missions": [
+    {
+      "id": "session:83785df4-8df4-4c5c-94b5-798b113ea581:none",
+      "source": "session",
+      "name": "none",
+      "objective": "Session mission",
+      "createdAt": "2026-09-12T08:18:44.025Z",
+      "updatedAt": "2026-09-12T09:29:38.811Z",
+      "status": "done",
+      "workerCount": 13,
+      "taskCounts": {
+        "total": 13,
+        "pending": 0,
+        "blocked": 0,
+        "inProgress": 0,
+        "completed": 13,
+        "failed": 0
+      },
+      "agents": [
+        {
+          "name": "rest-sessions:arest-s",
+          "role": "rest-sessions",
+          "ownership": "arest-sessions-715cfeda3affa8b5",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T09:29:38.811Z"
+        },
+        {
+          "name": "rest-config:arest-c",
+          "role": "rest-config",
+          "ownership": "arest-config-ad5ebf2aa43a64de",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T08:24:11.896Z"
+        },
+        {
+          "name": "rest-cron-ops:arest-c",
+          "role": "rest-cron-ops",
+          "ownership": "arest-cron-ops-d7cf014ed4b206e3",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T08:24:00.237Z"
+        },
+        {
+          "name": "rest-tools:arest-t",
+          "role": "rest-tools",
+          "ownership": "arest-tools-3a17ac3e16b226c0",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T08:24:45.009Z"
+        },
+        {
+          "name": "rest-profiles:arest-p",
+          "role": "rest-profiles",
+          "ownership": "arest-profiles-0877604e3a3ab141",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T08:24:49.185Z"
+        },
+        {
+          "name": "rest-audio-msg:arest-a",
+          "role": "rest-audio-msg",
+          "ownership": "arest-audio-msg-9954aabcb6f4b592",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T08:25:58.286Z"
+        },
+        {
+          "name": "rest-files-git:arest-f",
+          "role": "rest-files-git",
+          "ownership": "arest-files-git-1e829ecdb0eff056",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T08:26:03.110Z"
+        },
+        {
+          "name": "rest-auth-ws:arest-a",
+          "role": "rest-auth-ws",
+          "ownership": "arest-auth-ws-6d1e0d8d6f6fba5f",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T08:27:04.590Z"
+        },
+        {
+          "name": "ws-session:aws-ses",
+          "role": "ws-session",
+          "ownership": "aws-session-bb43b9e15f652e71",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T08:29:19.553Z"
+        },
+        {
+          "name": "ws-config:aws-con",
+          "role": "ws-config",
+          "ownership": "aws-config-3e02824e93f7eb37",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T08:32:49.355Z"
+        },
+        {
+          "name": "ws-interactive:aws-int",
+          "role": "ws-interactive",
+          "ownership": "aws-interactive-ff78fa88bc26bf19",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T08:30:18.193Z"
+        },
+        {
+          "name": "fork:a4d2943",
+          "role": "fork",
+          "ownership": "a4d29432a74808f2f",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T08:31:25.541Z"
+        },
+        {
+          "name": "ws-events:aws-eve",
+          "role": "ws-events",
+          "ownership": "aws-events-a1c1fc49a661de0d",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-09-12T08:33:00.565Z"
+        }
+      ],
+      "timeline": [
+        {
+          "id": "session-start:aws-interactive-ff78fa88bc26bf19:2026-09-12T08:20:41.756Z",
+          "at": "2026-09-12T08:20:41.756Z",
+          "kind": "update",
+          "agent": "ws-interactive:aws-int",
+          "detail": "started ws-interactive:aws-int",
+          "sourceKey": "session-start:aws-interactive-ff78fa88bc26bf19"
+        },
+        {
+          "id": "session-start:a4d29432a74808f2f:2026-09-12T08:21:55.084Z",
+          "at": "2026-09-12T08:21:55.084Z",
+          "kind": "update",
+          "agent": "fork:a4d2943",
+          "detail": "started fork:a4d2943",
+          "sourceKey": "session-start:a4d29432a74808f2f"
+        },
+        {
+          "id": "session-start:aws-events-a1c1fc49a661de0d:2026-09-12T08:23:23.888Z",
+          "at": "2026-09-12T08:23:23.888Z",
+          "kind": "update",
+          "agent": "ws-events:aws-eve",
+          "detail": "started ws-events:aws-eve",
+          "sourceKey": "session-start:aws-events-a1c1fc49a661de0d"
+        },
+        {
+          "id": "session-stop:arest-cron-ops-d7cf014ed4b206e3:2026-09-12T08:24:00.237Z",
+          "at": "2026-09-12T08:24:00.237Z",
+          "kind": "completion",
+          "agent": "rest-cron-ops:arest-c",
+          "detail": "completed",
+          "sourceKey": "session-stop:arest-cron-ops-d7cf014ed4b206e3"
+        },
+        {
+          "id": "session-stop:arest-config-ad5ebf2aa43a64de:2026-09-12T08:24:11.896Z",
+          "at": "2026-09-12T08:24:11.896Z",
+          "kind": "completion",
+          "agent": "rest-config:arest-c",
+          "detail": "completed",
+          "sourceKey": "session-stop:arest-config-ad5ebf2aa43a64de"
+        },
+        {
+          "id": "session-stop:arest-sessions-715cfeda3affa8b5:2026-09-12T08:24:28.821Z",
+          "at": "2026-09-12T08:24:28.821Z",
+          "kind": "completion",
+          "agent": "rest-sessions:arest-s",
+          "detail": "completed",
+          "sourceKey": "session-stop:arest-sessions-715cfeda3affa8b5"
+        },
+        {
+          "id": "session-stop:arest-tools-3a17ac3e16b226c0:2026-09-12T08:24:45.009Z",
+          "at": "2026-09-12T08:24:45.009Z",
+          "kind": "completion",
+          "agent": "rest-tools:arest-t",
+          "detail": "completed",
+          "sourceKey": "session-stop:arest-tools-3a17ac3e16b226c0"
+        },
+        {
+          "id": "session-stop:arest-profiles-0877604e3a3ab141:2026-09-12T08:24:49.185Z",
+          "at": "2026-09-12T08:24:49.185Z",
+          "kind": "completion",
+          "agent": "rest-profiles:arest-p",
+          "detail": "completed",
+          "sourceKey": "session-stop:arest-profiles-0877604e3a3ab141"
+        },
+        {
+          "id": "session-stop:arest-audio-msg-9954aabcb6f4b592:2026-09-12T08:25:58.286Z",
+          "at": "2026-09-12T08:25:58.286Z",
+          "kind": "completion",
+          "agent": "rest-audio-msg:arest-a",
+          "detail": "completed",
+          "sourceKey": "session-stop:arest-audio-msg-9954aabcb6f4b592"
+        },
+        {
+          "id": "session-stop:arest-files-git-1e829ecdb0eff056:2026-09-12T08:26:03.110Z",
+          "at": "2026-09-12T08:26:03.110Z",
+          "kind": "completion",
+          "agent": "rest-files-git:arest-f",
+          "detail": "completed",
+          "sourceKey": "session-stop:arest-files-git-1e829ecdb0eff056"
+        },
+        {
+          "id": "session-stop:arest-auth-ws-6d1e0d8d6f6fba5f:2026-09-12T08:27:04.590Z",
+          "at": "2026-09-12T08:27:04.590Z",
+          "kind": "completion",
+          "agent": "rest-auth-ws:arest-a",
+          "detail": "completed",
+          "sourceKey": "session-stop:arest-auth-ws-6d1e0d8d6f6fba5f"
+        },
+        {
+          "id": "session-stop:aws-session-bb43b9e15f652e71:2026-09-12T08:29:19.553Z",
+          "at": "2026-09-12T08:29:19.553Z",
+          "kind": "completion",
+          "agent": "ws-session:aws-ses",
+          "detail": "completed",
+          "sourceKey": "session-stop:aws-session-bb43b9e15f652e71"
+        },
+        {
+          "id": "session-stop:aws-interactive-ff78fa88bc26bf19:2026-09-12T08:30:18.193Z",
+          "at": "2026-09-12T08:30:18.193Z",
+          "kind": "completion",
+          "agent": "ws-interactive:aws-int",
+          "detail": "completed",
+          "sourceKey": "session-stop:aws-interactive-ff78fa88bc26bf19"
+        },
+        {
+          "id": "session-stop:a4d29432a74808f2f:2026-09-12T08:31:25.541Z",
+          "at": "2026-09-12T08:31:25.541Z",
+          "kind": "completion",
+          "agent": "fork:a4d2943",
+          "detail": "completed",
+          "sourceKey": "session-stop:a4d29432a74808f2f"
+        },
+        {
+          "id": "session-stop:aws-config-3e02824e93f7eb37:2026-09-12T08:32:49.355Z",
+          "at": "2026-09-12T08:32:49.355Z",
+          "kind": "completion",
+          "agent": "ws-config:aws-con",
+          "detail": "completed",
+          "sourceKey": "session-stop:aws-config-3e02824e93f7eb37"
+        },
+        {
+          "id": "session-stop:aws-events-a1c1fc49a661de0d:2026-09-12T08:33:00.565Z",
+          "at": "2026-09-12T08:33:00.565Z",
+          "kind": "completion",
+          "agent": "ws-events:aws-eve",
+          "detail": "completed",
+          "sourceKey": "session-stop:aws-events-a1c1fc49a661de0d"
+        },
+        {
+          "id": "session-stop:af9d012e4826c0c12:2026-09-12T08:50:47.453Z",
+          "at": "2026-09-12T08:50:47.453Z",
+          "kind": "completion",
+          "agent": "rest-sessions:arest-s",
+          "detail": "completed",
+          "sourceKey": "session-stop:af9d012e4826c0c12"
+        },
+        {
+          "id": "session-stop:adbefc52dac0681d8:2026-09-12T09:15:43.476Z",
+          "at": "2026-09-12T09:15:43.476Z",
+          "kind": "completion",
+          "agent": "rest-sessions:arest-s",
+          "detail": "completed",
+          "sourceKey": "session-stop:adbefc52dac0681d8"
+        },
+        {
+          "id": "session-stop:a0db6b14b6f94ed03:2026-09-12T09:29:38.811Z",
+          "at": "2026-09-12T09:29:38.811Z",
+          "kind": "completion",
+          "agent": "rest-sessions:arest-s",
+          "detail": "completed",
+          "sourceKey": "session-stop:a0db6b14b6f94ed03"
+        }
+      ]
+    }
+  ]
+}
