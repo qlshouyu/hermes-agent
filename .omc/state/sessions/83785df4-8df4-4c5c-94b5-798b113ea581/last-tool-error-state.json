@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd /Users/egojit/workspace/hermes-agent\\nfor p in \\\"subagent.interrupt\\\" \\\"paste.collapse\\\" \\\"input.detect_drop\\\" \\\"spawn_tree.list\\\" \\\"spawn_tree.load\\\" \\\"spawn_tree.save\\\" \\\"session.even...",
+  "error": "Exit code 1\n=== subagent.interrupt ===\napps/desktop/src/app/chat/composer/status-stack/subagent-controls.test.tsx:45:    expect(request).toHaveBeenCalledWith('remote-owner', 'research', 'subagent.interrupt', {\n=== paste.collapse ===\n=== input.detect_drop ===\n=== spawn_tree.list ===\n=== spawn_tree.load ===\n=== spawn_tree.save ===\n=== session.events.since ===\n=== session.events.stats ===",
+  "timestamp": "2026-09-12T08:23:14.997Z",
+  "retry_count": 5
+}
