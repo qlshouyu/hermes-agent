@@ -1,0 +1,810 @@
+<title>hermes serve 客户端集成方案</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  --ink:#151b23; --ink-2:#46525f; --ink-3:#6d7987;
+  --paper:#f5f7f9; --surface:#ffffff; --sunk:#eef1f5;
+  --rule:#dce2ea; --rule-soft:#e9edf2;
+  --host:#2f6fd0; --core:#26765a; --tool:#a86d12; --edge:#b3302a; --proto:#63499d;
+  --core-wash:#e7f2ec; --tool-wash:#f8efdd; --edge-wash:#fbe9e7;
+  --host-wash:#e8f0fb; --proto-wash:#efeaf8;
+  --sans:"IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --cond:"IBM Plex Sans Condensed","Noto Sans SC","PingFang SC",system-ui,sans-serif;
+  --mono:"IBM Plex Mono","SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#e4eaf1; --ink-2:#a3b1c0; --ink-3:#7a8795;
+    --paper:#10151b; --surface:#171e26; --sunk:#1c242d;
+    --rule:#2a343f; --rule-soft:#212a33;
+    --host:#76a8f2; --core:#4fbb8b; --tool:#dba045; --edge:#f07065; --proto:#a98ee0;
+    --core-wash:#142b22; --tool-wash:#2e2415; --edge-wash:#34191a;
+    --host-wash:#152436; --proto-wash:#231d33;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf1; --ink-2:#a3b1c0; --ink-3:#7a8795;
+  --paper:#10151b; --surface:#171e26; --sunk:#1c242d;
+  --rule:#2a343f; --rule-soft:#212a33;
+  --host:#76a8f2; --core:#4fbb8b; --tool:#dba045; --edge:#f07065; --proto:#a98ee0;
+  --core-wash:#142b22; --tool-wash:#2e2415; --edge-wash:#34191a;
+  --host-wash:#152436; --proto-wash:#231d33;
+}
+
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans);
+  font-size:16px; line-height:1.75; -webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px; margin:0 auto; padding-inline:24px; padding-block:0 88px}
+h1,h2,h3,h4{font-family:var(--cond); font-weight:600; text-wrap:balance; line-height:1.25; margin:0}
+p{margin:0 0 16px}
+code,.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+code{font-size:.87em; background:var(--sunk); padding:.1em .38em; border-radius:3px; color:var(--ink-2)}
+a{color:var(--host)}
+:focus-visible{outline:2px solid var(--host); outline-offset:2px}
+
+header{border-bottom:1px solid var(--rule); background:var(--surface)}
+.head-inner{max-width:1080px; margin:0 auto; padding-inline:24px; padding-block:44px 30px}
+.eyebrow{font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--host); margin:0 0 14px}
+h1{font-size:clamp(30px,5.2vw,46px); letter-spacing:-.015em}
+.thesis{max-width:66ch; margin:16px 0 0; font-size:17.5px; color:var(--ink-2)}
+.meta{display:flex; flex-wrap:wrap; gap:6px 22px; margin-top:26px;
+  font-family:var(--mono); font-size:12.5px; color:var(--ink-3)}
+.meta b{color:var(--ink-2); font-weight:600}
+
+section{margin-top:62px}
+.sec-head{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:8px}
+.sec-head h2{font-size:25px; letter-spacing:-.01em}
+.sec-tag{font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); border:1px solid var(--rule); border-radius:99px; padding:2px 9px}
+.lede{margin:0 0 26px; color:var(--ink-2); max-width:70ch}
+h3.sub{font-size:18px; margin:34px 0 12px}
+
+/* 引证块 */
+.quote{margin-top:22px; background:var(--surface); border:1px solid var(--rule);
+  border-left:4px solid var(--host); border-radius:4px; padding:22px 26px}
+.quote q{display:block; font-size:16.5px; color:var(--ink); quotes:"“" "”";
+  font-style:normal; line-height:1.68}
+.quote q::before,.quote q::after{color:var(--ink-3)}
+.quote .attr{margin-top:12px; font-family:var(--mono); font-size:12px; color:var(--ink-3)}
+.quote + .quote{margin-top:12px}
+
+/* 表格 */
+.tscroll{overflow-x:auto}
+table{border-collapse:collapse; width:100%; font-size:14.5px; min-width:560px}
+th,td{text-align:left; padding:10px 16px 10px 0; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+thead th{font-family:var(--mono); font-weight:600; font-size:11.5px; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule)}
+tbody tr:last-child td{border-bottom:none}
+td.n{font-family:var(--mono); white-space:nowrap; color:var(--ink)}
+td.m,th.m{font-family:var(--mono); font-size:13px}
+td.note{color:var(--ink-3); font-size:13.5px}
+caption{text-align:left; font-family:var(--mono); font-size:11.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink-3); padding-bottom:9px}
+
+.tag{font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:.05em;
+  padding:2px 7px; border-radius:3px; white-space:nowrap; display:inline-block}
+.tag.mvp{background:var(--core-wash); color:var(--core)}
+.tag.later{background:var(--sunk); color:var(--ink-3)}
+.tag.watch{background:var(--tool-wash); color:var(--tool)}
+.tag.risk{background:var(--edge-wash); color:var(--edge)}
+
+/* 边界三栏 */
+.bound{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:20px; margin-top:8px}
+.bcol{border-top:3px solid var(--rule); padding-top:16px}
+.bcol.you{border-top-color:var(--core)}
+.bcol.wire{border-top-color:var(--proto)}
+.bcol.them{border-top-color:var(--host)}
+.bcol h4{font-size:16.5px; margin-bottom:4px}
+.bcol .who{font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink-3); display:block; margin-bottom:10px}
+.bcol ul{margin:0; padding-left:18px; color:var(--ink-2); font-size:14.5px; line-height:1.7}
+.bcol li{margin-bottom:5px}
+
+/* 定义列表 */
+dl.rows{display:grid; gap:0; border-top:1px solid var(--rule); margin:0}
+dl.rows > div{display:grid; grid-template-columns:210px 1fr; gap:5px 26px;
+  padding:15px 0; border-bottom:1px solid var(--rule-soft)}
+dl.rows dt{font-family:var(--cond); font-weight:600; font-size:16px; color:var(--ink)}
+dl.rows dd{margin:0; color:var(--ink-2); font-size:15px}
+dl.rows .where{display:block; margin-top:6px; font-family:var(--mono); font-size:12px; color:var(--ink-3)}
+
+/* 事件目录 */
+.events{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:22px 30px; margin-top:6px}
+.egroup h4{font-size:14px; font-family:var(--mono); font-weight:600; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--ink-3); margin-bottom:9px}
+.egroup ul{margin:0; padding:0; list-style:none; display:grid; gap:5px}
+.egroup li{font-family:var(--mono); font-size:13px; color:var(--ink-2)}
+.egroup li b{color:var(--ink); font-weight:600}
+.egroup li span{font-family:var(--sans); font-size:12.5px; color:var(--ink-3); display:block}
+
+pre{margin:10px 0 0; background:var(--sunk); border-radius:4px; padding:14px 17px;
+  overflow-x:auto; font-family:var(--mono); font-size:12.5px; line-height:1.65; color:var(--ink-2)}
+pre code{background:none; padding:0; font-size:inherit}
+pre .c{color:var(--ink-3)}
+pre .k{color:var(--host)}
+
+.kicker{margin-top:22px; background:var(--sunk); border-radius:4px; padding:16px 20px;
+  font-size:15px; color:var(--ink-2)}
+.kicker b{font-family:var(--cond); font-size:15.5px; color:var(--ink); display:block; margin-bottom:4px}
+.kicker.warn{background:var(--tool-wash)}
+.kicker.warn b{color:var(--tool)}
+
+/* 阶段 */
+.phases{display:grid; gap:0; border-top:1px solid var(--rule); margin-top:8px}
+.phase{display:grid; grid-template-columns:96px 1fr; gap:20px; padding:20px 0;
+  border-bottom:1px solid var(--rule-soft)}
+.pn{font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--host); padding-top:4px}
+.phase h4{font-size:17.5px; margin-bottom:6px}
+.phase p{color:var(--ink-2); font-size:15px; margin:0 0 10px}
+.phase p:last-child{margin-bottom:0}
+.gate{font-family:var(--mono); font-size:12.5px; color:var(--core);
+  background:var(--core-wash); border-radius:3px; padding:7px 12px; display:inline-block}
+
+footer{margin-top:70px; padding-top:22px; border-top:1px solid var(--rule);
+  font-family:var(--mono); font-size:12px; color:var(--ink-3); line-height:1.8}
+
+@media (max-width:640px){
+  dl.rows > div,.phase{grid-template-columns:1fr; gap:4px}
+  .head-inner{padding-block:34px 24px}
+}
+</style>
+
+<header>
+  <div class="head-inner">
+    <p class="eyebrow">Hermes-Agent · 已采纳方案 1（配合 3B 守卫层）</p>
+    <h1>把 hermes serve 当后端用</h1>
+    <p class="thesis">
+      不改一行上游 Python，把 <code>hermes serve</code> 作为黑盒进程启动，
+      自建桌面端与 Web 端只经 HTTP + WebSocket 调用它——完整的契约清单、最小可用切片、漂移防护与分阶段计划。
+      全程保持对上游文件<b>零修改</b>，<code>git pull</code> 永远是快进。
+    </p>
+    <div class="meta">
+      <span><b>基线</b> fc71fb63e5 · v0.21.2</span>
+      <span><b>上游</b> NousResearch/hermes-agent</span>
+      <span><b>默认端口</b> 9119</span>
+      <span><b>日期</b> 2026-09-12</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section style="margin-top:44px">
+    <div class="sec-head">
+      <h2>零、先确认一件事：这是上游的预期用法</h2>
+      <span class="sec-tag">不是变通</span>
+    </div>
+    <p class="lede">
+      在设计任何东西之前，先把这个前提钉死——否则整个方案建立在「钻空子」的心理负担上。
+      上游为 <code>serve</code> 单独建了一个子命令解析器，它的官方描述是这样写的：
+    </p>
+
+    <div class="quote">
+      <q>Run the Hermes backend server — the JSON-RPC/WebSocket gateway the desktop app and <b>remote clients</b> connect to. Headless: it never opens a browser UI.</q>
+      <p class="attr">hermes_cli/subcommands/dashboard.py:68 · build_serve_parser() 的 description</p>
+    </div>
+    <div class="quote">
+      <q><code>serve</code> also skips the web UI build (<code>headless_backend=True</code>): <b>pure JSON-RPC/WS clients never load the SPA</b>.</q>
+      <p class="attr">hermes_cli/subcommands/dashboard.py:5 · 模块 docstring</p>
+    </div>
+    <div class="quote">
+      <q><code>serve</code>: same gateway as <code>dashboard</code>, never opens a browser. Exists so the desktop app / remote backends launch a backend <b>WITHOUT</b> invoking <code>dashboard</code> — independent surfaces that merely share this server.</q>
+      <p class="attr">hermes_cli/subcommands/dashboard.py:92 · 子命令注册处的注释</p>
+    </div>
+
+    <div class="kicker">
+      <b>结论</b>
+      「纯 JSON-RPC/WS 客户端」不是我们发明的用法，是上游写在代码注释里的目标用户。
+      官方桌面端 <code>apps/desktop</code> 自己就是这么接的——它和你要做的客户端，在后端眼里没有区别。
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>一、边界划分</h2>
+      <span class="sec-tag">谁拥有什么</span>
+    </div>
+    <p class="lede">
+      方案 1 的全部价值来自这条线画得干净：中间那一栏是你和上游之间唯一的接触面，
+      左右两栏各自独立演化。
+    </p>
+
+    <div class="bound">
+      <div class="bcol you">
+        <span class="who">你的代码 · 新仓库</span>
+        <h4>客户端</h4>
+        <ul>
+          <li>桌面端外壳（Electron / Tauri 自选）</li>
+          <li>Web 端 SPA</li>
+          <li>共用的 API 客户端与状态层</li>
+          <li>全部 UI 与交互设计</li>
+          <li>契约基线快照 + 漂移测试</li>
+        </ul>
+      </div>
+      <div class="bcol wire">
+        <span class="who">契约 · 唯一接触面</span>
+        <h4>HTTP + WebSocket</h4>
+        <ul>
+          <li>241 个 <code>/api/*</code> REST 端点</li>
+          <li><code>/api/ws</code> — JSON-RPC，279 方法</li>
+          <li>23 个服务端事件名</li>
+          <li><code>/api/pty</code> · <code>/api/pub</code> · <code>/api/events</code></li>
+          <li>会话令牌（头 或 query）</li>
+        </ul>
+      </div>
+      <div class="bcol them">
+        <span class="who">上游代码 · 只读</span>
+        <h4>hermes serve</h4>
+        <ul>
+          <li>23,493 行 B 线实现</li>
+          <li>Agent 内核、工具、插件、网关</li>
+          <li><code>~/.hermes/</code> 全部状态</li>
+          <li>模型供应商与本地推理</li>
+          <li>你 <code>git pull</code>，不 <code>git commit</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="kicker">
+      <b>这条线为什么守得住</b>
+      因为你对上游仓库的改动量是 <b>0</b>。Git 冲突的前提是两边都改了同一处——只要你一处不改，
+      <code>git pull</code> 就永远是快进合并。这不是纪律问题，是数学问题。
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>二、启动与生命周期</h2>
+      <span class="sec-tag">hermes serve 的全部开关</span>
+    </div>
+
+    <div class="tscroll">
+      <table>
+        <caption>serve 子命令参数（hermes_cli/subcommands/dashboard.py）</caption>
+        <thead><tr><th class="m">参数</th><th>默认</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td class="m"><code>--port</code></td><td class="n">9119</td><td>传 <code>0</code> 由内核分配；官方桌面端就用 <code>--port 0</code> 再从输出读取</td></tr>
+          <tr><td class="m"><code>--host</code></td><td class="n">127.0.0.1</td><td>非回环绑定会强制要求认证提供方，见下一节</td></tr>
+          <tr><td class="m"><code>--isolated</code></td><td class="n">off</td><td>从命名 profile 启动时，跑一个只服务该 profile 的独立服务器；默认是统一模式（连到机器级单实例并预选 profile）</td></tr>
+          <tr><td class="m"><code>--stop</code></td><td class="n">—</td><td>扫描进程表 SIGTERM 掉所有 <code>hermes dashboard|serve</code> 后退出</td></tr>
+          <tr><td class="m"><code>--status</code></td><td class="n">—</td><td>列出在跑的服务器进程后退出</td></tr>
+          <tr><td class="m"><code>--skip-build</code></td><td class="n">off</td><td>对 <code>serve</code> 无意义（headless 本就不构建 SPA），保留给兼容调用方</td></tr>
+          <tr><td class="m"><code>--ssh-session-token-file</code></td><td class="n">—</td><td>从文件读一次性令牌。<b>仅 serve 可用</b>，且会启用空闲退出</td></tr>
+          <tr><td class="m"><code>--insecure</code></td><td class="n">no-op</td><td>2026 年 6 月加固后已废弃，不再关闭认证。别指望它</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub">启动、就绪判定、关停</h3>
+    <pre><code><span class="c"># 起一个可被外部客户端连接的后端（token 由你固定，便于开发）</span>
+HERMES_DASHBOARD_SESSION_TOKEN=<span class="k">$MY_TOKEN</span> hermes serve --host 127.0.0.1 --port 9119
+
+<span class="c"># 就绪探针：/api/health 在公开白名单里，不需要 token</span>
+curl -sf http://127.0.0.1:9119/api/health
+
+<span class="c"># 带凭据读状态（版本、网关状态、会话数、认证形态）</span>
+curl -s http://127.0.0.1:9119/api/status \
+  -H "X-Hermes-Session-Token: <span class="k">$MY_TOKEN</span>"
+
+<span class="c"># 关停</span>
+hermes serve --stop</code></pre>
+
+    <dl class="rows" style="margin-top:30px">
+      <div>
+        <dt>令牌来源</dt>
+        <dd>
+          <code>HERMES_DASHBOARD_SESSION_TOKEN</code> 存在则直接采用；否则每次启动生成随机 32 字节 urlsafe 串，随进程消亡。
+          开发期固定它，生产期让它随机并由启动方捕获。
+          <span class="where">web_server.py:308 · _resolve_session_token()</span>
+        </dd>
+      </div>
+      <div>
+        <dt>无头判定</dt>
+        <dd>
+          <code>serve</code> 在导入 web_server <b>之前</b> 设 <code>HERMES_SERVE_HEADLESS=1</code>，<code>mount_spa()</code> 因此不挂载。
+          非 <code>/api/*</code> 的路径不会被上游 SPA 占用，你的前端可以自由使用根路径。
+          <span class="where">main_dashboard.py:713 · _resolve_dashboard_web_dist()</span>
+        </dd>
+      </div>
+      <div>
+        <dt>空闲退出</dt>
+        <dd>
+          <b>只在传了 <code>--ssh-session-token-file</code> 时启用。</b>
+          机制是统计已接受的 WebSocket 连接数，连续 <code>900s</code> 为零且无进行中的 Agent 轮次才优雅退出（轮次探测不确定时按「不退出」处理）。
+          普通本地启动<b>不会</b>自动退出——你的客户端不必为此发心跳。
+          <span class="where">web_server_idle_exit.py:1 · DEFAULT_IDLE_GRACE_S = 900.0</span>
+        </dd>
+      </div>
+      <div>
+        <dt>配置容错策略</dt>
+        <dd>
+          <code>serve</code> 是非交互的，遇到损坏的 <code>config.yaml</code> 会<b>直接退出码 2</b>，而不是静默用默认值启动
+          （避免供应商自动探测误用无名 <code>.env</code> 凭据）。你的启动器要能区分「配置错误」和「端口占用」。
+          <span class="where">main.py:2405 · _dashboard_validate_serve_args()</span>
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>三、鉴权矩阵</h2>
+      <span class="sec-tag">三种通道三种凭据</span>
+    </div>
+    <p class="lede">
+      这是最容易踩坑的地方：REST 和 WebSocket 用的<b>不是同一种凭据位置</b>。
+      HTTP 中间件对 WebSocket 路由根本不运行，所以 WS 自己重做了一遍检查。
+    </p>
+
+    <div class="tscroll">
+      <table>
+        <thead><tr><th>通道</th><th>凭据位置</th><th class="m">形式</th><th>来源</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>REST <code>/api/*</code></td><td>请求头</td>
+            <td class="m">X-Hermes-Session-Token: &lt;token&gt;</td>
+            <td class="note">web_server.py:312 · 首选</td>
+          </tr>
+          <tr>
+            <td>REST（兼容路径）</td><td>请求头</td>
+            <td class="m">Authorization: Bearer &lt;token&gt;</td>
+            <td class="note">web_server.py:403 · 为反代保留</td>
+          </tr>
+          <tr>
+            <td>WS <code>/api/ws</code> 等</td><td>查询参数</td>
+            <td class="m">?token=&lt;token&gt;</td>
+            <td class="note">web_server_chat.py:220 · 回环模式</td>
+          </tr>
+          <tr>
+            <td><code>/api/files/download</code></td><td>查询参数</td>
+            <td class="m">?token=&lt;token&gt;</td>
+            <td class="note">唯一允许 query token 的 REST 端点</td>
+          </tr>
+          <tr>
+            <td>OAuth 网关模式</td><td>查询参数</td>
+            <td class="m">?ticket=&lt;30s 一次性&gt;</td>
+            <td class="note">此模式下 <b>legacy token 被拒绝</b></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub">免鉴权的 8 条公开路径</h3>
+    <p style="color:var(--ink-2); max-width:70ch">
+      这份白名单被两套网关共用，刻意保持最小。对你有用的是前两条——它们让启动器可以在拿到令牌之前就探活。
+    </p>
+    <div class="tscroll">
+      <table>
+        <caption>hermes_cli/dashboard_auth/public_paths.py</caption>
+        <thead><tr><th class="m">路径</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td class="m">/api/health</td><td>最小存活探针，刻意避开网关配置、平台发现、MCP 初始化与插件冷导入</td></tr>
+          <tr><td class="m">/api/status</td><td>版本、网关状态、会话数、认证形态。无密钥</td></tr>
+          <tr><td class="m">/api/config/defaults</td><td>配置默认值，只读</td></tr>
+          <tr><td class="m">/api/config/schema</td><td>配置 schema，只读</td></tr>
+          <tr><td class="m">/api/model/info</td><td>模型元数据，等同公开供应商目录</td></tr>
+          <tr><td class="m">/api/dashboard/themes</td><td>主题清单</td></tr>
+          <tr><td class="m">/api/dashboard/plugins</td><td>插件清单</td></tr>
+          <tr><td class="m">/api/cron/fire</td><td>NAS 托管 cron 回调，自带 JWT，不走本白名单做安全边界</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="kicker warn" style="margin-top:26px">
+      <b>远程访问：三个方案都一样，别指望选型能解决</b>
+      CORS 正则是 <code>^https?://(localhost|127\.0\.0\.1)(:\d+)?$</code>——只放行本机来源。
+      而 <code>--insecure</code> 已成 no-op，公网绑定<b>强制</b>要求认证提供方（密码或 OAuth）。
+      上游官方桌面端自己的做法是 <code>ssh -N -L</code> 隧道（见架构图第 2 页 B 线）；
+      你若要跨机访问，照抄这个做法，或者在前面放一层自己的反向代理——
+      <code>buildHermesWebSocketUrl</code> 已内置 <code>basePath</code> 支持子路径反代。
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>四、REST 契约面</h2>
+      <span class="sec-tag">241 端点 · 按域分组</span>
+    </div>
+    <p class="lede">
+      官方桌面端消费 218 个、Web 端 130 个。但那是功能全集——一个以对话为核心的客户端，
+      真正需要的远少于此。下表标出了最小可用切片（<span class="tag mvp">MVP</span>）与可以后置的部分。
+    </p>
+
+    <div class="tscroll">
+      <table>
+        <thead><tr><th>域</th><th class="n">端点</th><th>作用</th><th>优先级</th></tr></thead>
+        <tbody>
+          <tr><td class="m">/api/sessions</td><td class="n">15</td><td>会话列表、详情、消息、搜索、导出、批量删除</td><td><span class="tag mvp">MVP</span></td></tr>
+          <tr><td class="m">/api/config</td><td class="n">6</td><td>读写配置、默认值、schema</td><td><span class="tag mvp">MVP</span></td></tr>
+          <tr><td class="m">/api/model</td><td class="n">7</td><td>模型信息、可选项、设置、推荐默认、辅助模型、MoA</td><td><span class="tag mvp">MVP</span></td></tr>
+          <tr><td class="m">/api/status · health</td><td class="n">2</td><td>存活与状态，公开</td><td><span class="tag mvp">MVP</span></td></tr>
+          <tr><td class="m">/api/profiles</td><td class="n">20</td><td>多 profile 管理、激活、侧栏、项目树</td><td><span class="tag mvp">MVP</span></td></tr>
+          <tr><td class="m">/api/fs</td><td class="n">7</td><td>目录列举、读写文本、data-url 读取、git 根、默认 cwd</td><td><span class="tag mvp">MVP</span></td></tr>
+          <tr><td class="m">/api/files</td><td class="n">10</td><td>上传下载、流式传输、建目录</td><td><span class="tag watch">按需</span></td></tr>
+          <tr><td class="m">/api/tools</td><td class="n">12</td><td>工具启用状态与配置</td><td><span class="tag watch">按需</span></td></tr>
+          <tr><td class="m">/api/git</td><td class="n">21</td><td>仓库状态、diff、提交、分支</td><td><span class="tag later">后置</span></td></tr>
+          <tr><td class="m">/api/ops</td><td class="n">15</td><td>运维动作、钩子、更新流程</td><td><span class="tag later">后置</span></td></tr>
+          <tr><td class="m">/api/local-models</td><td class="n">16</td><td>本地推理模型下载与 GPU 管理</td><td><span class="tag later">后置</span></td></tr>
+          <tr><td class="m">/api/skills</td><td class="n">13</td><td>技能管理</td><td><span class="tag later">后置</span></td></tr>
+          <tr><td class="m">/api/cron</td><td class="n">13</td><td>定时任务 CRUD、蓝图、手动触发</td><td><span class="tag later">后置</span></td></tr>
+          <tr><td class="m">/api/providers</td><td class="n">12</td><td>模型供应商与密钥</td><td><span class="tag watch">按需</span></td></tr>
+          <tr><td class="m">/api/mcp</td><td class="n">12</td><td>MCP 服务器管理与 OAuth</td><td><span class="tag later">后置</span></td></tr>
+          <tr><td class="m">/api/messaging</td><td class="n">11</td><td>22 个平台的消息网关配置</td><td><span class="tag later">后置</span></td></tr>
+          <tr><td class="m">/api/dashboard</td><td class="n">10</td><td>主题与插件清单（部分公开）</td><td><span class="tag later">后置</span></td></tr>
+          <tr><td class="m">/api/audio</td><td class="n">8</td><td>转写、TTS、实时语音会话</td><td><span class="tag later">后置</span></td></tr>
+          <tr><td class="m">/api/gateway</td><td class="n">4</td><td>网关启停、重启、排空</td><td><span class="tag watch">按需</span></td></tr>
+          <tr><td class="m">其余 18 个域</td><td class="n">~27</td><td>memory · learning · curator · vault · pairing · analytics · webhooks …</td><td><span class="tag later">后置</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink-3); margin-top:12px; max-width:70ch">
+      MVP 合计约 <b>57 个端点</b>，占全集的 24%。依赖面越小，上游漂移能伤到你的地方越少——
+      这是方案 1 里最有效的一条风险控制手段，而且不花钱。
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>五、WebSocket 契约：对话主干</h2>
+      <span class="sec-tag">/api/ws · 唯一的非 REST 部分</span>
+    </div>
+    <p class="lede">
+      这是整个集成里最需要认真对待的一段。它不是 REST，也不是自定义协议——
+      它是<b>和 Ink 终端前端走 stdio 时一模一样的那套 JSON-RPC</b>，只是换了传输层。
+    </p>
+
+    <div class="quote">
+      <q>WebSocket transport for the tui_gateway JSON-RPC server: reuses <code>dispatch</code> <b>verbatim</b> so every RPC, slash command, approval flow and agent event takes the same handlers as Ink over stdio. Wire protocol is identical to stdio (newline-delimited JSON-RPC both ways; <code>gateway.ready</code> right after accept).</q>
+      <p class="attr">tui_gateway/ws.py:1 · 模块 docstring</p>
+    </div>
+
+    <dl class="rows" style="margin-top:30px">
+      <div>
+        <dt>帧格式</dt>
+        <dd>换行分隔的 JSON-RPC，双向对称。与 <code>hermes --tui</code> 走 stdio 时的字节流一致，这意味着协议有两个独立实现方在持续验证它。</dd>
+      </div>
+      <div>
+        <dt>握手</dt>
+        <dd>服务端 accept 之后<b>立即</b>推送 <code>gateway.ready</code>。客户端应当以收到它作为「连接可用」的判据，而不是 WebSocket 的 open 事件。</dd>
+      </div>
+      <div>
+        <dt>心跳</dt>
+        <dd>
+          客户端每 <code>15s</code> ping 一次；服务端单帧发送截止 <code>30s</code>；客户端心跳死线 <code>45s</code>。
+          超过 30s 排不出约 48 KiB 的对端会被主动关闭以触发重连，而不是让后续所有帧堵在写锁后面。
+          <span class="where">tui_gateway/ws.py:67 · _WS_SEND_DEADLINE_S</span>
+        </dd>
+      </div>
+      <div>
+        <dt>流式合并</dt>
+        <dd>
+          <code>message.delta</code> / <code>reasoning.delta</code> / <code>thinking.delta</code> 三类逐字事件被缓冲，
+          按 <code>33ms</code>（约 30fps）批量刷出，避免每个 token 都唤醒事件循环去和 Agent 轮次抢 GIL。
+          其他事件（工具、审批、状态、完成）不合并，且会<b>先把缓冲区刷掉再发自己</b>——顺序有保证。
+          <span class="where">tui_gateway/ws.py:75 · _STREAMING_EVENT_TYPES</span>
+        </dd>
+      </div>
+      <div>
+        <dt>长任务</dt>
+        <dd>
+          属于 <code>_LONG_HANDLERS</code> 的方法被派到线程池，<code>dispatch</code> 立即返回 <code>None</code>，
+          由 worker 自己通过绑定的 transport 回写响应。客户端必须按 <code>id</code> 异步配对，不能假设请求-响应同步。
+          <span class="where">tui_gateway/server.py:780 · dispatch()</span>
+        </dd>
+      </div>
+      <div>
+        <dt>规模</dt>
+        <dd>22 个 <code>methods_*.py</code> 模块，573 个 handler 函数，279 个方法名。你不需要全部实现——见下面的核心子集。</dd>
+      </div>
+    </dl>
+
+    <h3 class="sub">服务端事件目录 · 23 个</h3>
+    <p style="color:var(--ink-2); max-width:70ch">
+      这是你的渲染层必须认识的全部事件类型。上游已经把它定义成了一个 TypeScript 联合类型，可以直接拿走。
+    </p>
+
+    <div class="events">
+      <div class="egroup">
+        <h4>连接与会话</h4>
+        <ul>
+          <li><b>gateway.ready</b><span>accept 后立即到达，连接可用信号</span></li>
+          <li><b>session.info</b><span>会话元数据变更</span></li>
+          <li><b>session.usage</b><span>token 与计费用量</span></li>
+        </ul>
+      </div>
+      <div class="egroup">
+        <h4>消息流</h4>
+        <ul>
+          <li><b>message.start</b><span>一条回复开始</span></li>
+          <li><b>message.delta</b><span>逐字增量 · 被合并</span></li>
+          <li><b>message.interim</b><span>中间态</span></li>
+          <li><b>message.complete</b><span>回复结束</span></li>
+        </ul>
+      </div>
+      <div class="egroup">
+        <h4>推理过程</h4>
+        <ul>
+          <li><b>thinking.delta</b><span>思考增量 · 被合并</span></li>
+          <li><b>reasoning.delta</b><span>推理增量 · 被合并</span></li>
+          <li><b>reasoning.available</b><span>推理内容可读</span></li>
+        </ul>
+      </div>
+      <div class="egroup">
+        <h4>工具执行</h4>
+        <ul>
+          <li><b>tool.start</b><span>工具调用开始</span></li>
+          <li><b>tool.progress</b><span>执行进度</span></li>
+          <li><b>tool.complete</b><span>调用结束</span></li>
+          <li><b>tool.generating</b><span>参数生成中</span></li>
+        </ul>
+      </div>
+      <div class="egroup">
+        <h4>需要用户介入</h4>
+        <ul>
+          <li><b>approval.request</b><span>工具执行审批</span></li>
+          <li><b>clarify.request</b><span>澄清提问</span></li>
+          <li><b>sudo.request</b><span>提权请求</span></li>
+          <li><b>secret.request</b><span>密钥索取</span></li>
+        </ul>
+      </div>
+      <div class="egroup">
+        <h4>其他</h4>
+        <ul>
+          <li><b>status.update</b><span>状态行更新</span></li>
+          <li><b>todo.updated</b><span>任务清单变更</span></li>
+          <li><b>background.complete</b><span>后台任务完成</span></li>
+          <li><b>skin.changed</b><span>主题切换</span></li>
+          <li><b>error</b><span>错误</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="kicker warn" style="margin-top:28px">
+      <b>四个 request 类事件是产品设计的分水岭</b>
+      <code>approval.request</code> / <code>clarify.request</code> / <code>sudo.request</code> / <code>secret.request</code>
+      要求客户端<b>必须</b>有能力把一个阻塞中的 Agent 轮次交还给用户决策，再把结果送回去。
+      这不是可以先跳过的边角功能——没有它，任何需要动文件、跑命令、用密钥的任务都会卡死。
+      对应的回程方法是 <code>approvals.mode</code>、<code>approval.respond</code>、<code>approval.pending</code>。
+    </div>
+
+    <h3 class="sub">核心 JSON-RPC 方法 · 对话闭环所需</h3>
+    <div class="tscroll">
+      <table>
+        <thead><tr><th class="m">命名空间</th><th class="n">方法数</th><th>核心方法</th></tr></thead>
+        <tbody>
+          <tr><td class="m">session.*</td><td class="n">34</td><td class="m">create · activate · list · history · info · resume · close · delete · interrupt · branch · compress · save</td></tr>
+          <tr><td class="m">prompt.*</td><td class="n">4</td><td class="m">submit · background · btw</td></tr>
+          <tr><td class="m">approvals.* / approval.*</td><td class="n">7</td><td class="m">mode · pending · respond · received</td></tr>
+          <tr><td class="m">agent.*</td><td class="n">23</td><td class="m">reasoning_effort · message_content · secret_scope · service_tier · billing_usage</td></tr>
+          <tr><td class="m">command.*</td><td class="n">4</td><td class="m">dispatch · resolve<span style="color:var(--ink-3)"> — 斜杠命令</span></td></tr>
+          <tr><td class="m">tools.*</td><td class="n">14</td><td class="m">工具启停与配置</td></tr>
+          <tr><td class="m">config.* · profiles.*</td><td class="n">13</td><td class="m">运行时配置与 profile 切换</td></tr>
+          <tr><td class="m">display.* · groups.* · pet.* 等</td><td class="n">~180</td><td class="note">终端渲染、群组、宠物、语音、学习图谱等——自建客户端大多用不上</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>六、可以直接拿走的上游资产</h2>
+      <span class="sec-tag">MIT · 不要重写</span>
+    </div>
+    <p class="lede">
+      官方桌面端与 Web 端共用一层传输代码，放在 <code>apps/shared/src/</code>。
+      这层代码已经处理过重连、心跳、背压、代理子路径这些会反复咬人的细节。移植它，不要照着协议文档重写。
+    </p>
+
+    <div class="tscroll">
+      <table>
+        <thead><tr><th class="m">文件</th><th class="n">行数</th><th>提供什么</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="m">json-rpc-gateway.ts</td><td class="n">756</td>
+            <td><code>JsonRpcGatewayClient</code> 类 + <code>GatewayEventName</code> 联合类型 + <code>ConnectionState</code> 状态机 + <code>JsonRpcGatewayError</code>。这是整个客户端的心脏</td>
+          </tr>
+          <tr>
+            <td class="m">websocket-url.ts</td><td class="n">151</td>
+            <td><code>buildHermesWebSocketUrl()</code>（含 <code>basePath</code> 反代支持、ws/wss 自动选择、鉴权参数注入）与 <code>resolveGatewayWsUrl()</code>（含 <code>GatewayReauthRequiredError</code> 重认证流程）</td>
+          </tr>
+          <tr>
+            <td class="m">backend-scope.ts</td><td class="n">41</td>
+            <td>后端作用域解析——多 profile / 多后端场景下判定当前连接归属</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="kicker">
+      <b>移植策略</b>
+      把这三个文件<b>复制</b>进你的仓库，不要用 git submodule 或 npm link 引用上游路径——
+      那会把「零改动」的优势重新变成一条需要跟随的依赖。复制之后它是你的代码，
+      上游改了你可以选择跟或不跟，由漂移测试告诉你需不需要跟。
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>七、契约漂移防护</h2>
+      <span class="sec-tag">方案 3B · 仓库内只加不改</span>
+    </div>
+    <p class="lede">
+      方案 1 的唯一真实风险是接口漂移——近 180 天上游删了 311 条路由行，
+      而且没有 API 版本号、没有弃用窗口。好消息是这个风险<b>可以被测出来</b>。
+    </p>
+
+    <dl class="rows">
+      <div>
+        <dt>REST 面可快照</dt>
+        <dd>
+          <code>web_server.py:296</code> 创建 FastAPI app 时<b>没有</b>禁用 <code>openapi_url</code>，
+          所以 <code>/openapi.json</code> 是可达的（需带令牌，它不在公开白名单里）。
+          抓下来存为基线，每次同步上游后重抓并 diff。
+        </dd>
+      </div>
+      <div>
+        <dt>WS 面不在 OpenAPI 里</dt>
+        <dd>
+          <b>这是最容易被漏掉的一点。</b>279 个 JSON-RPC 方法名和 23 个事件名<b>不会</b>出现在 <code>/openapi.json</code> 中——
+          FastAPI 只知道有一个 <code>/api/ws</code> 端点。对话主干恰恰是你最依赖的部分，却是自动化覆盖不到的部分。
+          必须为它单独建快照：从 <code>tui_gateway/methods_*.py</code> 提方法名、从
+          <code>apps/shared/src/json-rpc-gateway.ts</code> 的 <code>GatewayEventName</code> 提事件名。
+        </dd>
+      </div>
+      <div>
+        <dt>只对子集报警</dt>
+        <dd>
+          全量 diff 会每周都红——上游一年新增 549 条路由行，绝大多数与你无关。
+          把告警范围限定在你 MVP 清单里的那 57 个端点 + 你实际调用的那些 RPC 方法上，
+          否则告警会因为噪音而被忽略，等于没有。
+        </dd>
+      </div>
+      <div>
+        <dt>放在哪</dt>
+        <dd>
+          在 hermes-agent 仓库内新建一个<b>上游未占用的顶层目录</b>——已实测确认
+          <code>contract</code>、<code>contracts</code>、<code>integration</code>、<code>client</code>、
+          <code>sdk</code> 在 <code>origin/main</code> 中全部空闲。
+          <b>只新增文件，不碰任何既有文件</b>；Git 对新增文件不产生冲突，升级代价因此仍是零。
+          本仓已采用 <code>contract/</code>，全部自有文档与契约基线都放在那里。
+          <span class="where">不要放进 docs/ —— 那是上游维护的目录，23 个文件、239 次提交/年</span>
+        </dd>
+      </div>
+      <div>
+        <dt>提交到哪</dt>
+        <dd>
+          提交到一条自己的分支（如 <code>local/contract</code>），<b>绝不提交到 main</b>。
+          main 与 <code>origin/main</code> 不分叉，<code>git pull</code> 才能永远是快进；
+          自有分支因为与上游文件集不相交，<code>git rebase main</code> 永远不会冲突。
+          <span class="where">当前实测：main 与 origin/main 落后 0 / 领先 0，零冲突债务</span>
+        </dd>
+      </div>
+    </dl>
+
+    <h3 class="sub">跟随上游的固定四步</h3>
+    <pre><code>git checkout main
+git pull                       <span class="c"># 永远快进：main 无自有提交</span>
+git checkout local/contract
+git rebase main                <span class="c"># 永不冲突：文件集不相交</span></code></pre>
+
+    <div class="kicker">
+      <b>这条边界的完整规则</b>
+      四条规则（main 只读 · 专用顶层目录 · 独立分支 rebase · 只依赖 HTTP/WS 契约）
+      与它们的验收检查，记录在配套文档《hermes serve 抽取方案对比》第三、六节。
+      其中规则 4 尤其关键：守卫层与客户端都<b>不得</b> import 任何 <code>hermes_cli.*</code> / <code>tui_gateway.*</code> 路径，
+      否则一条 Git 层面守得住的边界会泄漏成一条守不住的代码依赖。
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>八、风险登记册</h2>
+      <span class="sec-tag">已知的全部坑</span>
+    </div>
+    <div class="tscroll">
+      <table>
+        <thead><tr><th>风险</th><th>证据</th><th>缓解</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="tag risk">高</span> REST 端点被删改</td>
+            <td class="note">近 180 天 −311 条路由行；无 API 版本号</td>
+            <td>openapi 基线 diff，限定到 MVP 子集</td>
+          </tr>
+          <tr>
+            <td><span class="tag risk">高</span> RPC 方法／事件名变更</td>
+            <td class="note">tui_gateway 一年 1,305 次提交，且不在 openapi 覆盖内</td>
+            <td>单独建方法名与事件名快照；这是自动化最薄弱的一环</td>
+          </tr>
+          <tr>
+            <td><span class="tag watch">中</span> 跨机访问受限</td>
+            <td class="note">CORS 仅放行 localhost；<code>--insecure</code> 已成 no-op</td>
+            <td>SSH 隧道（照抄官方桌面端）或自建反代 + <code>basePath</code></td>
+          </tr>
+          <tr>
+            <td><span class="tag watch">中</span> 审批流未实现导致卡死</td>
+            <td class="note">4 个 request 类事件会阻塞轮次</td>
+            <td>第一阶段就实现 approval 闭环，不要后置</td>
+          </tr>
+          <tr>
+            <td><span class="tag watch">中</span> 多 profile 语义变化</td>
+            <td class="note">最近 5 次提交有 4 次涉及 multiplex / profile 作用域</td>
+            <td>这块上游正在重构，先只支持单 profile，观望一到两个版本</td>
+          </tr>
+          <tr>
+            <td><span class="tag later">低</span> 后端意外退出</td>
+            <td class="note">空闲退出仅 SSH 隔离场景启用；配置损坏会退出码 2</td>
+            <td>启动器区分退出码；普通本地启动不会自动退出</td>
+          </tr>
+          <tr>
+            <td><span class="tag later">低</span> 上游前端资产变化</td>
+            <td class="note">apps/desktop 一年 4,493 次提交</td>
+            <td>与你无关——你复制了 apps/shared 三个文件之后就不再跟随</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>九、分阶段计划</h2>
+      <span class="sec-tag">每阶段有可验证的出口</span>
+    </div>
+
+    <div class="phases">
+      <div class="phase">
+        <span class="pn">阶段 0</span>
+        <div>
+          <h4>打通并冻结契约</h4>
+          <p>固定令牌起一个 headless 后端，确认它不挂载 SPA；抓 <code>/openapi.json</code>、RPC 方法名、事件名三份基线存档。此阶段不写任何 UI。</p>
+          <span class="gate">出口：curl 能拿到 /api/status，三份基线已入库</span>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="pn">阶段 1</span>
+        <div>
+          <h4>最小对话闭环</h4>
+          <p>移植 <code>json-rpc-gateway.ts</code> 与 <code>websocket-url.ts</code>；连 <code>/api/ws</code>，等 <code>gateway.ready</code>；跑通 <code>session.create</code> → <code>prompt.submit</code> → 渲染 <code>message.delta</code> → <code>message.complete</code>。</p>
+          <p>同阶段必须完成 <code>approval.request</code> 的响应闭环——否则任何会动文件的任务都会挂住。</p>
+          <span class="gate">出口：能发一条让 Agent 读文件的消息并正常结束</span>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="pn">阶段 2</span>
+        <div>
+          <h4>会话与配置面</h4>
+          <p>接入 <code>/api/sessions</code>（15）、<code>/api/config</code>（6）、<code>/api/model</code>（7）、<code>/api/status</code>。此时客户端已经可以替代日常使用。</p>
+          <span class="gate">出口：能列出历史会话、切换模型、改配置并生效</span>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="pn">阶段 3</span>
+        <div>
+          <h4>漂移告警上线 · 方案 3B 落地</h4>
+          <p>把阶段 0 的基线接进 CI：每次同步上游后重抓，只对 MVP 子集内的变化失败。这一步之后，跟随升级从「祈祷」变成「有信号」。</p>
+          <p>文件落在上游未占用的顶层目录，提交在 <code>local/contract</code> 分支，main 保持纯镜像。同步脚本里套上验收检查 1、2。</p>
+          <span class="gate">出口：故意改一个基线条目 CI 能红；main 仍是 origin/main 的快进</span>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="pn">阶段 4</span>
+        <div>
+          <h4>按需扩展</h4>
+          <p>文件浏览（<code>/api/fs</code> 7 个）、profile 管理（20 个）、工具配置（12 个）——按产品需要逐个接，每接一个就把它加进漂移告警范围。</p>
+          <span class="gate">出口：无固定终点，依产品节奏推进</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    全部接口与行为均实测自 qlshouyu/hermes-agent @ fc71fb63e5（2026-09-12），上游 NousResearch/hermes-agent v0.21.2。<br>
+    引文出自 hermes_cli/subcommands/dashboard.py 与 tui_gateway/ws.py 的模块文档字符串，原文为英文。<br>
+    配色沿用 docs/hermes-architecture.drawio 的分层图例：蓝＝宿主进程 · 绿＝可行路径 · 黄＝需留意 · 红＝高风险 · 紫＝协议。
+  </footer>
+
+</div>
