@@ -381,8 +381,8 @@ git rebase main                <span class="c"># 永不冲突：文件集不相�
       <b>规则 2 已落地</b>
       本文档与其余自有文档已迁出 <code>docs/</code>，集中在顶层 <code>contract/</code> 下——
       该目录在 <code>origin/main</code> 中不存在，因此上游永远不会与它产生同名碰撞。
-      <code>docs/</code> 目前只剩上游自己的 23 个文件，加一份仍被 draw.io 占用的
-      <code>hermes-architecture.drawio</code>（编辑器关闭后一并迁入）。
+      <code>docs/</code> 目前只剩上游自己的 23 个文件；架构图源文件
+      <code>hermes-architecture.drawio</code> 也已迁入 <code>contract/</code>。
     </div>
   </section>
 
@@ -532,7 +532,7 @@ grep -rnE "^[[:space:]]*(from|import)[[:space:]]+(hermes_cli|tui_gateway|agent|g
   <footer>
     数据与 Git 状态实测自 qlshouyu/hermes-agent @ fc71fb63e5（2026-09-12），上游 NousResearch/hermes-agent v0.21.2。<br>
     方案 1 的完整落地细节（启动参数、鉴权矩阵、241 个 REST 端点、JSON-RPC 对话协议、分阶段计划）见配套文档《hermes serve 客户端集成方案》。<br>
-    配色沿用 docs/hermes-architecture.drawio 的分层图例：蓝＝宿主进程 · 绿＝采纳 · 黄＝需留意 · 红＝弃用 · 紫＝协议。
+    配色沿用 contract/hermes-architecture.drawio 的分层图例：蓝＝宿主进程 · 绿＝采纳 · 黄＝需留意 · 红＝弃用 · 紫＝协议。
   </footer>
 
 </div>

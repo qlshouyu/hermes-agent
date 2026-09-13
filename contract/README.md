@@ -55,6 +55,11 @@ grep -rnE "^[[:space:]]*(from|import)[[:space:]]+(hermes_cli|tui_gateway|agent|g
 | `desktop-integration.html` | 桌面端接口对接 |
 | `hermes-process-map.html` | 进程与模块依赖 |
 | `diagrams/` | 端到端架构图的导出（SVG / PNG，四页） |
+| `hermes-architecture.drawio` | 端到端架构图源文件（`diagrams/` 的来源，原位于 `docs/`，已迁入） |
+| `hermes-business-architecture.drawio` | 业务逻辑架构图（含代码路径与 AgentRuntime 抽取边界） |
+| `agent-runtime-extraction-plan.md` / `.html` | AgentRuntime 抽取方案：Port + 装饰器、零修改上游、构建时抽取 |
+| `agent-runtime-integration-guide.md` / `.html` | AgentRuntime 集成指南与接口参考 |
+| `agent-runtime-ports-decorators.html` | AgentRuntime 全部 Port 与装饰器清单 |
 
-架构图源文件 `docs/hermes-architecture.drawio` 仍在 `docs/` 下（draw.io 占用中），
-编辑器关闭后应一并迁入本目录。
+AgentRuntime 的规格、设计与任务拆分见 `openspec/changes/agent-runtime-hosted-ports/`
+与 `openspec/changes/agent-runtime-standalone/`。
