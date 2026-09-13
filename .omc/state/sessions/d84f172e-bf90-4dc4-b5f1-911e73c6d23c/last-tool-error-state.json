@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"openspec validate agent-runtime-hosted-ports --strict 2>&1 | tail -15; echo ======; openspec validate agent-runtime-standalone --strict 2>&1 | tail -15\",\"description\":\"Validate both change...",
+  "error": "Exit code 1\nChange 'agent-runtime-hosted-ports' is valid\n(eval):1: ===== not found",
+  "timestamp": "2026-09-13T15:24:22.587Z",
+  "retry_count": 1
+}
