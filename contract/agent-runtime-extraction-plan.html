@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentRuntime 抽取方案</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+
+:root{
+  --ink:#151b23; --ink-2:#46525f; --ink-3:#6d7987;
+  --paper:#f5f7f9; --surface:#ffffff; --sunk:#eef1f5;
+  --rule:#dce2ea; --rule-soft:#e9edf2;
+  --host:#2f6fd0;  /* 宿主进程 · 蓝 */
+  --core:#26765a;  /* Agent 内核 · 绿 = 采纳 */
+  --tool:#a86d12;  /* 工具运行时 · 黄 = 需留意 */
+  --edge:#b3302a;  /* 边界 · 红 = 弃用 */
+  --proto:#63499d; /* 协议 · 紫 */
+  --core-wash:#e7f2ec; --tool-wash:#f8efdd; --edge-wash:#fbe9e7;
+  --host-wash:#e8f0fb; --proto-wash:#efeaf8;
+  --sans:"IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --cond:"IBM Plex Sans Condensed","Noto Sans SC","PingFang SC",system-ui,sans-serif;
+  --mono:"IBM Plex Mono","SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#e4eaf1; --ink-2:#a3b1c0; --ink-3:#7a8795;
+    --paper:#10151b; --surface:#171e26; --sunk:#1c242d;
+    --rule:#2a343f; --rule-soft:#212a33;
+    --host:#76a8f2; --core:#4fbb8b; --tool:#dba045; --edge:#f07065; --proto:#a98ee0;
+    --core-wash:#142b22; --tool-wash:#2e2415; --edge-wash:#34191a;
+    --host-wash:#152436; --proto-wash:#231d33;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf1; --ink-2:#a3b1c0; --ink-3:#7a8795;
+  --paper:#10151b; --surface:#171e26; --sunk:#1c242d;
+  --rule:#2a343f; --rule-soft:#212a33;
+  --host:#76a8f2; --core:#4fbb8b; --tool:#dba045; --edge:#f07065; --proto:#a98ee0;
+  --core-wash:#142b22; --tool-wash:#2e2415; --edge-wash:#34191a;
+  --host-wash:#152436; --proto-wash:#231d33;
+}
+
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans);
+  font-size:16px; line-height:1.75; -webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px; margin:0 auto; padding-inline:24px; padding-block:0 88px}
+h1,h2,h3,h4{font-family:var(--cond); font-weight:600; text-wrap:balance; line-height:1.25; margin:0}
+p{margin:0 0 16px}
+code,.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+code{font-size:.87em; background:var(--sunk); padding:.1em .38em; border-radius:3px; color:var(--ink-2)}
+a{color:var(--host)}
+:focus-visible{outline:2px solid var(--host); outline-offset:2px}
+
+header{border-bottom:1px solid var(--rule); background:var(--surface)}
+.head-inner{max-width:1080px; margin:0 auto; padding-inline:24px; padding-block:44px 30px}
+.eyebrow{font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--host); margin:0 0 14px}
+h1{font-size:clamp(30px,5.2vw,46px); letter-spacing:-.015em}
+.thesis{max-width:66ch; margin:16px 0 0; font-size:17.5px; color:var(--ink-2)}
+.meta{display:flex; flex-wrap:wrap; gap:6px 22px; margin-top:26px;
+  font-family:var(--mono); font-size:12.5px; color:var(--ink-3)}
+.meta b{color:var(--ink-2); font-weight:600}
+
+section{margin-top:62px}
+.sec-head{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:8px}
+.sec-head h2{font-size:25px; letter-spacing:-.01em}
+.sec-tag{font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); border:1px solid var(--rule); border-radius:99px; padding:2px 9px}
+.lede{margin:0 0 26px; color:var(--ink-2); max-width:70ch}
+h3.sub{font-size:18px; margin:34px 0 12px}
+
+/* 决策横幅 */
+.verdict{margin-top:38px; background:var(--surface); border:1px solid var(--rule);
+  border-left:4px solid var(--core); border-radius:4px; padding:26px 28px}
+.verdict h2{font-size:21px; margin-bottom:10px}
+.verdict p{color:var(--ink-2); max-width:72ch}
+.verdict strong{color:var(--ink); font-weight:600}
+.decided{display:flex; flex-wrap:wrap; gap:10px; margin-top:18px}
+.chip{font-family:var(--mono); font-size:12px; font-weight:600; padding:5px 12px; border-radius:4px}
+.chip.keep{background:var(--core-wash); color:var(--core)}
+.chip.drop{background:var(--edge-wash); color:var(--edge); text-decoration:line-through}
+
+/* 表格 */
+.tscroll{overflow-x:auto}
+table{border-collapse:collapse; width:100%; font-size:14.5px; min-width:560px}
+th,td{text-align:left; padding:10px 16px 10px 0; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+thead th{font-family:var(--mono); font-weight:600; font-size:11.5px; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule)}
+tbody tr:last-child td{border-bottom:none}
+td.n{font-family:var(--mono); white-space:nowrap; color:var(--ink)}
+td.m,th.m{font-family:var(--mono); font-size:13px}
+td.note{color:var(--ink-3); font-size:13.5px}
+caption{text-align:left; font-family:var(--mono); font-size:11.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink-3); padding-bottom:9px}
+
+.tag{font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:.05em;
+  padding:2px 7px; border-radius:3px; white-space:nowrap; display:inline-block}
+.tag.ok{background:var(--core-wash); color:var(--core)}
+.tag.no{background:var(--edge-wash); color:var(--edge)}
+.tag.mid{background:var(--tool-wash); color:var(--tool)}
+
+/* 三层结构 */
+.layers{display:grid; gap:14px; margin-top:10px}
+.layer{display:grid; grid-template-columns:150px 1fr; gap:22px; align-items:start;
+  border:1px solid var(--rule); border-radius:4px; padding:18px 22px; background:var(--surface)}
+.layer.own{border-left:4px solid var(--core)}
+.layer.guard{border-left:4px solid var(--proto)}
+.layer.up{border-left:4px solid var(--host)}
+.layer .lname{font-family:var(--cond); font-weight:600; font-size:17px}
+.layer .lwho{font-family:var(--mono); font-size:11px; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--ink-3); display:block; margin-top:4px}
+.layer .lbody{color:var(--ink-2); font-size:15px}
+.layer .lbody b{color:var(--ink)}
+.layer .lrepo{font-family:var(--mono); font-size:12px; color:var(--ink-3); display:block; margin-top:8px}
+
+/* 规则 */
+.rules{display:grid; gap:0; border-top:1px solid var(--rule); margin-top:8px}
+.rule{display:grid; grid-template-columns:58px 1fr; gap:20px; padding:20px 0;
+  border-bottom:1px solid var(--rule-soft)}
+.rn{font-family:var(--mono); font-size:12px; font-weight:600; color:var(--host); padding-top:4px}
+.rule h4{font-size:17.5px; margin-bottom:7px}
+.rule p{color:var(--ink-2); font-size:15px; margin:0 0 10px}
+.rule p:last-child{margin-bottom:0}
+.why{font-size:13.5px; color:var(--ink-3); border-left:2px solid var(--rule); padding-left:14px}
+
+pre{margin:10px 0 0; background:var(--sunk); border-radius:4px; padding:14px 17px;
+  overflow-x:auto; font-family:var(--mono); font-size:12.5px; line-height:1.65; color:var(--ink-2)}
+pre code{background:none; padding:0; font-size:inherit}
+pre .c{color:var(--ink-3)}
+pre .k{color:var(--host)}
+pre .g{color:var(--core)}
+
+.kicker{margin-top:22px; background:var(--sunk); border-radius:4px; padding:16px 20px;
+  font-size:15px; color:var(--ink-2)}
+.kicker b{font-family:var(--cond); font-size:15.5px; color:var(--ink); display:block; margin-bottom:4px}
+.kicker.warn{background:var(--tool-wash)}
+.kicker.warn b{color:var(--tool)}
+.kicker.good{background:var(--core-wash)}
+.kicker.good b{color:var(--core)}
+
+/* 保留方案块 */
+.opt{margin-top:40px; border-top:3px solid var(--core); padding-top:22px}
+.opt-head{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
+.opt-no{font-family:var(--mono); font-size:12px; font-weight:600; letter-spacing:.08em; color:var(--ink-3)}
+.opt-head h3{font-size:23px; letter-spacing:-.01em}
+.pill{font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.06em;
+  padding:3px 10px; border-radius:99px; background:var(--core-wash); color:var(--core)}
+.opt-sub{margin:10px 0 22px; color:var(--ink-2); max-width:72ch}
+.facets{display:grid; gap:0; border-top:1px solid var(--rule-soft)}
+.facet{display:grid; grid-template-columns:132px 1fr; gap:4px 26px;
+  padding:14px 0; border-bottom:1px solid var(--rule-soft)}
+.facet dt{font-family:var(--mono); font-size:11.5px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink-3); padding-top:4px}
+.facet dd{margin:0; color:var(--ink-2)}
+.facet dd strong{color:var(--ink); font-weight:600}
+.facet.win dd strong{color:var(--core)}
+.facet.cost dd strong{color:var(--edge)}
+
+/* 弃用留档 */
+.dropped{border-left:3px solid var(--rule); padding:4px 0 4px 20px; margin-top:26px; max-width:72ch}
+.dropped h4{font-size:17px; margin-bottom:7px; color:var(--ink-2)}
+.dropped p{color:var(--ink-3); margin:0; font-size:14.5px}
+.dropped b{color:var(--ink-2)}
+
+footer{margin-top:70px; padding-top:22px; border-top:1px solid var(--rule);
+  font-family:var(--mono); font-size:12px; color:var(--ink-3); line-height:1.8}
+
+@media (max-width:640px){
+  .layer,.rule,.facet{grid-template-columns:1fr; gap:8px}
+  .facet dt{padding-top:0}
+  .head-inner{padding-block:34px 24px}
+}
+
+
+/* ---- 本文档补充样式 ---- */
+.wrap{max-width:1120px}
+.head-inner{max-width:1120px}
+.meta span{white-space:normal}
+.toc{margin-top:34px; background:var(--surface); border:1px solid var(--rule); border-radius:4px; padding:20px 26px}
+.toc h2{font-size:15px; font-family:var(--mono); letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); margin-bottom:12px}
+.toc>ol{list-style:none; margin:0; padding:0; columns:2 320px; column-gap:40px}
+.toc>ol>li{break-inside:avoid; margin:0 0 10px}
+.toc a{color:var(--ink); text-decoration:none}
+.toc a:hover{color:var(--host); text-decoration:underline}
+.toc>ol>li>a{font-weight:600; font-family:var(--cond)}
+.toc-n{display:inline-block; min-width:46px; font-family:var(--mono); font-size:12px; color:var(--host); font-weight:600}
+.toc ul{list-style:none; margin:4px 0 0 46px; padding:0; font-size:13.5px; line-height:1.6}
+.toc ul a{color:var(--ink-2)}
+section{scroll-margin-top:16px}
+h3.sub{scroll-margin-top:16px}
+section>p, .verdict>p{max-width:80ch}
+section ul, section ol{padding-left:22px; margin:0 0 16px; color:var(--ink-2)}
+section li{margin:4px 0}
+section li>ul, section li>ol{margin:4px 0 6px}
+section li strong, section p strong{color:var(--ink)}
+.verdict{margin-top:6px}
+.verdict ol{color:var(--ink-2)}
+.verdict p.bold-lead{font-size:17px; color:var(--ink)}
+.kicker{margin:18px 0}
+.kicker b{display:inline; margin:0 6px 0 0}
+.tscroll{margin:6px 0 22px}
+td code, th code{white-space:nowrap}
+td{color:var(--ink-2)}
+td strong{color:var(--ink)}
+pre{margin:10px 0 22px; position:relative}
+pre[data-lang]:not([data-lang=""])::before{content:attr(data-lang); position:absolute; top:6px; right:10px;
+  font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3)}
+figure.diagram{margin:10px 0 26px; background:var(--surface); border:1px solid var(--rule); border-radius:4px;
+  padding:18px; overflow-x:auto}
+pre.mermaid{background:none; margin:0; padding:0; text-align:center; color:var(--ink-2); white-space:pre}
+pre.mermaid[data-processed="true"]{white-space:normal}
+.to-top{position:fixed; right:18px; bottom:18px; font-family:var(--mono); font-size:12px; background:var(--surface);
+  border:1px solid var(--rule); border-radius:99px; padding:6px 12px; color:var(--ink-2); text-decoration:none}
+.to-top:hover{color:var(--host)}
+@media print{.toc,.to-top{display:none} section{break-inside:auto} pre,table{break-inside:avoid}}
+
+</style>
+</head>
+<body>
+<header id="top">
+  <div class="head-inner">
+    <p class="eyebrow">Hermes-Agent · 架构设计 · AgentRuntime</p>
+    <h1>AgentRuntime 智能体抽取方案</h1>
+    <p class="thesis">装饰器模式 · Port 约束上层调用 · 持续可合并上游主线</p>
+    <div class="meta"><span><b>依据</b> <code>contract/hermes-business-architecture.drawio</code> 中的「AgentRuntime 抽取边界」（③ Agent 核心 + ④ 工具能力）</span><span><b>代码基线</b> <code>fc71fb63e5</code>（上游 NousResearch/hermes-agent v0.21.2）</span><span><b>日期</b> 2026-09-13</span><span><b>数据来源</b> 对非测试代码逐文件 AST 扫描 import / 类定义 / 调用点；git 历史统计。复现方式见附录 E</span><span><b>状态</b> 设计稿，待评审</span></div>
+  </div>
+</header>
+<div class="wrap">
+  <nav class="toc" aria-label="目录"><h2>目录</h2><ol><li><a href="#h0"><span class="toc-n">§0</span>结论速览</a></li><li><a href="#h1"><span class="toc-n">§1</span>边界与事实基线</a><ul><li><a href="#s1-1">1.1 抽取边界（来自架构图）</a></li><li><a href="#s1-2">1.2 事实基线</a></li></ul></li><li><a href="#h4"><span class="toc-n">§2</span>约束</a><ul><li><a href="#s2-1">2.1 本需求约束</a></li><li><a href="#s2-2">2.2 仓库既有约束（必须遵守）</a></li></ul></li><li><a href="#h7"><span class="toc-n">§3</span>方案对比</a></li><li><a href="#h8"><span class="toc-n">§4</span>总体架构</a><ul><li><a href="#s4-1">4.1 目录结构</a></li></ul></li><li><a href="#h10"><span class="toc-n">§5</span>北向 Port：上层调用约束</a><ul><li><a href="#s5-1">5.1 归纳原则</a></li><li><a href="#s5-2">5.2 协议定义</a></li><li><a href="#s5-3">5.3 <code>RuntimeSpec</code>：80 个构造参数的归并</a></li><li><a href="#s5-4">5.4 回调 → 事件 / 交互</a></li></ul></li><li><a href="#h15"><span class="toc-n">§6</span>装饰器设计</a><ul><li><a href="#s6-1">6.1 L1 会话装饰器</a></li><li><a href="#s6-2">6.2 L2 执行装饰器：复用上游 middleware 契约</a></li><li><a href="#s6-3">6.3 L3 依赖装饰器：SymbolBinder</a></li><li><a href="#s6-4">6.4 可选：通过 launcher 接管上游宿主</a></li></ul></li><li><a href="#h20"><span class="toc-n">§7</span>南向 Port：运行时对外需求</a><ul><li><a href="#s7-1">7.1 外向符号分桶</a></li><li><a href="#s7-2">7.2 Port 清单</a></li><li><a href="#s7-3">7.3 示例</a></li></ul></li><li><a href="#h24"><span class="toc-n">§8</span>两种运行模式与构建时抽取</a><ul><li><a href="#s8-1">8.1 模式对比</a></li><li><a href="#s8-2">8.2 构建时抽取流程</a></li></ul></li><li><a href="#h27"><span class="toc-n">§9</span>持续合并主线的保障</a><ul><li><a href="#s9-1">9.1 分支与同步</a></li><li><a href="#s9-2">9.2 契约守卫</a></li><li><a href="#s9-3">9.3 边界强制</a></li></ul></li><li><a href="#h31"><span class="toc-n">§10</span>与上游不变量的兼容性</a></li><li><a href="#h32"><span class="toc-n">§11</span>分阶段实施路线</a></li><li><a href="#h33"><span class="toc-n">§12</span>测试策略</a></li><li><a href="#h34"><span class="toc-n">§13</span>风险与待决策项</a><ul><li><a href="#s13-1">13.1 风险</a></li><li><a href="#s13-2">13.2 需要你确认的决策</a></li></ul></li><li><a href="#appendix-A"><span class="toc-n">附录</span>附录 A　外向符号绑定清单</a><ul><li><a href="#appendix-A-1">A.1 按 Port 汇总（前列符号）</a></li><li><a href="#appendix-A-2">A.2 必须在导入前安装的顶层绑定（78 个符号 / 129 处）</a></li></ul></li><li><a href="#appendix-B"><span class="toc-n">附录</span>附录 B　<code>AIAgent.__init__</code> → <code>RuntimeSpec</code> 映射</a></li><li><a href="#appendix-C"><span class="toc-n">附录</span>附录 C　宿主构造点（Hosted 适配与 launcher 覆盖面）</a></li><li><a href="#appendix-D"><span class="toc-n">附录</span>附录 D　宿主私有属性访问（需提升为 <code>SessionMaintenancePort</code> 的候选）</a></li><li><a href="#appendix-E"><span class="toc-n">附录</span>附录 E　数据来源与复现</a></li><li><a href="#appendix-F"><span class="toc-n">附录</span>附录 F　变更清单：目录文件、Port 与装饰器</a><ul><li><a href="#appendix-F-1">F.1 目录与文件的处理方式</a></li><li><a href="#appendix-F-2">F.2 北向 Port（5 个，约束上层调用）</a></li><li><a href="#appendix-F-3">F.3 南向 Port（9 个，运行时对外需求）</a></li><li><a href="#appendix-F-4">F.4 装饰器（三层，共 15 个）</a></li><li><a href="#appendix-F-5">F.5 配套组件（非 Port、非装饰器）</a></li></ul></li></ol></nav>
+  <section id="h0"><div class="sec-head"><h2>结论速览</h2><span class="sec-tag">§0</span></div><div class="verdict"><p class="bold-lead"><strong>不搬动、不修改任何上游文件，而是在上游 ③④ 代码之外包一层「Port + 装饰器」外壳，再用构建脚本把闭包原样打包成独立运行时。</strong></p><ol><li><strong>新建自有顶层目录 <code>agent_runtime/</code></strong>（已确认 <code>origin/main</code> 未占用），内含独立发行包 <code>hermes_agent_runtime</code>，自带 <code>pyproject.toml</code>，<strong>不改上游 <code>pyproject.toml</code></strong>。</li><li><strong>北向 Port（上层调用约束）</strong>：宿主只能依赖 <code>AgentRuntimePort</code> / <code>AgentSessionPort</code> 等协议；它们由上游 <code>AIAgent</code> 的真实公开面（18 个公开方法、80 个构造参数、21 个回调）归纳而来。</li><li><strong>三级装饰器</strong>：<ul><li><strong>L1 会话装饰器</strong>：包装 <code>AgentSessionPort</code>，承载追踪、指标、异常映射、不变量校验；</li><li><strong>L2 执行装饰器</strong>：走上游<strong>官方 middleware 契约</strong>（<code>llm_request</code> / <code>llm_execution</code> / <code>tool_request</code> / <code>tool_execution</code>），通过 <code>hermes_agent.plugins</code> entry point 注册，零侵入；</li><li><strong>L3 依赖装饰器</strong>：<code>SymbolBinder</code> 把闭包对外层的 409 个符号引用在「生产代码读取处」替换为委托到南向 Port 的装饰函数。</li></ul></li><li><strong>两种运行模式</strong>：Hosted（适配器委托上游原实现，行为逐字节等价）→ Standalone（构建时抽取 + 影子模块 + 独立适配器）。</li><li><strong>合并保障</strong>：<code>main</code> 纯镜像；自有提交只在 <code>agent_runtime/</code> 与 <code>contract/</code>；六类契约守卫（G1–G6）把上游漂移从「运行时报错」提前到「同步时 CI 变红」。</li></ol><div class="kicker warn"><b>与既有决策的关系</b><code>contract/b-line-extraction-options.html</code> 已弃用「方案 2 · 独立 Python 包」。本方案是它的变体 <strong>方案 2′</strong>——保留独立包的产出，但以「零修改上游 + 构建时抽取」替换「源码分叉」，从而不失去跟随主线的能力。落地前需在该决策文档追加一条 ADR（见 §13）。</div></div></section><section id="h1"><div class="sec-head"><h2>边界与事实基线</h2><span class="sec-tag">§1</span></div><h3 class="sub" id="s1-1">1.1 抽取边界（来自架构图）</h3><div class="tscroll"><table><thead><tr><th>范围</th><th>内容</th></tr></thead><tbody><tr><td>③ Agent 核心</td><td><code>run_agent.py</code>、<code>agent/</code>（279 文件，约 11.1 万行，8 个子包）</td></tr><tr><td>④ 工具能力</td><td><code>model_tools.py</code>、<code>toolsets.py</code>、<code>toolset_distributions.py</code>、<code>tools/</code></td></tr><tr><td>边界外但属于依赖闭包（图中 ◆）</td><td><code>hermes_state.py</code> + <code>hermes_state_*.py</code>、<code>hermes_constants.py</code>、<code>hermes_logging.py</code>、<code>hermes_time.py</code>、<code>utils.py</code></td></tr></tbody></table></div><p><strong>单独抽 ③ 不可行</strong>：<code>tools → agent</code> 反向引用 292 处，多于 <code>agent → tools</code> 的 153 处；合并为 ③+④ 后内聚度从 0.626 升至 0.754。因此抽取单元固定为 <strong>③ + ④ + 闭包</strong>。</p><h3 class="sub" id="s1-2">1.2 事实基线</h3><div class="tscroll"><table><thead><tr><th>维度</th><th>数据</th><th>对方案的影响</th></tr></thead><tbody><tr><td>闭包对外层引用</td><td>409 个符号 / 1,016 处；<code>hermes_cli</code> 797 处（58 个模块、289 个符号）、<code>gateway</code> 116、<code>cron</code> 48、<code>plugins</code> 26、<code>providers</code> 23</td><td>南向 Port 的输入清单</td></tr><tr><td>引用时机</td><td>模块顶层绑定仅 <strong>78 个符号 / 129 处</strong>，其余均为函数体内延迟 import</td><td>延迟 import 在调用时才读模块属性 → L3 装饰器可在运行期生效；顶层绑定必须在导入前安装</td></tr><tr><td><code>AIAgent</code> 构造</td><td>80 个参数，其中 21 个回调；宿主实际使用 63 个</td><td>需归并为 <code>RuntimeSpec</code> 值对象</td></tr><tr><td><code>AIAgent</code> 公开方法</td><td>18 个（14 个 mixin 组装）</td><td>北向 Port 的方法清单</td></tr><tr><td>宿主构造点</td><td>21 处：gateway 5、tui_gateway 3、hermes_cli 4、scripts 5、cron / acp / batch_runner / plugins 各 1</td><td>Hosted 适配器与 launcher 需覆盖</td></tr><tr><td>宿主方法调用</td><td><code>run_conversation</code> 22、<code>interrupt</code> 10、<code>steer</code> 7、<code>get_activity_summary</code> 7、<code>close</code> 5、<code>shutdown_memory_provider</code> 5、<code>redirect</code> 3 …</td><td>Port 方法优先级</td></tr><tr><td>宿主访问私有属性</td><td><strong>110 处</strong>：hermes_cli 42、gateway 37、tui_gateway 23；如 <code>_compress_context</code> 7、<code>_persist_session</code> 5、<code>_invalidate_system_prompt</code> 4</td><td>需提升为显式 Port 方法</td></tr><tr><td>已有扩展点</td><td>12 个 ABC（<code>MemoryProvider</code>、<code>ContextEngine</code>、<code>ProviderBase</code>、<code>ProviderTransport</code>、<code>BaseEnvironment</code> …）、middleware 4 种、observer hooks 14 个、<code>hermes_agent.plugins</code> entry point</td><td>优先复用，不另造</td></tr><tr><td>隐式耦合</td><td><code>os.environ</code> 164 处 / 80 个 <code>HERMES_*</code>；<code>get_hermes_home()</code> 98 处；模块级可变状态 144 处</td><td>Standalone 模式的主要风险</td></tr><tr><td>上游变更</td><td>近一年 <code>agent/</code> 4,692 次提交、857 位作者，303 个文件被改动；近 90 天 3,534 次</td><td>任何源码级修改都会持续冲突</td></tr><tr><td>测试耦合</td><td>1,051 个测试文件 import <code>agent.*</code>；1,757 处 patch 目标指向 <code>agent.*</code></td><td>上游测试在 Hosted 模式下原样运行，作为回归网</td></tr></tbody></table></div></section><section id="h4"><div class="sec-head"><h2>约束</h2><span class="sec-tag">§2</span></div><h3 class="sub" id="s2-1">2.1 本需求约束</h3><ul><li><strong>C1 装饰器优先</strong>：新增行为以包装而非修改的方式叠加。</li><li><strong>C2 Port 约束上层</strong>：上层只依赖协议，不依赖 <code>run_agent</code> / <code>agent.*</code> / <code>tools.*</code> 内部路径。</li><li><strong>C3 可合并主线</strong>：对上游文件的修改量恒为 0。</li></ul><h3 class="sub" id="s2-2">2.2 仓库既有约束（必须遵守）</h3><div class="tscroll"><table><thead><tr><th>来源</th><th>约束</th><th>本方案的处理</th></tr></thead><tbody><tr><td><code>contract/README.md</code> 规则 1–3</td><td><code>main</code> 纯镜像；自有文件放上游未占用的顶层目录；自有提交走独立分支 + rebase</td><td>目录 <code>agent_runtime/</code>，分支 <code>local/agent-runtime</code></td></tr><tr><td><code>contract/README.md</code> 规则 4</td><td>不 import 上游内部路径</td><td>仅 <code>hermes_agent_runtime.adapters.hosted</code> 与 <code>bindings</code> 两处允许，由 import-linter 契约强制（§9.3）</td></tr><tr><td>根 <code>AGENTS.md</code></td><td>提示缓存神圣：对话中途不改系统提示、不换工具集、不重载记忆</td><td>L2 中间件禁止改写历史消息与工具定义；L1 增加不变量校验装饰器（§6.1）</td></tr><tr><td>根 <code>AGENTS.md</code></td><td>严格角色交替，不插入合成 user 消息</td><td>装饰器不注入消息；<code>steer</code> 语义原样透传</td></tr><tr><td>根 <code>AGENTS.md</code></td><td>「在生产代码读取处打桩」</td><td>L3 绑定按「消费方读取的模块属性」建清单，而非定义模块</td></tr><tr><td>根 <code>AGENTS.md</code></td><td>会话能力属于会话，不属于进程环境变量</td><td><code>SessionContextPort</code> 基于 <code>ContextVar</code></td></tr><tr><td><code>COMPAT_MANIFEST.md</code></td><td>兼容指针 2026-09-14 移除</td><td><code>hermes_cli.plugin_compat.warn_once</code>（56 处）不设 Port，绑定为「可选」</td></tr><tr><td><code>agent/AGENTS.md</code></td><td><code>model_tools._last_resolved_tool_names</code> 是进程级全局，委派子代理时存取</td><td>同进程多会话并发的已知限制，见 §10</td></tr></tbody></table></div></section><section id="h7"><div class="sec-head"><h2>方案对比</h2><span class="sec-tag">§3</span></div><div class="tscroll"><table><thead><tr><th></th><th>A. 源码迁移重构</th><th>B. 仓内零侵入外壳</th><th><strong>C. B + 构建时抽取（推荐）</strong></th></tr></thead><tbody><tr><td>做法</td><td><code>git mv</code> 到新包、改 import、切断反向依赖</td><td>在上游代码之上加 Port + 装饰器，同进程运行</td><td>在 B 的基础上，按闭包清单<strong>原样复制</strong>上游文件、注入影子模块，产出独立 wheel</td></tr><tr><td>上游文件修改</td><td>数百文件</td><td>0</td><td>0</td></tr><tr><td>与主线合并</td><td>每次 pull 大量冲突（<code>agent/</code> 年 4,692 次提交）</td><td>永不冲突</td><td>永不冲突；同步后重新构建</td></tr><tr><td>能否脱离完整仓库运行</td><td>能</td><td>不能（Hosted）</td><td>能（Standalone）</td></tr><tr><td>上层调用约束</td><td>能</td><td>能</td><td>能</td></tr><tr><td>风险暴露点</td><td>合并</td><td>仅运行时语义漂移</td><td>语义漂移 + 影子模块覆盖面</td></tr><tr><td>结论</td><td>弃用</td><td>阶段 1–2 的形态</td><td><strong>目标形态</strong></td></tr></tbody></table></div><p><strong>推荐 C，分阶段交付</strong>：先以 B 的形态建立 Port 与装饰器，行为与上游完全一致；再逐个替换南向适配器，最后构建独立包。每个阶段都能独立交付和回滚。</p></section><section id="h8"><div class="sec-head"><h2>总体架构</h2><span class="sec-tag">§4</span></div><figure class="diagram"><pre class="mermaid">flowchart TB
+    subgraph Hosts[&quot;宿主层（上层）&quot;]
+        H1[&quot;自建宿主&lt;br/&gt;（外部前端 / 服务）&quot;]
+        H2[&quot;上游宿主&lt;br/&gt;gateway · tui_gateway · cron · acp · cli&quot;]
+    end
+
+    subgraph RT[&quot;hermes_agent_runtime（自有，agent_runtime/）&quot;]
+        IN[&quot;北向 Port&lt;br/&gt;AgentRuntimePort · AgentSessionPort&lt;br/&gt;SessionMaintenancePort · EventSinkPort · InteractionPort&quot;]
+        APP[&quot;application&lt;br/&gt;DefaultAgentRuntime · SpecMapper · EventBridge&quot;]
+        L1[&quot;L1 会话装饰器链&lt;br/&gt;Tracing · ErrorMapping · Invariant · Metrics&quot;]
+        L2[&quot;L2 执行装饰器&lt;br/&gt;middleware 插件（entry point）&quot;]
+        L3[&quot;L3 依赖装饰器&lt;br/&gt;SymbolBinder + BindingManifest&quot;]
+        OUT[&quot;南向 Port&lt;br/&gt;Config · Credential · ProviderCatalog · SessionContext&lt;br/&gt;Plugin · HostProcess · Scheduler · Profile · Platform&quot;]
+        HA[&quot;adapters.hosted&lt;br/&gt;委托上游原实现&quot;]
+        SA[&quot;adapters.standalone&lt;br/&gt;独立实现&quot;]
+    end
+
+    subgraph UP[&quot;上游 ③④ + 闭包（原样，不修改）&quot;]
+        AG[&quot;run_agent.AIAgent · agent/ · model_tools · toolsets · tools/&lt;br/&gt;hermes_state* · hermes_constants · hermes_logging · hermes_time · utils&quot;]
+    end
+
+    subgraph OUTER[&quot;上游外层（Hosted 模式才存在）&quot;]
+        O1[&quot;hermes_cli.* · gateway.* · cron.* · plugins.* · providers&quot;]
+    end
+
+    H1 --&gt;|只依赖| IN
+    H2 -.-&gt;|可选：launcher 接管| APP
+    IN --&gt; APP --&gt; L1 --&gt; AG
+    L2 --&gt;|ctx.register_middleware| AG
+    AG --&gt;|延迟 import 读取模块属性| L3
+    L3 --&gt; OUT
+    OUT --&gt; HA --&gt; O1
+    OUT --&gt; SA</pre></figure><h3 class="sub" id="s4-1">4.1 目录结构</h3><pre data-lang="text"><code>agent_runtime/                       # 自有顶层目录（origin/main 未占用）
+├── pyproject.toml                   # 独立发行：hermes-agent-runtime；不改上游 pyproject
+├── README.md
+├── src/hermes_agent_runtime/
+│   ├── __init__.py                  # 对外只导出 ports 与 bootstrap
+│   ├── bootstrap.py                 # 安装绑定 → 选择适配器 → 返回 AgentRuntimePort
+│   ├── ports/
+│   │   ├── inbound.py               # 北向 Port（上层调用约束）
+│   │   ├── outbound.py              # 南向 Port（运行时对外需求）
+│   │   └── errors.py                # 领域异常
+│   ├── domain/
+│   │   ├── spec.py                  # RuntimeSpec 及其值对象
+│   │   ├── events.py                # RuntimeEvent 类型
+│   │   └── results.py               # TurnResult
+│   ├── application/
+│   │   ├── runtime.py               # DefaultAgentRuntime / DefaultAgentSession
+│   │   ├── spec_mapper.py           # RuntimeSpec → AIAgent(**kwargs)
+│   │   └── event_bridge.py          # 21 个回调 → EventSinkPort / InteractionPort
+│   ├── decorators/
+│   │   ├── session.py               # L1：AgentSessionPort 装饰器
+│   │   └── middleware_plugin.py     # L2：register(ctx) 注册 middleware / hooks
+│   ├── bindings/
+│   │   ├── manifest.py              # L3：绑定清单（生成 + 人工分类）
+│   │   ├── binder.py                # SymbolBinder
+│   │   └── launcher.py              # hermes-rt：先装绑定再进入上游 main
+│   ├── adapters/
+│   │   ├── hosted/                  # 唯一允许 import hermes_cli / gateway / cron 的地方
+│   │   └── standalone/
+│   └── shims/                       # 仅构建期使用的影子模块模板
+├── build/
+│   ├── closure_scan.py              # 从 ③④ 根计算闭包
+│   ├── closure.lock                 # 文件清单 + sha256（随基线提交）
+│   └── extract.py                   # 原样复制 + 注入 shims + 打包 wheel
+├── guard/                           # 契约守卫 G1–G6
+└── tests/</code></pre><div class="kicker">包名用 <code>hermes_agent_runtime</code> 而不是 <code>agent_runtime</code>：避免在仓库根目录运行时，顶层目录 <code>agent_runtime/</code> 被当作同名命名空间包遮蔽真实包。</div><div class="kicker">目录与文件的完整处理方式（原地不动 / 构建时复制 / 新增），以及全部 Port 与装饰器的清单，见附录 F。</div></section><section id="h10"><div class="sec-head"><h2>北向 Port：上层调用约束</h2><span class="sec-tag">§5</span></div><h3 class="sub" id="s5-1">5.1 归纳原则</h3><ul><li>方法清单 = <code>AIAgent</code> 18 个公开方法 ∩ 宿主实际调用，外加由私有属性访问提升而来的维护方法。</li><li>签名与上游保持一致或更窄，<strong>不扩展语义</strong>，保证 Hosted 模式可逐字节透传。</li><li>回调分两类：<strong>单向通知</strong> → <code>EventSinkPort</code>；<strong>需要返回值的交互</strong> → <code>InteractionPort</code>。</li></ul><h3 class="sub" id="s5-2">5.2 协议定义</h3><pre data-lang="python"><code><span class="c"># src/hermes_agent_runtime/ports/inbound.py</span>
+from __future__ import annotations
+
+from typing import Any, Mapping, Optional, Protocol, Sequence, runtime_checkable
+
+from hermes_agent_runtime.domain.events import RuntimeEvent
+from hermes_agent_runtime.domain.results import TurnResult
+from hermes_agent_runtime.domain.spec import RunRequest, RuntimeSpec
+
+
+@runtime_checkable
+class EventSinkPort(Protocol):
+    &quot;&quot;&quot;宿主实现：接收运行时单向事件（流式增量、工具进度、状态、提示等）。&quot;&quot;&quot;
+
+    def emit(self, event: RuntimeEvent) -&gt; None: ...
+
+
+@runtime_checkable
+class InteractionPort(Protocol):
+    &quot;&quot;&quot;宿主实现：运行时需要人参与并拿到返回值的交互。&quot;&quot;&quot;
+
+    def clarify(self, question: str, choices: Sequence[str] | None) -&gt; str: ...
+    def approve(self, request: Mapping[str, Any]) -&gt; bool: ...
+    def read_terminal(self, request: Mapping[str, Any]) -&gt; str: ...
+    def capture_secret(self, request: Mapping[str, Any]) -&gt; Optional[str]: ...
+
+
+@runtime_checkable
+class AgentSessionPort(Protocol):
+    &quot;&quot;&quot;一次会话。与 AIAgent 公开方法一一对应，签名不宽于上游。&quot;&quot;&quot;
+
+    session_id: str
+
+    def run_turn(self, request: RunRequest) -&gt; TurnResult: ...          <span class="c"># run_conversation</span>
+    def chat(self, message: str) -&gt; str: ...                            <span class="c"># chat</span>
+
+    def interrupt(self, message: str | None = None, *, hard: bool = False,
+                  tool_reason: str | None = None) -&gt; bool: ...          <span class="c"># interrupt / hard_interrupt</span>
+    def steer(self, text: str) -&gt; bool: ...                             <span class="c"># steer</span>
+    def redirect(self, text: str) -&gt; bool: ...                          <span class="c"># redirect</span>
+    def clear_interrupt(self, *, preserve_redirect: bool = False) -&gt; bool: ...
+    def is_interrupted(self) -&gt; bool: ...
+
+    def activity(self) -&gt; Mapping[str, Any]: ...                        <span class="c"># get_activity_summary</span>
+    def rate_limit_state(self) -&gt; Any: ...                              <span class="c"># get_rate_limit_state</span>
+    def credits_state(self) -&gt; Any: ...                                 <span class="c"># get_credits_state</span>
+    def credits_spent_micros(self) -&gt; Optional[int]: ...                <span class="c"># get_credits_spent_micros</span>
+
+    def reset(self, *, previous_messages: list | None = None, old_session_id: str | None = None,
+              carry_over_context: bool = False) -&gt; None: ...            <span class="c"># reset_session_state</span>
+    def commit_memory(self, messages: list | None = None) -&gt; None: ...  <span class="c"># commit_memory_session</span>
+    def release_clients(self) -&gt; None: ...                              <span class="c"># release_clients</span>
+    def close(self) -&gt; None: ...                                        <span class="c"># shutdown_memory_provider + close</span>
+
+
+@runtime_checkable
+class SessionMaintenancePort(Protocol):
+    &quot;&quot;&quot;特权维护面：把宿主当前对 AIAgent 私有属性的 110 处访问提升为显式契约。
+    仅授予 gateway / tui 这类长会话宿主，普通宿主不可见。&quot;&quot;&quot;
+
+    def compress_context(self, **kwargs: Any) -&gt; Any: ...               <span class="c"># _compress_context（7 处）</span>
+    def persist(self) -&gt; None: ...                                      <span class="c"># _persist_session（5 处）</span>
+    def flush_to_store(self) -&gt; None: ...                               <span class="c"># _flush_messages_to_session_db（3 处）</span>
+    def invalidate_system_prompt(self) -&gt; None: ...                     <span class="c"># _invalidate_system_prompt（4 处）</span>
+    def set_end_session_on_close(self, value: bool) -&gt; None: ...        <span class="c"># _end_session_on_close（4 处）</span>
+    def spawn_background_review(self, messages: list) -&gt; None: ...      <span class="c"># _spawn_background_review（2 处）</span>
+
+
+@runtime_checkable
+class AgentRuntimePort(Protocol):
+    &quot;&quot;&quot;运行时入口：宿主唯一需要持有的对象。&quot;&quot;&quot;
+
+    def open_session(self, spec: RuntimeSpec, *, events: EventSinkPort | None = None,
+                     interaction: InteractionPort | None = None) -&gt; AgentSessionPort: ...
+    def maintenance(self, session: AgentSessionPort) -&gt; SessionMaintenancePort: ...
+    def capabilities(self) -&gt; Mapping[str, bool]: ...                   <span class="c"># 当前模式下可用的工具集 / 能力</span></code></pre><div class="kicker"><code>SessionMaintenancePort</code> 中的方法以附录 D 的实测访问为准逐条确认签名；首批只放入访问 ≥ 2 次的项，其余在宿主迁移时按需补齐。</div><h3 class="sub" id="s5-3">5.3 <code>RuntimeSpec</code>：80 个构造参数的归并</h3><pre data-lang="python"><code><span class="c"># src/hermes_agent_runtime/domain/spec.py（节选）</span>
+from dataclasses import dataclass, field
+from typing import Any, Mapping, Optional, Sequence
+
+
+@dataclass(frozen=True)
+class ModelRoute:
+    model: str = &quot;&quot;
+    provider: Optional[str] = None
+    requested_provider: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None          <span class="c"># Standalone 下建议留空，交给 CredentialPort</span>
+    api_mode: Optional[str] = None
+    fallback_model: Optional[Mapping[str, Any]] = None
+    reasoning_config: Optional[Mapping[str, Any]] = None
+    service_tier: Optional[str] = None
+    max_tokens: Optional[int] = None
+    request_overrides: Optional[Mapping[str, Any]] = None
+    routing: Mapping[str, Any] = field(default_factory=dict)   <span class="c"># providers_allowed/ignored/order/sort/...</span>
+
+
+@dataclass(frozen=True)
+class ToolPolicy:
+    enabled_toolsets: Optional[Sequence[str]] = None
+    disabled_toolsets: Optional[Sequence[str]] = None
+    max_iterations: Optional[int] = None
+    run_budget_seconds: Optional[float] = None
+    checkpoints: Mapping[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class SessionBinding:
+    session_id: Optional[str] = None
+    parent_session_id: Optional[str] = None
+    platform: Optional[str] = None
+    user: Mapping[str, Optional[str]] = field(default_factory=dict)   <span class="c"># user_id / user_id_alt / user_name</span>
+    chat: Mapping[str, Optional[str]] = field(default_factory=dict)   <span class="c"># chat_id / chat_name / chat_type / thread_id</span>
+    gateway_session_key: Optional[str] = None
+    pass_session_id: bool = False
+
+
+@dataclass(frozen=True)
+class PromptOptions:
+    ephemeral_system_prompt: Optional[str] = None
+    prefill_messages: Optional[Sequence[Mapping[str, Any]]] = None
+    skip_context_files: bool = False
+    load_soul_identity: bool = False
+    skip_memory: bool = False
+    skip_background_review: bool = False
+
+
+@dataclass(frozen=True)
+class RuntimeSpec:
+    route: ModelRoute = ModelRoute()
+    tools: ToolPolicy = ToolPolicy()
+    session: SessionBinding = SessionBinding()
+    prompt: PromptOptions = PromptOptions()
+    output: Mapping[str, Any] = field(default_factory=dict)    <span class="c"># quiet_mode / verbose_logging / log_prefix* / ...</span>
+    acp: Mapping[str, Any] = field(default_factory=dict)       <span class="c"># acp_command / acp_args / command / args</span>
+    capabilities: Optional[Mapping[str, bool]] = None
+    passthrough: Mapping[str, Any] = field(default_factory=dict)  <span class="c"># 兜底：上游新增参数的临时通道</span></code></pre><ul><li><code>SpecMapper</code> 负责把 <code>RuntimeSpec</code> 摊平为 <code>AIAgent(**kwargs)</code>，<strong>以上游 <code>__init__</code> 签名为唯一真源</strong>：启动时用 <code>inspect.signature(AIAgent.__init__)</code> 校验，未知键直接报错。</li><li><code>passthrough</code> 让上游新增参数无需等待本包发版即可使用；守卫 G1 会提示把它正式纳入值对象。</li><li>完整映射见附录 B。</li></ul><h3 class="sub" id="s5-4">5.4 回调 → 事件 / 交互</h3><div class="tscroll"><table><thead><tr><th>上游回调</th><th>归类</th><th>目标</th></tr></thead><tbody><tr><td><code>stream_delta_callback</code>、<code>interim_assistant_callback</code>、<code>thinking_callback</code>、<code>reasoning_callback</code></td><td>通知</td><td><code>RuntimeEvent.StreamDelta</code> / <code>Interim</code> / <code>Thinking</code> / <code>Reasoning</code></td></tr><tr><td><code>tool_start_callback</code>、<code>tool_progress_callback</code>、<code>tool_complete_callback</code>、<code>tool_gen_callback</code>、<code>step_callback</code></td><td>通知</td><td><code>ToolStarted</code> / <code>ToolProgress</code> / <code>ToolCompleted</code> / <code>ToolGenerating</code> / <code>Step</code></td></tr><tr><td><code>status_callback</code>、<code>notice_callback</code>、<code>notice_clear_callback</code>、<code>event_callback</code>、<code>reaction_callback</code></td><td>通知</td><td><code>Status</code> / <code>Notice</code> / <code>NoticeCleared</code> / <code>Raw</code> / <code>Reaction</code></td></tr><tr><td><code>clarify_callback</code></td><td>交互</td><td><code>InteractionPort.clarify</code></td></tr><tr><td><code>read_terminal_callback</code>、<code>read_preview_callback</code>、<code>drive_preview_callback</code>、<code>read_window_below_callback</code></td><td>交互</td><td><code>InteractionPort.read_terminal</code> 及同类方法</td></tr><tr><td><code>setup_mcp_callback</code>、<code>tour_callback</code></td><td>交互</td><td>按宿主能力可选实现，缺省返回「不支持」</td></tr><tr><td>模块级 <code>tools.terminal_tool.set_approval_callback</code>、<code>set_sudo_password_callback</code>、<code>tools.skills_tool.set_secret_capture_callback</code> 等</td><td>交互（进程级）</td><td><code>InteractionPort.approve</code> / <code>capture_secret</code>，由 <code>EventBridge</code> 按 <code>ContextVar</code> 中的会话 ID 路由</td></tr></tbody></table></div></section><section id="h15"><div class="sec-head"><h2>装饰器设计</h2><span class="sec-tag">§6</span></div><h3 class="sub" id="s6-1">6.1 L1 会话装饰器</h3><p>装饰器实现与被装饰对象相同的 <code>AgentSessionPort</code>，可任意叠加、顺序可配。</p><pre data-lang="python"><code><span class="c"># src/hermes_agent_runtime/decorators/session.py（节选）</span>
+from __future__ import annotations
+
+from typing import Any
+
+from hermes_agent_runtime.ports.inbound import AgentSessionPort
+
+
+class SessionDecorator:
+    &quot;&quot;&quot;基类：默认把所有调用委托给内层会话，子类只覆写关心的方法。&quot;&quot;&quot;
+
+    def __init__(self, inner: AgentSessionPort) -&gt; None:
+        self._inner = inner
+
+    def __getattr__(self, name: str) -&gt; Any:
+        return getattr(self._inner, name)
+
+
+class ErrorMappingDecorator(SessionDecorator):
+    &quot;&quot;&quot;把上游异常映射为领域异常，宿主不再 import 上游异常类型。&quot;&quot;&quot;
+
+    def run_turn(self, request):
+        try:
+            return self._inner.run_turn(request)
+        except Exception as exc:  <span class="c"># noqa: BLE001 — 映射后原样保留 __cause__</span>
+            raise map_upstream_error(exc) from exc
+
+
+class CacheInvariantDecorator(SessionDecorator):
+    &quot;&quot;&quot;调试 / CI 模式下校验：同一会话内系统提示字节稳定、工具集不变。&quot;&quot;&quot;
+
+    def run_turn(self, request):
+        before = self._fingerprint()
+        result = self._inner.run_turn(request)
+        after = self._fingerprint()
+        if before and after and before != after and not result.compressed:
+            raise InvariantViolation(&quot;system prompt or toolset changed mid-conversation&quot;)
+        return result
+
+
+class TracingDecorator(SessionDecorator):
+    def run_turn(self, request):
+        with self._tracer.span(&quot;agent.turn&quot;, session_id=self._inner.session_id):
+            return self._inner.run_turn(request)</code></pre><div class="tscroll"><table><thead><tr><th>装饰器</th><th>职责</th><th>默认启用</th></tr></thead><tbody><tr><td><code>ErrorMappingDecorator</code></td><td>异常映射</td><td>是</td></tr><tr><td><code>TracingDecorator</code> / <code>MetricsDecorator</code></td><td>追踪、耗时、token / 费用</td><td>是</td></tr><tr><td><code>CacheInvariantDecorator</code></td><td>提示缓存、角色交替不变量</td><td>CI / 调试</td></tr><tr><td><code>ConcurrencyGuardDecorator</code></td><td>同一会话串行化 <code>run_turn</code>（与上游 turn lease 互补）</td><td>是</td></tr><tr><td><code>CapabilityGateDecorator</code></td><td>拒绝当前模式不可用的工具集请求（Standalone）</td><td>Standalone</td></tr></tbody></table></div><h3 class="sub" id="s6-2">6.2 L2 执行装饰器：复用上游 middleware 契约</h3><p>上游 <code>docs/middleware/README.md</code> 与 <code>hermes_cli/plugins.py::register_middleware</code> 已提供装饰链：执行类 middleware 接收 <code>next_call</code>，多插件按注册顺序嵌套，失败放行（fail-open）。本包以 pip entry point 注册为插件，<strong>不改任何上游文件</strong>。</p><pre data-lang="toml"><code><span class="c"># agent_runtime/pyproject.toml（节选）</span>
+[project.entry-points.&quot;hermes_agent.plugins&quot;]
+agent-runtime = &quot;hermes_agent_runtime.decorators.middleware_plugin&quot;</code></pre><pre data-lang="python"><code><span class="c"># src/hermes_agent_runtime/decorators/middleware_plugin.py</span>
+def register(ctx):
+    ctx.register_middleware(&quot;llm_request&quot;, _route_policy)       <span class="c"># 只改路由相关键，禁止改 messages / tools</span>
+    ctx.register_middleware(&quot;llm_execution&quot;, _llm_span)         <span class="c"># 包装真实 provider 调用</span>
+    ctx.register_middleware(&quot;tool_request&quot;, _tool_arg_policy)   <span class="c"># 在审批与护栏之前生效，谨慎使用</span>
+    ctx.register_middleware(&quot;tool_execution&quot;, _tool_span)       <span class="c"># 包装真实工具执行</span>
+    ctx.register_hook(&quot;post_tool_call&quot;, _emit_tool_event)
+
+
+def _llm_span(**kw):
+    with tracer.span(&quot;llm.call&quot;, model=kw.get(&quot;model&quot;), provider=kw.get(&quot;provider&quot;)):
+        return kw[&quot;next_call&quot;](kw[&quot;request&quot;])
+
+
+def _tool_span(**kw):
+    with tracer.span(&quot;tool.call&quot;, tool=kw.get(&quot;tool_name&quot;)):
+        return kw[&quot;next_call&quot;](kw[&quot;args&quot;])</code></pre><p class="bold-lead"><strong>规则</strong></p><ul><li><code>llm_request</code> 中间件<strong>只允许</strong>修改 <code>model</code>、<code>extra_headers</code>、超时等路由键；修改 <code>messages</code>、<code>input</code>、<code>tools</code>、<code>system</code> 一律拒绝，否则破坏提示缓存。本包提供 <code>guarded_request_middleware</code> 装饰器自动校验。</li><li>上游 middleware 只对<strong>已启用插件</strong>生效：Hosted 模式需 <code>hermes plugins enable agent-runtime</code>，Standalone 模式由 <code>PluginPort</code> 直接注入。</li><li>上游约定 fail-open：本包中间件自身不得承担安全兜底，安全策略仍由上游审批 / 护栏执行。</li></ul><h3 class="sub" id="s6-3">6.3 L3 依赖装饰器：SymbolBinder</h3><p><strong>原理</strong>：闭包内 1,016 处外向引用中，除模块顶层的 129 处外，其余都是函数体内（或 <code>TYPE_CHECKING</code> 块内）的 <code>from hermes_cli.config import load_config_readonly</code>。这种语句<strong>每次执行时才读取模块属性</strong>，因此只要把 <code>hermes_cli.config.load_config_readonly</code> 替换为装饰后的函数，所有延迟 import 都会拿到新实现。模块顶层的 129 处引用在导入时就已绑定，必须在导入闭包之前安装。</p><pre data-lang="python"><code><span class="c"># src/hermes_agent_runtime/bindings/binder.py（节选）</span>
+from __future__ import annotations
+
+import functools
+import importlib
+from dataclasses import dataclass
+from typing import Any, Callable
+
+
+@dataclass(frozen=True)
+class Binding:
+    module: str            <span class="c"># 生产代码读取的模块，如 &quot;hermes_cli.config&quot;</span>
+    name: str              <span class="c"># 符号名，如 &quot;load_config_readonly&quot;</span>
+    port: str              <span class="c"># 南向 Port 名，如 &quot;config&quot;</span>
+    method: str            <span class="c"># Port 方法，如 &quot;read&quot;</span>
+    required: bool = True  <span class="c"># False：上游移除时跳过（如 plugin_compat.warn_once）</span>
+    top_level: bool = False
+
+
+_ORIGINALS: dict[tuple[str, str], Any] = {}
+
+
+def original_of(module: str, name: str) -&gt; Any:
+    &quot;&quot;&quot;Hosted 适配器取上游原函数；未安装绑定时退化为模块当前属性。&quot;&quot;&quot;
+    try:
+        return _ORIGINALS[(module, name)]
+    except KeyError:
+        return getattr(importlib.import_module(module), name)
+
+
+class SymbolBinder:
+    def __init__(self, ports: dict[str, Any]) -&gt; None:
+        self._ports = ports
+
+    def install(self, bindings: list[Binding]) -&gt; None:
+        for b in bindings:
+            try:
+                mod = importlib.import_module(b.module)
+                original = getattr(mod, b.name)
+            except (ImportError, AttributeError):
+                if b.required:
+                    raise BindingDrift(b)
+                continue
+            _ORIGINALS.setdefault((b.module, b.name), original)   <span class="c"># 重复 install 不覆盖真正的原函数</span>
+            setattr(mod, b.name, self._decorate(original, b))
+
+    def _decorate(self, original: Callable, b: Binding) -&gt; Callable:
+        port_method = getattr(self._ports[b.port], b.method)
+
+        @functools.wraps(original)
+        def bound(*args, **kwargs):
+            return port_method(*args, **kwargs)
+
+        bound.__hermes_binding__ = b
+        bound.__wrapped_original__ = original
+        return bound
+
+    def uninstall(self) -&gt; None:
+        for (module, name), original in _ORIGINALS.items():
+            setattr(importlib.import_module(module), name, original)
+        _ORIGINALS.clear()</code></pre><p class="bold-lead"><strong>要点</strong></p><ul><li><strong>Hosted 模式下 Port 适配器直接调用 <code>__wrapped_original__</code></strong>：行为与上游一致，仅多一层函数调用。配置读取是热路径（上游注释：<code>load_config</code> 缓存命中约 265µs，其中约一半是深拷贝，<code>load_config_readonly</code> 正是为跳过它而存在），装饰层必须保持零分配。</li><li><strong>顶层绑定的 78 个符号</strong>（附录 A.2）必须在 <code>import run_agent</code> 之前 <code>install</code>，由 <code>bootstrap()</code> 或 <code>hermes-rt</code> launcher 保证；守卫 G3 在闭包新增顶层外向 import 时报警。</li><li>工具类模块<strong>不设 Port</strong>，但是否能整模块随行复制取决于它自身的依赖（已逐个核实）：<code>hermes_cli/timefmt.py</code>、<code>sizefmt.py</code> 无本地依赖，<code>route_identity.py</code> 只依赖闭包内的 <code>agent.agent_init</code>，均可原样随行；<code>_subprocess_compat.py</code> 依赖 <code>gateway.status</code>、<code>timeouts.py</code> 依赖 <code>hermes_cli.config</code>，可以随行，但这两个依赖要由影子模块转交 <code>HostProcessPort</code> / <code>ConfigPort</code>；<code>cfg_get</code> 定义在 <code>hermes_cli/config.py</code> 内，不能整模块复制，只在 config 影子模块中提供（详见附录 F.1）。</li><li>绑定清单按「消费方读取处」建立：上游若把定义挪到兄弟模块，但读取处不变，绑定仍然有效；读取处变化由 G2 发现。</li></ul><h3 class="sub" id="s6-4">6.4 可选：通过 launcher 接管上游宿主</h3><p>上游宿主（gateway、tui_gateway 等）直接构造 <code>AIAgent</code>，改它们等于修改上游。替代做法是提供自有启动器，先装绑定，再进入上游入口：</p><pre data-lang="python"><code><span class="c"># src/hermes_agent_runtime/bindings/launcher.py</span>
+def main() -&gt; int:
+    from hermes_agent_runtime.bootstrap import bootstrap
+    bootstrap(mode=&quot;hosted&quot;, adopt_upstream_hosts=True)   <span class="c"># 安装 L3 绑定，并把 run_agent.AIAgent 替换为子类</span>
+    from hermes_cli.main import main as upstream_main
+    return upstream_main()</code></pre><ul><li>替换采用<strong>子类</strong> <code>DecoratedAIAgent(AIAgent)</code> 而不是包装对象：保留 <code>isinstance</code> 判断与宿主的 110 处私有属性访问。</li><li>上游兄弟模块在函数体内 <code>from run_agent import AIAgent</code>（11 处），后台复盘、<code>/btw</code> 等 fork 出的子代理同样会被装饰。子类需带重入保护，避免重复叠加。</li><li>这一步是<strong>可选增强</strong>：不启用时，上游宿主行为完全不变；自建宿主照常只走北向 Port。</li></ul></section><section id="h20"><div class="sec-head"><h2>南向 Port：运行时对外需求</h2><span class="sec-tag">§7</span></div><h3 class="sub" id="s7-1">7.1 外向符号分桶</h3><div class="tscroll"><table><thead><tr><th>桶</th><th>处理方式</th><th>典型符号</th></tr></thead><tbody><tr><td>① 工具类模块</td><td>随行复制，不设 Port；其自身的外部依赖走影子模块</td><td><code>timefmt</code>、<code>sizefmt</code>、<code>route_identity</code>（可原样随行）；<code>_subprocess_compat.*</code>（39，依赖 <code>gateway.status</code>）、<code>timeouts</code>（依赖 <code>hermes_cli.config</code>）；<code>config.cfg_get</code>（只在影子模块中提供）</td></tr><tr><td>② 配置 / 凭证 / 模型目录</td><td>Port + 双适配器</td><td><code>hermes_cli.config</code>、<code>auth</code>、<code>runtime_provider</code>、<code>providers</code>、<code>models</code>、<code>copilot_auth</code>、<code>anon_auth</code>、<code>nous_account</code></td></tr><tr><td>③ 宿主上下文</td><td>Port + 双适配器</td><td><code>gateway.session_context</code>、<code>gateway.status</code>、<code>gateway.config</code>、<code>gateway.platforms.base</code>、<code>cron.*</code>、<code>hermes_cli.profiles</code></td></tr><tr><td>④ 扩展系统</td><td>Port；Standalone 下可为空实现</td><td><code>hermes_cli.plugins</code>、<code>lifecycle</code>、<code>middleware</code></td></tr><tr><td>⑤ 兼容层</td><td>可选绑定，不设 Port</td><td><code>hermes_cli.plugin_compat.warn_once</code>（56 处，2026-09-14 移除）</td></tr></tbody></table></div><h3 class="sub" id="s7-2">7.2 Port 清单</h3><div class="tscroll"><table><thead><tr><th>Port</th><th>覆盖符号（引用次数）</th><th>核心方法</th><th>Standalone 实现</th></tr></thead><tbody><tr><td><code>ConfigPort</code></td><td><code>load_config</code> 70、<code>load_config_readonly</code> 63、<code>read_raw_config</code> 16、<code>get_env_value</code> 6、<code>get_config_path</code> 3、<code>save_config</code> 2、<code>DEFAULT_CONFIG</code> 2、<code>load_env</code> 2</td><td><code>read()</code> / <code>read_mutable()</code> / <code>read_raw()</code> / <code>env(name)</code> / <code>path()</code> / <code>save(cfg)</code></td><td>内存 dict 或指定 YAML，<code>save</code> 可禁用</td></tr><tr><td><code>CredentialPort</code></td><td><code>hermes_cli.auth</code> 85、<code>runtime_provider</code> 24、<code>copilot_auth</code> 15、<code>anon_auth</code> 18、<code>nous_account</code> 13</td><td><code>resolve_runtime(requested, explicit_api_key)</code> / <code>provider_auth_state(pid)</code> / <code>pool_read</code> / <code>pool_write</code></td><td>显式密钥 + 环境变量；OAuth 类 provider 不支持</td></tr><tr><td><code>ProviderCatalogPort</code></td><td><code>hermes_cli.providers</code> 30、<code>hermes_cli.models</code> 31、<code>providers.get_provider_profile</code> 19</td><td><code>profile(name)</code> / <code>normalize(name)</code> / <code>api_mode(route)</code> / <code>is_actual_route(url)</code></td><td>随包携带一份 provider 快照</td></tr><tr><td><code>SessionContextPort</code></td><td><code>gateway.session_context</code> 46（<code>get_session_env</code> 33）</td><td><code>get(name, default)</code> / <code>bind(**vars)</code> / <code>current_session_id()</code></td><td>自有 <code>ContextVar</code> 实现，语义同上游「ContextVar 优先，否则 <code>os.environ</code>」</td></tr><tr><td><code>PluginPort</code></td><td><code>hermes_cli.plugins</code> 51、<code>lifecycle</code> 17、<code>middleware</code> 9</td><td><code>invoke_hook(name, **kw)</code> / <code>has_hook(name)</code> / <code>apply_llm_request(...)</code> / <code>run_tool_execution(...)</code></td><td>仅本包注册的中间件链；第三方插件不加载</td></tr><tr><td><code>HostProcessPort</code></td><td><code>gateway.status</code> 17（另有 <code>_subprocess_compat.py</code> 间接依赖）</td><td><code>pid_exists</code> / <code>process_start_time</code> / <code>running_pid</code></td><td><code>psutil</code> 实现</td></tr><tr><td><code>SchedulerPort</code></td><td><code>cron.jobs</code> 26、<code>cron.scheduler</code> 12 等，共 48</td><td><code>list_jobs</code> / <code>get_job</code> / <code>update_job</code> / …</td><td>不提供 → <code>cronjob</code> 工具集禁用</td></tr><tr><td><code>ProfilePort</code></td><td><code>hermes_cli.profiles</code> 20（<code>get_active_profile_name</code> 14）</td><td><code>active_profile()</code> / <code>profile_dir(name)</code></td><td>固定单 profile</td></tr><tr><td><code>PlatformPort</code></td><td><code>gateway.config</code> 11、<code>gateway.platforms.base</code> 10</td><td><code>platform_config(name)</code> / <code>resolve_proxy_url(...)</code></td><td>不提供 → <code>send_message</code> 等消息工具禁用</td></tr></tbody></table></div><p>长尾（<code>hermes_cli</code> 共 58 个模块）由 <code>manifest.py</code> 自动生成候选清单：<strong>未分类的符号默认 Hosted 直通，并在构建报告中列为「Standalone 未覆盖」</strong>，不会静默丢失。</p><h3 class="sub" id="s7-3">7.3 示例</h3><pre data-lang="python"><code><span class="c"># src/hermes_agent_runtime/ports/outbound.py（节选）</span>
+from typing import Any, Mapping, Optional, Protocol
+
+
+class ConfigPort(Protocol):
+    def read(self) -&gt; Mapping[str, Any]: ...                 <span class="c"># 只读视图，调用方禁止修改</span>
+    def read_mutable(self) -&gt; dict[str, Any]: ...            <span class="c"># 深拷贝</span>
+    def read_raw(self) -&gt; dict[str, Any]: ...
+    def env(self, name: str, default: str = &quot;&quot;) -&gt; str: ...
+    def save(self, cfg: Mapping[str, Any], **kw: Any) -&gt; None: ...
+
+
+class SessionContextPort(Protocol):
+    def get(self, name: str, default: str = &quot;&quot;) -&gt; str: ...
+    def current_session_id(self) -&gt; Optional[str]: ...</code></pre><pre data-lang="python"><code><span class="c"># src/hermes_agent_runtime/adapters/hosted/config.py —— 唯一允许 import hermes_cli 的层</span>
+from hermes_agent_runtime.bindings.binder import original_of
+
+
+class HostedConfig:
+    def read(self):
+        return original_of(&quot;hermes_cli.config&quot;, &quot;load_config_readonly&quot;)()
+
+    def read_mutable(self):
+        return original_of(&quot;hermes_cli.config&quot;, &quot;load_config&quot;)()
+
+    def read_raw(self):
+        return original_of(&quot;hermes_cli.config&quot;, &quot;read_raw_config&quot;)()
+    <span class="c"># ...</span></code></pre><div class="kicker">Hosted 适配器必须调用<strong>原函数</strong>（<code>original_of</code>）而不是模块当前属性，否则会调回自身形成递归。</div></section><section id="h24"><div class="sec-head"><h2>两种运行模式与构建时抽取</h2><span class="sec-tag">§8</span></div><h3 class="sub" id="s8-1">8.1 模式对比</h3><div class="tscroll"><table><thead><tr><th></th><th>Hosted</th><th>Standalone</th></tr></thead><tbody><tr><td>依赖</td><td>完整 hermes-agent 安装</td><td>仅 <code>hermes-agent-runtime</code> wheel</td></tr><tr><td>南向适配器</td><td>委托上游原实现</td><td>独立实现（§7.2）</td></tr><tr><td>行为</td><td>与上游一致</td><td>能力子集，由 <code>capabilities()</code> 声明</td></tr><tr><td>用途</td><td>建立 Port / 装饰器；上游测试原样回归</td><td>嵌入外部服务、独立部署</td></tr></tbody></table></div><h3 class="sub" id="s8-2">8.2 构建时抽取流程</h3><figure class="diagram"><pre class="mermaid">flowchart LR
+    A[&quot;main 同步上游&quot;] --&gt; B[&quot;closure_scan.py&lt;br/&gt;从 ③④ 根计算 import 闭包&quot;]
+    B --&gt; C{&quot;与 closure.lock 比对&quot;}
+    C --&gt;|有增删| D[&quot;守卫 G5 报告&lt;br/&gt;人工确认后更新 lock&quot;]
+    C --&gt;|一致| E[&quot;extract.py&lt;br/&gt;原样复制闭包文件&quot;]
+    D --&gt; E
+    E --&gt; F[&quot;注入 shims&lt;br/&gt;hermes_cli/config.py 等影子模块&quot;]
+    F --&gt; G[&quot;导入冒烟：逐个 import 全部模块&quot;]
+    G --&gt; H[&quot;Standalone E2E&lt;br/&gt;本地假 provider&quot;]
+    H --&gt; I[&quot;打包 wheel&quot;]</pre></figure><ul><li><strong>原样复制</strong>：闭包文件一个字节都不改，sha256 写入 <code>closure.lock</code>。任何「顺手修一下」都会破坏可重建性，一律禁止。</li><li><strong>影子模块</strong>：由绑定清单生成，只暴露被闭包实际使用的符号，函数体委托到南向 Port；未覆盖的符号抛 <code>CapabilityUnavailable(&quot;hermes_cli.kanban_db.connect is not available in standalone runtime&quot;)</code>，把「运行到某分支才 ImportError」变成可诊断的明确错误。</li><li><strong>能力门控</strong>：Scheduler / Platform / Kanban 等 Port 缺席时，<code>SpecMapper</code> 自动把相应工具集加入 <code>disabled_toolsets</code>。这样模型根本看不到这些工具，既不会误调用，也不会在对话中途改变工具集。</li><li>构建产物（<code>build/stage/</code>）<strong>不提交</strong>。</li></ul></section><section id="h27"><div class="sec-head"><h2>持续合并主线的保障</h2><span class="sec-tag">§9</span></div><h3 class="sub" id="s9-1">9.1 分支与同步</h3><pre data-lang="sh"><code>git checkout main &amp;&amp; git pull                 <span class="c"># 永远快进：main 无自有提交</span>
+git checkout local/agent-runtime
+git rebase main                               <span class="c"># 永不冲突：只新增 agent_runtime/ 与 contract/</span>
+python -m agent_runtime.guard --all           <span class="c"># 守卫 G1–G6</span>
+python agent_runtime/build/extract.py --check <span class="c"># 闭包漂移检查（不产出 wheel）</span></code></pre><p>建议<strong>每周同步一次</strong>，与上游发版节奏对齐；守卫变红时按 §9.2 的处置表修复，修复只落在 <code>agent_runtime/</code> 内。</p><h3 class="sub" id="s9-2">9.2 契约守卫</h3><div class="tscroll"><table><thead><tr><th>守卫</th><th>检查内容</th><th>基线来源</th><th>变红时的处置</th></tr></thead><tbody><tr><td><strong>G1</strong> 构造与方法面</td><td><code>AIAgent.__init__</code> 80 个参数、18 个公开方法签名、<code>SessionMaintenancePort</code> 依赖的私有属性</td><td><code>inspect.signature</code> 快照</td><td>新参数先走 <code>passthrough</code>，再并入值对象；删参数则同步修改 <code>SpecMapper</code></td></tr><tr><td><strong>G2</strong> 绑定清单</td><td>409 个外向符号在读取模块中存在且签名兼容</td><td>绑定清单快照</td><td>更新清单；读取处迁移时同步改 <code>Binding.module</code></td></tr><tr><td><strong>G3</strong> 顶层外向 import</td><td>闭包内新增的模块级外向 import</td><td>AST 扫描</td><td>加入 <code>top_level=True</code> 绑定，确认 bootstrap 顺序</td></tr><tr><td><strong>G4</strong> 扩展契约</td><td><code>MIDDLEWARE_SCHEMA_VERSION == &quot;hermes.middleware.v1&quot;</code>、<code>VALID_HOOKS</code> 集合、<code>hermes_agent.plugins</code> 分组名</td><td>常量快照</td><td>适配新版本契约，L2 插件按版本分支</td></tr><tr><td><strong>G5</strong> 闭包漂移</td><td>闭包文件增删、sha 变化统计</td><td><code>closure.lock</code></td><td>新文件纳入闭包；外向依赖进入 G2 / G3</td></tr><tr><td><strong>G6</strong> 定时移除</td><td>兼容层到期（2026-09-14）等已公告的移除</td><td><code>COMPAT_MANIFEST.md</code> 日期</td><td>相关绑定置为 <code>required=False</code></td></tr></tbody></table></div><h3 class="sub" id="s9-3">9.3 边界强制</h3><ul><li><strong>import-linter</strong>（只配置在 <code>agent_runtime/pyproject.toml</code>，不影响上游）：<ul><li><code>hermes_agent_runtime.ports</code>、<code>domain</code>、<code>application</code>、<code>decorators</code> 禁止 import <code>hermes_cli</code>、<code>gateway</code>、<code>cron</code>、<code>tui_gateway</code>、<code>plugins</code>；</li><li>只有 <code>adapters.hosted</code> 与 <code>bindings</code> 允许 import 上游外层；</li><li>自建宿主禁止 import <code>run_agent</code>、<code>agent</code>、<code>tools</code>。</li></ul></li><li>沿用 <code>contract/README.md</code> 的验收检查，并增加一条：<code>git diff --name-status main...local/agent-runtime</code> 只允许 <code>A</code> 开头的行。</li></ul></section><section id="h31"><div class="sec-head"><h2>与上游不变量的兼容性</h2><span class="sec-tag">§10</span></div><div class="tscroll"><table><thead><tr><th>不变量 / 现状</th><th>风险</th><th>对策</th></tr></thead><tbody><tr><td>提示缓存神圣</td><td>L2 中间件改写 <code>messages</code> / <code>tools</code> 会让缓存失效</td><td><code>guarded_request_middleware</code> 白名单校验；<code>CacheInvariantDecorator</code> 在 CI 中开启</td></tr><tr><td>严格角色交替</td><td>装饰器注入消息</td><td>装饰器只观察与路由，禁止构造消息；<code>steer</code> / <code>redirect</code> 原样透传</td></tr><tr><td>会话能力属于会话</td><td>以环境变量判断宿主类型</td><td><code>SessionContextPort</code> 基于 <code>ContextVar</code>；<code>capabilities</code> 由 <code>RuntimeSpec</code> 声明，不读环境变量</td></tr><tr><td>「在读取处打桩」</td><td>绑定到定义模块不生效</td><td>绑定清单按读取模块建立；G2 校验</td></tr><tr><td>进程级回调（<code>set_approval_callback</code> 等）</td><td>同进程多会话串线</td><td><code>EventBridge</code> 注册单一进程级回调，再按 <code>ContextVar</code> 会话 ID 分发到各会话的 <code>InteractionPort</code></td></tr><tr><td><code>model_tools._last_resolved_tool_names</code> 进程全局</td><td>并发会话读到瞬时旧值</td><td>与上游现状一致，不在本方案中修复；文档标注，并建议 Standalone 默认「一进程一活跃会话」</td></tr><tr><td><code>os.environ</code> 164 处 / 80 个 <code>HERMES_*</code></td><td>Standalone 无法拦截环境变量读取</td><td>启动时由 <code>RuntimeSpec</code> 物化到进程环境；同一进程内不同租户的环境变量级配置不隔离，需多进程部署</td></tr><tr><td><code>get_hermes_home()</code> 98 处</td><td>状态写入 <code>~/.hermes</code></td><td>Standalone 为每个运行时实例设置独立 <code>HERMES_HOME</code> 工作目录</td></tr></tbody></table></div></section><section id="h32"><div class="sec-head"><h2>分阶段实施路线</h2><span class="sec-tag">§11</span></div><div class="tscroll"><table><thead><tr><th>阶段</th><th>交付物</th><th>退出标准</th><th>粗估</th></tr></thead><tbody><tr><td><strong>P0 基线与守卫</strong></td><td><code>closure_scan.py</code>、<code>closure.lock</code>、绑定清单生成器、G1–G6、同步脚本、ADR</td><td>在 <code>fc71fb63e5</code> 上守卫全绿；<code>git diff main...</code> 只有新增</td><td>3–5 人日</td></tr><tr><td><strong>P1 北向 Port + Hosted 运行时</strong></td><td><code>ports/</code>、<code>domain/</code>、<code>SpecMapper</code>、<code>EventBridge</code>、<code>DefaultAgentRuntime</code>、示例自建宿主</td><td>同一请求经 Port 与直接调用 <code>AIAgent</code>，产出的消息序列一致（差分测试）</td><td>6–8 人日</td></tr><tr><td><strong>P2 装饰器链</strong></td><td>L1 装饰器、L2 middleware 插件、L3 <code>SymbolBinder</code>（Hosted 恒等）、可选 launcher</td><td>装绑定后上游 <code>tests/agent</code> 原样通过；热路径开销 &lt; 5%（基准测试）</td><td>6–8 人日</td></tr><tr><td><strong>P3 Standalone 适配器</strong></td><td>Config / Credential / ProviderCatalog / SessionContext / Plugin / Profile 的独立实现；能力门控</td><td>无 <code>hermes_cli</code> / <code>gateway</code> / <code>cron</code> 时，E2E 完成「多轮对话 + 文件工具 + 终端工具 + 记忆」</td><td>10–12 人日</td></tr><tr><td><strong>P4 构建时抽取与发布</strong></td><td><code>extract.py</code>、shims 生成、导入冒烟、wheel 发布流水线</td><td>干净虚拟环境安装 wheel 后 E2E 通过；构建可重复（同基线 sha 一致）</td><td>5–8 人日</td></tr><tr><td><strong>P5 持续同步</strong></td><td>每周同步、守卫处置手册</td><td>连续 4 次同步无人工改动上游文件</td><td>常态化</td></tr></tbody></table></div><div class="kicker">估算基于当前代码规模，未计入评审与联调等待时间。</div></section><section id="h33"><div class="sec-head"><h2>测试策略</h2><span class="sec-tag">§12</span></div><ol><li><strong>差分测试（核心）</strong>：本地起一个假 provider（兼容 OpenAI 协议的桩服务，<code>base_url</code> 指向它），同一脚本化对话分别经「直接 <code>AIAgent</code>」与「Port 运行时」执行，断言消息角色序列、工具调用序列、系统提示字节一致。</li><li><strong>上游回归网</strong>：Hosted 模式装好 L3 绑定后，原样运行上游 <code>tests/agent</code>、<code>tests/tools</code>，证明恒等绑定不改变行为。上游 1,757 处 patch 目标因此继续有效。</li><li><strong>契约测试</strong>：只断言数据之间的关系，不冻结当前值（沿用根 <code>AGENTS.md</code> 的测试原则）。例如「<code>SpecMapper</code> 的输出键 ⊆ <code>AIAgent.__init__</code> 参数集」。</li><li><strong>真实导入 E2E</strong>：配置、凭证、会话上下文相关用例一律对临时 <code>HERMES_HOME</code> 走真实导入，不用 mock（根 <code>AGENTS.md</code> 要求）。</li><li><strong>延迟 import 覆盖</strong>：因为 87% 的外向引用在函数体内，Standalone 冒烟需按工具集逐个触发调用路径，而不是只 import 一遍模块。</li><li><strong>环境前提</strong>：上游 <code>requires-python = &quot;&gt;=3.11,&lt;3.14&quot;</code>；当前开发机只有系统 Python 3.9 且无虚拟环境，P0 之前需先建好 3.11+ 环境。</li></ol></section><section id="h34"><div class="sec-head"><h2>风险与待决策项</h2><span class="sec-tag">§13</span></div><h3 class="sub" id="s13-1">13.1 风险</h3><div class="tscroll"><table><thead><tr><th>风险</th><th>概率</th><th>影响</th><th>对策</th></tr></thead><tbody><tr><td>上游再次大规模拆分（如 2026-09 一次搬动 1,148 个名字）</td><td>中</td><td>G2 / G5 大面积变红</td><td>绑定清单自动生成 + 按读取处建模；一次同步集中处理</td></tr><tr><td>新增顶层外向 import 绕过 L3</td><td>中</td><td>Standalone 导入失败</td><td>G3 在同步时拦截</td></tr><tr><td>middleware 契约升级到 v2</td><td>低</td><td>L2 插件失效</td><td>G4 拦截；按版本分支</td></tr><tr><td>Standalone 覆盖面不足</td><td>高</td><td>部分工具不可用</td><td>能力门控提前禁用，并列入构建报告；按业务需要逐步补 Port</td></tr><tr><td>私有属性访问提升不完整</td><td>中</td><td>自建宿主缺维护能力</td><td>以附录 D 为清单逐项迁移；未提升前由 Hosted 宿主兜底</td></tr><tr><td>进程级全局状态并发</td><td>中</td><td>多会话串线</td><td>一进程一活跃会话；需要并发时多进程部署</td></tr></tbody></table></div><h3 class="sub" id="s13-2">13.2 需要你确认的决策</h3><ol><li><strong>ADR 变更</strong>：是否在 <code>contract/b-line-extraction-options.html</code> 中新增「方案 2′：零修改上游 + 构建时抽取」，并说明它与方案 1（黑盒 <code>hermes serve</code>）的分工：对话前端走方案 1，嵌入式运行时走方案 2′。</li><li><strong>launcher 接管上游宿主（§6.4）</strong> 是否纳入 P2，还是只服务自建宿主。</li><li><strong>Standalone 首批能力范围</strong>：建议首批包含对话、文件、终端、记忆、技能；不含 cron、kanban、消息投递、OAuth 类 provider。</li><li><strong>发行名</strong>：<code>hermes-agent-runtime</code> / <code>hermes_agent_runtime</code> 是否可用，以及是否发布到内部 PyPI。</li></ol></section><section id="appendix-A"><div class="sec-head"><h2>附录 A　外向符号绑定清单</h2><span class="sec-tag">附录</span></div><h3 class="sub" id="appendix-A-1">A.1 按 Port 汇总（前列符号）</h3><div class="tscroll"><table><thead><tr><th>Port</th><th>模块</th><th>符号（顶层 / 延迟引用次数）</th></tr></thead><tbody><tr><td>ConfigPort</td><td><code>hermes_cli.config</code>（235）</td><td><code>load_config</code>（3/67）、<code>load_config_readonly</code>（0/63）、<code>cfg_get</code>（10/14，纯函数随行）、<code>read_raw_config</code>（2/14）、<code>get_compatible_custom_providers</code>（0/9）、<code>get_env_value</code>（0/6）、<code>get_config_path</code>（0/3）、<code>apply_custom_provider_tls_to_client_kwargs</code>（0/3）、<code>get_custom_provider_context_length</code>（0/3）、<code>save_config</code>（0/2）、<code>DEFAULT_CONFIG</code>（1/1）、<code>load_env</code>（1/1）</td></tr><tr><td>CredentialPort</td><td><code>hermes_cli.auth</code>（85）</td><td><code>PROVIDER_REGISTRY</code>（1/9）、<code>normalize_actual_base_url</code>（0/9）、<code>resolve_nous_runtime_credentials</code>（0/4）、<code>get_provider_auth_state</code>（0/4）、<code>resolve_api_key_provider_credentials</code>（0/3）、<code>resolve_codex_runtime_credentials</code>（1/1）、<code>read_credential_pool</code> / <code>write_credential_pool</code>（顶层 1）、若干私有 <code>_load_auth_store</code> / <code>_save_auth_store</code> / <code>_auth_store_lock</code></td></tr><tr><td>CredentialPort</td><td><code>hermes_cli.runtime_provider</code>（24）</td><td><code>resolve_runtime_provider</code>（1/10）、<code>_get_named_custom_provider</code>（0/6）</td></tr><tr><td>CredentialPort</td><td><code>hermes_cli.copilot_auth</code>（15）、<code>anon_auth</code>（18）、<code>nous_account</code>（13）</td><td><code>resolve_copilot_token</code>、<code>get_copilot_api_token</code>、<code>ensure_portal_identity</code>、<code>get_nous_portal_account_info</code> …</td></tr><tr><td>ProviderCatalogPort</td><td><code>hermes_cli.providers</code>（30）、<code>hermes_cli.models</code>（31）、<code>providers</code>（21）</td><td><code>is_actual_route</code>（13）、<code>nous_api_mode</code>（5）、<code>get_provider_profile</code>（19）、<code>normalize_provider</code>、<code>deepinfra_base_url</code> …</td></tr><tr><td>SessionContextPort</td><td><code>gateway.session_context</code>（46）</td><td><code>get_session_env</code>（2/31）、<code>async_delivery_supported</code>（4）、<code>set_current_session_id</code>（3）、<code>scoped_current_session_id</code>（1）</td></tr><tr><td>PluginPort</td><td><code>hermes_cli.plugins</code>（51）、<code>lifecycle</code>（17）、<code>middleware</code>（9）</td><td><code>get_plugin_manager</code>（9）、<code>discover_plugins</code>（1/7）、<code>_ensure_plugins_discovered</code>（8）、<code>invoke_hook</code>（11+2）、<code>has_hook</code>（6+1）、<code>apply_tool_request_middleware</code>（3）、<code>run_tool_execution_middleware</code>（3）</td></tr><tr><td>HostProcessPort</td><td><code>gateway.status</code>（17）</td><td><code>_pid_exists</code>（8）、<code>get_process_start_time</code>（6）</td></tr><tr><td>SchedulerPort</td><td><code>cron.jobs</code>（26）、<code>cron.scheduler</code>（12）</td><td><code>list_jobs</code>、<code>get_job</code>、<code>update_job</code>、<code>pause_job</code>、<code>resume_job</code>、<code>get_running_job_ids</code> …（主要来自 <code>tools/cronjob_tools.py</code>、<code>agent/monitoring/cron_health.py</code>）</td></tr><tr><td>ProfilePort</td><td><code>hermes_cli.profiles</code>（20）</td><td><code>get_active_profile_name</code>（14）、<code>profile_exists</code>（2）</td></tr><tr><td>PlatformPort</td><td><code>gateway.config</code>（11）、<code>gateway.platforms.base</code>（10）</td><td><code>Platform</code>（6）、<code>BasePlatformAdapter</code>（5）、<code>resolve_proxy_url</code>（2）</td></tr><tr><td>随行（工具类，依赖见附录 F.1）</td><td><code>hermes_cli._subprocess_compat</code>（39）</td><td><code>windows_hide_flags</code>（21/6）、<code>harden_git_argv</code>、<code>noninteractive_git_env</code>、<code>IS_WINDOWS</code>、<code>kill_process_tree</code></td></tr><tr><td>可选（兼容层）</td><td><code>hermes_cli.plugin_compat</code>（56）</td><td><code>warn_once</code>（0/56）</td></tr></tbody></table></div><h3 class="sub" id="appendix-A-2">A.2 必须在导入前安装的顶层绑定（78 个符号 / 129 处）</h3><p>引用次数最多的几项：<code>_subprocess_compat.windows_hide_flags</code> 21、<code>config.cfg_get</code> 10、<code>timeouts.get_provider_request_timeout</code> 5、<code>config.load_config</code> 3、<code>_subprocess_compat.harden_git_argv</code> / <code>noninteractive_git_env</code> / <code>IS_WINDOWS</code> 各 3、<code>route_identity.normalize_route_base_url</code> 3、<code>timefmt.coerce_epoch</code> 3、<code>config.read_raw_config</code> 2、<code>gateway.session_context.get_session_env</code> 2、<code>hermes_cli.__version__</code> 2。</p><p>另有 <code>hermes_cli.auth</code> 的 21 个符号（多数为 <code>_</code> 开头的私有函数，如 <code>_load_auth_store</code>、<code>_decode_jwt_claims</code>）在 <code>agent/credential_pool.py</code>、<code>agent/account_usage.py</code> 顶层导入；<code>cron.jobs</code> 的 18 个符号在 <code>tools/cronjob_tools.py</code>、<code>tools/cronjob_job_args.py</code>、<code>agent/monitoring/cron_health.py</code> 顶层导入。依赖私有符号意味着上游可以随时改名而不做任何兼容，这两处应作为 G2 的重点监控对象。完整清单由 <code>bindings/manifest.py</code> 生成，并纳入 G3。</p></section><section id="appendix-B"><div class="sec-head"><h2>附录 B　<code>AIAgent.__init__</code> → <code>RuntimeSpec</code> 映射</h2><span class="sec-tag">附录</span></div><div class="tscroll"><table><thead><tr><th>值对象</th><th>上游参数</th></tr></thead><tbody><tr><td><code>ModelRoute</code></td><td><code>base_url</code>、<code>api_key</code>、<code>provider</code>、<code>api_mode</code>、<code>model</code>、<code>requested_provider</code>、<code>fallback_model</code>、<code>credential_pool</code>*、<code>reasoning_config</code>、<code>service_tier</code>、<code>max_tokens</code>、<code>request_overrides</code>、<code>providers_allowed</code>、<code>providers_ignored</code>、<code>providers_order</code>、<code>provider_sort</code>、<code>provider_require_parameters</code>、<code>provider_data_collection</code>、<code>openrouter_min_coding_score</code></td></tr><tr><td><code>ToolPolicy</code></td><td><code>enabled_toolsets</code>、<code>disabled_toolsets</code>、<code>max_iterations</code>、<code>iteration_budget</code>*、<code>run_budget_seconds</code>、<code>checkpoints_enabled</code>、<code>checkpoint_max_snapshots</code>、<code>checkpoint_max_total_size_mb</code>、<code>checkpoint_max_file_size_mb</code></td></tr><tr><td><code>SessionBinding</code></td><td><code>session_id</code>、<code>parent_session_id</code>、<code>session_db</code>*、<code>platform</code>、<code>user_id</code>、<code>user_id_alt</code>、<code>user_name</code>、<code>chat_id</code>、<code>chat_name</code>、<code>chat_type</code>、<code>thread_id</code>、<code>gateway_session_key</code>、<code>pass_session_id</code></td></tr><tr><td><code>PromptOptions</code></td><td><code>ephemeral_system_prompt</code>、<code>prefill_messages</code>、<code>skip_context_files</code>、<code>load_soul_identity</code>、<code>skip_memory</code>、<code>skip_background_review</code></td></tr><tr><td><code>output</code></td><td><code>quiet_mode</code>、<code>verbose_logging</code>、<code>log_prefix_chars</code>、<code>log_prefix</code>、<code>tool_progress_mode</code>、<code>save_trajectories</code></td></tr><tr><td><code>acp</code></td><td><code>acp_command</code>、<code>acp_args</code>、<code>command</code>、<code>args</code></td></tr><tr><td><code>capabilities</code></td><td><code>capabilities</code></td></tr><tr><td>回调（§5.4）</td><td>21 个 <code>*_callback</code> → <code>EventSinkPort</code> / <code>InteractionPort</code></td></tr><tr><td>忽略</td><td><code>tool_delay</code>（上游已标注弃用）</td></tr></tbody></table></div><p>* 带星号的参数是运行期对象，不适合放进冻结值对象。<code>SpecMapper</code> 通过 <code>RuntimeResources</code>（会话存储、凭证池、迭代预算）单独注入：Hosted 模式由上游对象提供，Standalone 模式由对应 Port 工厂创建。</p></section><section id="appendix-C"><div class="sec-head"><h2>附录 C　宿主构造点（Hosted 适配与 launcher 覆盖面）</h2><span class="sec-tag">附录</span></div><div class="tscroll"><table><thead><tr><th>宿主</th><th>位置</th></tr></thead><tbody><tr><td>gateway</td><td><code>gateway/run_turn.py:1148</code>、<code>gateway/run_turn.py:2165</code>、<code>gateway/run_turn_runner.py:1017</code>、<code>gateway/slash_commands_session.py:628</code>、<code>gateway/platforms/api_server.py:2169</code></td></tr><tr><td>tui_gateway</td><td><code>tui_gateway/server.py:2298</code>、<code>tui_gateway/methods_prompt.py:990</code>、<code>tui_gateway/methods_prompt.py:1083</code></td></tr><tr><td>cron</td><td><code>cron/scheduler.py:2153</code></td></tr><tr><td>acp_adapter</td><td><code>acp_adapter/session.py:421</code></td></tr><tr><td>hermes_cli</td><td><code>hermes_cli/cli_agent_setup_mixin.py:534</code>、<code>hermes_cli/cli_commands_mixin.py:1938</code>、<code>hermes_cli/oneshot.py:475</code>、<code>hermes_cli/prompt_size.py:61</code></td></tr><tr><td>其他</td><td><code>batch_runner.py:247</code>、<code>plugins/platforms/feishu/feishu_comment.py:499</code>、<code>scripts/</code>（5 处）</td></tr></tbody></table></div></section><section id="appendix-D"><div class="sec-head"><h2>附录 D　宿主私有属性访问（需提升为 <code>SessionMaintenancePort</code> 的候选）</h2><span class="sec-tag">附录</span></div><div class="tscroll"><table><thead><tr><th>私有属性</th><th>访问次数</th><th>建议</th></tr></thead><tbody><tr><td><code>_compress_context</code></td><td>7</td><td><code>compress_context()</code></td></tr><tr><td><code>_persist_session</code></td><td>5</td><td><code>persist()</code></td></tr><tr><td><code>_last_flushed_db_idx</code></td><td>5</td><td>只读 <code>flush_cursor</code> 属性</td></tr><tr><td><code>_print_fn</code></td><td>5</td><td>归入 <code>EventSinkPort</code></td></tr><tr><td><code>_invalidate_system_prompt</code></td><td>4</td><td><code>invalidate_system_prompt()</code>（仅限压缩 / 会话切换场景）</td></tr><tr><td><code>_end_session_on_close</code></td><td>4</td><td><code>set_end_session_on_close()</code></td></tr><tr><td><code>_gateway_turn_process_task_id</code> / <code>_baseline</code> / <code>_epoch</code></td><td>4 / 4 / 2</td><td>网关专用，保留在 Hosted 适配器内，不进入公共 Port</td></tr><tr><td><code>_flush_messages_to_session_db</code></td><td>3</td><td><code>flush_to_store()</code></td></tr><tr><td><code>_session_db_created</code>、<code>_session_messages</code>、<code>_db_flush_scan_prefix</code></td><td>3 / 3 / 3</td><td>只读诊断视图 <code>store_state()</code></td></tr><tr><td><code>_compression_skipped_due_to_lock</code></td><td>3</td><td>并入 <code>TurnResult.compression</code></td></tr><tr><td><code>_on_session_title</code>、<code>_session_title_hint</code></td><td>3 / 2</td><td>归入事件 <code>SessionTitled</code></td></tr><tr><td><code>_cached_system_prompt</code></td><td>3</td><td>只读 <code>system_prompt_fingerprint()</code>，不暴露原文</td></tr><tr><td><code>_spawn_background_review</code></td><td>2</td><td><code>spawn_background_review()</code></td></tr><tr><td><code>_fallback_activated</code>、<code>_fallback_chain</code>、<code>_fallback_model</code>、<code>_primary_runtime</code>、<code>_restore_primary_runtime</code></td><td>各 2</td><td>只读 <code>route_state()</code> + <code>restore_primary_route()</code></td></tr><tr><td>其余</td><td>共约 40 处</td><td>按宿主迁移逐项评估</td></tr></tbody></table></div><p>按宿主统计：hermes_cli 42、gateway 37、tui_gateway 23、acp_adapter 5、其他 3（batch_runner / cli / cron 各 1）。</p></section><section id="appendix-E"><div class="sec-head"><h2>附录 E　数据来源与复现</h2><span class="sec-tag">附录</span></div><div class="tscroll"><table><thead><tr><th>数据</th><th>方法</th></tr></thead><tbody><tr><td>内聚度、双向依赖、主题簇</td><td>AST 扫描全部非测试 <code>.py</code> 的 import 语句，按「模块顶层 / 函数体内 / <code>TYPE_CHECKING</code>」分类</td></tr><tr><td>外向符号清单（409）</td><td>闭包内 <code>from X import Y</code> 中 X 属于外层包的 (X, Y) 去重计数</td></tr><tr><td><code>AIAgent</code> 公开面</td><td>解析 <code>run_agent.py::AIAgent</code> 与其 14 个 mixin 类的方法定义</td></tr><tr><td>宿主构造参数与方法调用</td><td>闭包外文件中 <code>AIAgent(...)</code> 的关键字参数，以及接收者名匹配 <code>agent</code> 的属性访问（启发式，可能略有低估）</td></tr><tr><td>扩展点</td><td>闭包内继承 <code>ABC</code> / <code>Protocol</code> 的类，以及 <code>register_*</code> / <code>set_*_callback</code> 函数</td></tr><tr><td>上游变更频率</td><td><code>git log --since=2025-09-13 --oneline -- &lt;path&gt;</code></td></tr></tbody></table></div><p><strong>局限</strong>：静态分析不包含 <code>importlib</code> 动态导入、插件发现和字符串形式的反射调用，实际耦合只会多不会少。P0 的守卫需在真实运行中补充一次运行期 import 追踪（<code>sys.addaudithook</code> 记录 <code>import</code> 事件）作为校准。</p></section><section id="appendix-F"><div class="sec-head"><h2>附录 F　变更清单：目录文件、Port 与装饰器</h2><span class="sec-tag">附录</span></div><div class="kicker"><strong>一句话：本方案不移动任何上游目录或文件。</strong> 上游代码原地不动、一行不改；「抽取」是构建时把闭包原样<strong>复制</strong>一份打包；所有自有代码只新增在 <code>agent_runtime/</code> 与 <code>contract/</code>。</div><h3 class="sub" id="appendix-F-1">F.1 目录与文件的处理方式</h3><p class="bold-lead"><strong>A. 上游代码：原地不动（0 移动、0 修改）</strong></p><p><code>agent/</code>、<code>tools/</code>、<code>hermes_cli/</code>、<code>gateway/</code>、<code>tui_gateway/</code>、<code>cron/</code>、<code>plugins/</code>、<code>providers/</code> 以及 <code>pyproject.toml</code>、<code>tests/</code>、各级 <code>AGENTS.md</code> 全部保持原样；<code>git diff --name-status main...local/agent-runtime</code> 只允许出现 <code>A</code> 开头的行。</p><p><strong>B. 构建时复制（不是移动）</strong>：产物位于 <code>agent_runtime/build/stage/</code>，不提交，每个文件的 sha256 记入 <code>closure.lock</code>。</p><div class="tscroll"><table><thead><tr><th>复制对象</th><th>数量</th><th>说明</th></tr></thead><tbody><tr><td><code>agent/</code></td><td>279 个 .py</td><td>③ Agent 核心</td></tr><tr><td><code>tools/</code></td><td>299 个 .py</td><td>④ 工具能力</td></tr><tr><td><code>hermes_state.py</code> + <code>hermes_state_*.py</code></td><td>22 个</td><td>会话存储</td></tr><tr><td><code>run_agent.py</code>、<code>model_tools.py</code>、<code>toolsets.py</code>、<code>toolset_distributions.py</code></td><td>4 个</td><td>入口与工具编排</td></tr><tr><td><code>hermes_constants.py</code>、<code>hermes_logging.py</code>、<code>hermes_time.py</code>、<code>utils.py</code></td><td>4 个</td><td>公共基础</td></tr><tr><td><strong>合计</strong></td><td><strong>608 个文件</strong>，约 15.6MB</td><td>与闭包扫描结果一致</td></tr></tbody></table></div><p class="bold-lead"><strong>随行的工具类模块（逐个核实了 import）</strong></p><div class="tscroll"><table><thead><tr><th>模块</th><th>实际本地依赖</th><th>处理方式</th></tr></thead><tbody><tr><td><code>hermes_cli/timefmt.py</code>、<code>hermes_cli/sizefmt.py</code></td><td>无</td><td>原样随行</td></tr><tr><td><code>hermes_cli/route_identity.py</code></td><td><code>agent.agent_init</code>（闭包内）</td><td>原样随行</td></tr><tr><td><code>hermes_cli/_subprocess_compat.py</code></td><td><code>agent.deadline</code>、<code>gateway.status</code></td><td>随行；<code>gateway.status</code> 由影子模块转交 <code>HostProcessPort</code></td></tr><tr><td><code>hermes_cli/timeouts.py</code></td><td><code>hermes_cli.config</code></td><td>随行；<code>hermes_cli.config</code> 由影子模块转交 <code>ConfigPort</code></td></tr><tr><td><code>cfg_get</code>（位于 <code>hermes_cli/config.py</code>）</td><td>—</td><td>不整模块复制，只在 config 影子模块中提供</td></tr></tbody></table></div><p class="bold-lead"><strong>C. 新增的自有目录与文件</strong></p><pre data-lang="text"><code>agent_runtime/
+├── pyproject.toml / README.md
+├── src/hermes_agent_runtime/
+│   ├── bootstrap.py
+│   ├── ports/        inbound.py  outbound.py  errors.py
+│   ├── domain/       spec.py  events.py  results.py
+│   ├── application/  runtime.py  spec_mapper.py  event_bridge.py
+│   ├── decorators/   session.py  middleware_plugin.py
+│   ├── bindings/     manifest.py  binder.py  launcher.py
+│   ├── adapters/     hosted/  standalone/
+│   └── shims/        影子模块模板（hermes_cli/config.py、gateway/status.py …）
+├── build/            closure_scan.py  closure.lock  extract.py
+├── guard/            契约守卫 G1–G6
+└── tests/
+contract/             方案文档（本文件、HTML 版、业务架构图）</code></pre><h3 class="sub" id="appendix-F-2">F.2 北向 Port（5 个，约束上层调用）</h3><div class="tscroll"><table><thead><tr><th>Port</th><th>谁实现 / 谁调用</th><th>方法</th><th>说明</th></tr></thead><tbody><tr><td><strong>AgentRuntimePort</strong></td><td>运行时实现，宿主调用</td><td><code>open_session(spec, events, interaction)</code>、<code>maintenance(session)</code>、<code>capabilities()</code></td><td>宿主唯一需要持有的入口：按 <code>RuntimeSpec</code> 开会话，并声明当前模式下可用的工具集与能力</td></tr><tr><td><strong>AgentSessionPort</strong></td><td>运行时实现，宿主调用</td><td><code>run_turn</code>、<code>chat</code>、<code>interrupt</code>、<code>steer</code>、<code>redirect</code>、<code>clear_interrupt</code>、<code>is_interrupted</code>、<code>activity</code>、<code>rate_limit_state</code>、<code>credits_state</code>、<code>credits_spent_micros</code>、<code>reset</code>、<code>commit_memory</code>、<code>release_clients</code>、<code>close</code></td><td>一次会话；与 <code>AIAgent</code> 的 18 个公开方法一一对应，参数不超出上游，因此 Hosted 模式可原样转交</td></tr><tr><td><strong>SessionMaintenancePort</strong></td><td>运行时实现，只开放给 gateway / tui 这类长会话宿主</td><td><code>compress_context</code>、<code>persist</code>、<code>flush_to_store</code>、<code>invalidate_system_prompt</code>、<code>set_end_session_on_close</code>、<code>spawn_background_review</code></td><td>把宿主对 <code>AIAgent</code> 私有属性的 110 处直接访问中常用的部分变成正式契约；普通宿主不可见</td></tr><tr><td><strong>EventSinkPort</strong></td><td>宿主实现，运行时调用</td><td><code>emit(event)</code></td><td>接收单向事件：流式输出、思考、工具开始 / 进度 / 完成、状态、通知、表情反应；对应上游 14 个通知类回调</td></tr><tr><td><strong>InteractionPort</strong></td><td>宿主实现，运行时调用</td><td><code>clarify</code>、<code>approve</code>、<code>read_terminal</code>、<code>capture_secret</code></td><td>需要人参与并拿回结果的交互；对应上游 7 个交互类构造回调（其中 <code>setup_mcp_callback</code>、<code>tour_callback</code> 可选），以及 <code>set_approval_callback</code> 等进程级回调（按当前会话 ID 分发）</td></tr></tbody></table></div><h3 class="sub" id="appendix-F-3">F.3 南向 Port（9 个，运行时对外需求）</h3><div class="tscroll"><table><thead><tr><th>Port</th><th>替代的上游调用（引用次数）</th><th>核心方法</th><th>Hosted 模式</th><th>Standalone 模式</th></tr></thead><tbody><tr><td><strong>ConfigPort</strong></td><td><code>hermes_cli.config</code> 235（<code>load_config</code> 70、<code>load_config_readonly</code> 63 …）</td><td><code>read</code>、<code>read_mutable</code>、<code>read_raw</code>、<code>env</code>、<code>path</code>、<code>save</code></td><td>调上游原函数</td><td>内存 dict 或指定 YAML</td></tr><tr><td><strong>CredentialPort</strong></td><td><code>auth</code> 85、<code>runtime_provider</code> 24、<code>anon_auth</code> 18、<code>copilot_auth</code> 15、<code>nous_account</code> 13</td><td><code>resolve_runtime</code>、<code>provider_auth_state</code>、<code>pool_read</code>、<code>pool_write</code></td><td>调上游原函数</td><td>显式密钥 + 环境变量；不支持 OAuth 类 provider</td></tr><tr><td><strong>ProviderCatalogPort</strong></td><td><code>hermes_cli.providers</code> 30、<code>hermes_cli.models</code> 31、<code>providers</code> 21</td><td><code>profile</code>、<code>normalize</code>、<code>api_mode</code>、<code>is_actual_route</code></td><td>调上游原函数</td><td>随包携带 provider 快照</td></tr><tr><td><strong>SessionContextPort</strong></td><td><code>gateway.session_context</code> 46（<code>get_session_env</code> 33）</td><td><code>get</code>、<code>bind</code>、<code>current_session_id</code></td><td>调上游原函数</td><td>自带实现：先查会话变量（ContextVar），再读环境变量</td></tr><tr><td><strong>PluginPort</strong></td><td><code>hermes_cli.plugins</code> 51、<code>lifecycle</code> 17、<code>middleware</code> 9</td><td><code>invoke_hook</code>、<code>has_hook</code>、<code>apply_llm_request</code>、<code>run_tool_execution</code></td><td>调上游插件系统</td><td>只运行本包注册的中间件，不加载第三方插件</td></tr><tr><td><strong>HostProcessPort</strong></td><td><code>gateway.status</code> 17（另有 <code>_subprocess_compat.py</code> 间接依赖）</td><td><code>pid_exists</code>、<code>process_start_time</code>、<code>running_pid</code></td><td>调上游原函数</td><td>psutil 实现</td></tr><tr><td><strong>SchedulerPort</strong></td><td><code>cron.jobs</code> 26、<code>cron.scheduler</code> 12 等共 48</td><td><code>list_jobs</code>、<code>get_job</code>、<code>update_job</code>、<code>pause_job</code> …</td><td>调上游原函数</td><td>不提供，<code>cronjob</code> 工具集自动禁用</td></tr><tr><td><strong>ProfilePort</strong></td><td><code>hermes_cli.profiles</code> 20</td><td><code>active_profile</code>、<code>profile_dir</code></td><td>调上游原函数</td><td>固定单 profile</td></tr><tr><td><strong>PlatformPort</strong></td><td><code>gateway.config</code> 11、<code>gateway.platforms.base</code> 10</td><td><code>platform_config</code>、<code>resolve_proxy_url</code></td><td>调上游原函数</td><td>不提供，消息投递类工具自动禁用</td></tr></tbody></table></div><h3 class="sub" id="appendix-F-4">F.4 装饰器（三层，共 15 个）</h3><p><strong>L1 会话装饰器（7 个）</strong>：均实现 <code>AgentSessionPort</code>，可任意叠加。建议叠加顺序（由外到内）：</p><pre data-lang="text"><code>宿主 → CapabilityGate → ConcurrencyGuard → ErrorMapping → Tracing → Metrics → (CacheInvariant) → DefaultAgentSession → AIAgent</code></pre><div class="tscroll"><table><thead><tr><th>装饰器</th><th>作用</th><th>默认</th></tr></thead><tbody><tr><td><strong>SessionDecorator</strong></td><td>基类：未覆写的方法原样委托内层，子类只写关心的方法</td><td>—</td></tr><tr><td><strong>ErrorMappingDecorator</strong></td><td>把上游异常转成本包的领域异常并保留原始异常链，宿主无需 import 上游异常类</td><td>开</td></tr><tr><td><strong>TracingDecorator</strong></td><td>每轮对话记录一段追踪，带会话 ID</td><td>开</td></tr><tr><td><strong>MetricsDecorator</strong></td><td>统计每轮耗时、token、费用</td><td>开</td></tr><tr><td><strong>CacheInvariantDecorator</strong></td><td>校验同一会话内系统提示与工具集没有中途改变（上下文压缩除外），防止提示缓存失效</td><td>CI / 调试</td></tr><tr><td><strong>ConcurrencyGuardDecorator</strong></td><td>同一会话的 <code>run_turn</code> 串行执行，补充上游自带的轮次锁</td><td>开</td></tr><tr><td><strong>CapabilityGateDecorator</strong></td><td>Standalone 下请求不可用工具集时提前报出明确错误</td><td>Standalone</td></tr></tbody></table></div><p><strong>L2 执行装饰器（6 个）</strong>：经 <code>hermes_agent.plugins</code> entry point 注册，走上游官方 middleware 契约，不改上游文件；执行类中间件收到 <code>next_call</code>，调用即继续下游。</p><div class="tscroll"><table><thead><tr><th>名称</th><th>挂载点</th><th>作用</th></tr></thead><tbody><tr><td><strong>_route_policy</strong></td><td><code>llm_request</code></td><td>调用模型前调整路由参数（模型、请求头、超时）</td></tr><tr><td><strong>_llm_span</strong></td><td><code>llm_execution</code></td><td>包住真实的模型调用，记录追踪与耗时</td></tr><tr><td><strong>_tool_arg_policy</strong></td><td><code>tool_request</code></td><td>在审批与护栏之前改写工具参数；改写后的值就是审批看到的值，需谨慎</td></tr><tr><td><strong>_tool_span</strong></td><td><code>tool_execution</code></td><td>包住真实的工具执行，记录追踪</td></tr><tr><td><strong>_emit_tool_event</strong></td><td>hook <code>post_tool_call</code></td><td>工具执行完成后向宿主发送 <code>ToolCompleted</code> 事件</td></tr><tr><td><strong>guarded_request_middleware</strong></td><td>包在请求类中间件外层</td><td>拒绝改写历史消息、工具定义、系统提示的中间件，守住提示缓存</td></tr></tbody></table></div><p class="bold-lead"><strong>L3 依赖装饰器（1 个机制 + 1 个可选）</strong></p><div class="tscroll"><table><thead><tr><th>名称</th><th>作用</th></tr></thead><tbody><tr><td><strong>SymbolBinder 生成的转发函数</strong></td><td>每条绑定生成一个，例如把 <code>hermes_cli.config.load_config_readonly</code> 换成转交 <code>ConfigPort.read</code> 的函数。上游多数外部调用写在函数体内、执行时才查找，所以替换能生效；模块顶层导入的 78 个符号必须在上游代码导入前安装。Hosted 模式下 Port 直接调上游原函数，行为不变</td></tr><tr><td><strong>DecoratedAIAgent</strong>（可选，由 launcher 启用）</td><td><code>AIAgent</code> 的子类，启动时替换 <code>run_agent.AIAgent</code>，让上游自己的 gateway / tui / cron 也经过装饰器；用子类而不是包装对象，是为了保留 <code>isinstance</code> 判断和 110 处私有属性访问</td></tr></tbody></table></div><h3 class="sub" id="appendix-F-5">F.5 配套组件（非 Port、非装饰器）</h3><div class="tscroll"><table><thead><tr><th>组件</th><th>作用</th></tr></thead><tbody><tr><td><code>bootstrap</code></td><td>安装绑定，选择适配器，返回 <code>AgentRuntimePort</code></td></tr><tr><td><code>SpecMapper</code></td><td><code>RuntimeSpec</code> → <code>AIAgent</code> 的 80 个构造参数，并按上游签名校验</td></tr><tr><td><code>EventBridge</code></td><td>21 个回调 → <code>EventSinkPort</code> / <code>InteractionPort</code></td></tr><tr><td><code>DefaultAgentRuntime</code> / <code>DefaultAgentSession</code></td><td>北向 Port 的默认实现</td></tr><tr><td><code>manifest</code></td><td>外部符号绑定清单（自动生成 + 人工分类）</td></tr><tr><td><code>launcher</code></td><td>可选启动器 <code>hermes-rt</code>：先装绑定再进入上游 main</td></tr><tr><td><code>shims</code></td><td>构建期生成的影子模块</td></tr><tr><td><code>guard</code></td><td>契约守卫 G1–G6</td></tr></tbody></table></div></section>
+  <footer>
+    由 contract/agent-runtime-extraction-plan.md 生成（同目录 Markdown 为源文件，两者内容一致）。<br>
+    数据实测自 qlshouyu/hermes-agent @ fc71fb63e5，上游 NousResearch/hermes-agent v0.21.2。<br>
+    配色沿用 contract/hermes-business-architecture.drawio 的分层图例：蓝＝宿主 · 绿＝Agent 内核 / 采纳 · 黄＝需留意 · 红＝边界 · 紫＝协议。
+  </footer>
+</div>
+<a class="to-top" href="#top">↑ 顶部</a>
+<script type="module">
+  // 图表渲染：离线时保留 Mermaid 源码文本，不影响阅读
+  try {
+    const { default: mermaid } = await import("https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs");
+    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+    mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "neutral", securityLevel: "strict",
+      fontFamily: '"IBM Plex Sans","Noto Sans SC","PingFang SC",sans-serif' });
+    await mermaid.run({ querySelector: "pre.mermaid" });
+  } catch (e) { console.warn("mermaid unavailable, showing source", e); }
+</script>
+</body>
+</html>
