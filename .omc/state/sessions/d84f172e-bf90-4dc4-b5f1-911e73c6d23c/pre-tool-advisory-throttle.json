@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "entries": {
+    "60ef30120d3be49fa9e2ca7a632f9ef1d05eaddd4797ac86aff03bcb41e015a3": {
+      "last_emitted_at_ms": 1789307649686,
+      "message": "Spawning agent: Explore (inherit) | Task: Q3 host-owned history implications"
+    },
+    "466399dafa2d20f60587180bad0a07358eb7f2bce724df0ff682f038ad33f5ad": {
+      "last_emitted_at_ms": 1789307643710,
+      "message": "Read multiple files in parallel when possible for faster analysis."
+    },
+    "075a4fe1517d1224f0bbc78f6b95167d60c0731baf24b21acad0ca1972ddff02": {
+      "last_emitted_at_ms": 1789307636426,
+      "message": "Spawning agent: Explore (inherit) | Task: Q4 approval/clarify reconnect mechanics"
+    },
+    "79a93d4a2f8f50b95f852280616242fee1855dc99a3c75211917f55e72e95fae": {
+      "last_emitted_at_ms": 1789307623482,
+      "message": "Use parallel execution for independent tasks. Use run_in_background for long operations (npm install, builds, tests)."
+    }
+  },
+  "updated_at": "2026-09-13T13:54:09.686Z"
+}
