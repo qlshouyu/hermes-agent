@@ -1,0 +1,71 @@
+{
+  "agents": [
+    {
+      "agent_id": "a2e40ae82d55e90e2",
+      "agent_type": "unknown",
+      "started_at": "2026-09-12T12:34:58.330Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T12:34:58.330Z",
+      "duration_ms": 0
+    },
+    {
+      "agent_id": "ae7ba058fa97f2be6",
+      "agent_type": "unknown",
+      "started_at": "2026-09-12T13:07:35.479Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T13:07:35.479Z",
+      "duration_ms": 0
+    },
+    {
+      "agent_id": "a9ec6b9fe0f420595",
+      "agent_type": "unknown",
+      "started_at": "2026-09-12T13:26:37.146Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T13:26:37.146Z",
+      "duration_ms": 0
+    },
+    {
+      "agent_id": "ad4b6f8d874274f7d",
+      "agent_type": "unknown",
+      "started_at": "2026-09-12T13:29:45.271Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T13:29:45.271Z",
+      "duration_ms": 0
+    },
+    {
+      "agent_id": "aecc0fd1377696766",
+      "agent_type": "unknown",
+      "started_at": "2026-09-12T13:48:08.938Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T13:48:08.938Z",
+      "duration_ms": 0
+    },
+    {
+      "agent_id": "ad2a3ee97697bb62d",
+      "agent_type": "unknown",
+      "started_at": "2026-09-12T13:51:20.724Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T13:51:20.724Z",
+      "duration_ms": 0
+    },
+    {
+      "agent_id": "a32049205cbe41b2e",
+      "agent_type": "unknown",
+      "started_at": "2026-09-12T14:29:44.416Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-09-12T14:29:44.416Z",
+      "duration_ms": 0
+    }
+  ],
+  "total_spawned": 0,
+  "total_completed": 7,
+  "total_failed": 0,
+  "last_updated": "2026-09-12T14:29:44.518Z"
+}
